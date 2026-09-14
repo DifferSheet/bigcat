@@ -28,6 +28,9 @@ jobs:
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+          # metadata (canonical / og:url / og:image) ถูกคำนวณตอน build → ต้องเป็นโดเมนจริง ไม่ใช่ localhost
+          SITE_URL: https://bigcathouse.com
+          # ห้ามตั้ง API_ORIGIN ตรงนี้ — next.config rewrites (/api → Express) ถูกฝังตอน build และต้องเป็น localhost:3001 บน EC2
 
       - name: Assemble release folder
         run: |
