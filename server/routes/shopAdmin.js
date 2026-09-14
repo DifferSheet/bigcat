@@ -15,7 +15,7 @@ const siteUrl = () => process.env.SITE_URL || 'http://localhost:5173';
 /* ---------- สินค้า ---------- */
 r.get('/products', wrap(async (_req, res) => res.json(await listProducts({ all: true }))));
 
-// สร้าง/แก้ไข: multipart (image) + field `payload` เป็น JSON { name, name_th, description, category, price, compare_price, stock, status, featured, sort, variants:[{id?, name, price_delta, stock, sku}] }
+// สร้าง/แก้ไข: multipart (image) + field `payload` เป็น JSON { name, name_th, description, category, price, compare_price, stock, status, featured, sort, variants:[{id?, name, price_delta, stock, sku, image?}] }
 async function saveProduct(req, id) {
   const p = parseJSON(req.body.payload, {});
   if (!p.name) throw new HttpError(400, 'กรุณาใส่ชื่อสินค้า');
@@ -41,7 +41,7 @@ async function saveProduct(req, id) {
       const keep = [];
       for (const [i, v] of p.variants.entries()) {
         if (!v.name) continue;
-        const vr = { product_id: id, name: String(v.name).slice(0, 80), price_delta: Math.round(Number(v.price_delta) || 0), stock: Math.max(0, Math.round(Number(v.stock) || 0)), sku: v.sku || null, sort: i };
+        const vr = { product_id: id, name: String(v.name).slice(0, 80), price_delta: Math.round(Number(v.price_delta) || 0), stock: Math.max(0, Math.round(Number(v.stock) || 0)), sku: v.sku || null, image: typeof v.image === 'string' && /^\/(uploads|images)\//.test(v.image) ? v.image.slice(0, 300) : null, sort: i };
         if (v.id && await one('SELECT id FROM product_variants WHERE id=? AND product_id=?', [v.id, id])) { await q('UPDATE product_variants SET ? WHERE id=?', [vr, v.id]); keep.push(Number(v.id)); }
         else keep.push((await q('INSERT INTO product_variants SET ?', [vr])).insertId);
       }

@@ -35,6 +35,7 @@ export async function migrate() {
     "ALTER TABLE donations ADD UNIQUE KEY uq_don_ref (trans_ref)",
     "ALTER TABLE bookings ADD COLUMN trans_ref VARCHAR(64) NULL, ADD COLUMN verified_at DATETIME NULL, ADD COLUMN verify_note VARCHAR(300) NULL, ADD COLUMN line_user_id VARCHAR(64) NULL",
     "ALTER TABLE bookings ADD UNIQUE KEY uq_bk_ref (trans_ref)",
+    "ALTER TABLE product_variants ADD COLUMN image VARCHAR(300) NULL",
     "ALTER TABLE registrations ADD COLUMN kind VARCHAR(20) NOT NULL DEFAULT 'attend', ADD COLUMN line_user_id VARCHAR(64) NULL",
   ];
   for (const sql of alters) {

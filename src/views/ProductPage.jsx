@@ -18,7 +18,8 @@ export default function ProductPage({ slug, initialProduct = null }) {
   const [shot, setShot] = useState(0);   // รูปที่กำลังแสดงในแกลเลอรี
   useEffect(() => { if (!initialProduct) api(`/shop/products/${slug}`).then(setP).catch(e => setError(e.message)); }, [slug, initialProduct]);
   useEventSocket('shop', { products: list => { const n = list.find(x => x.slug === slug); if (n) setP(n); } });
-  useEffect(() => { setShot(0); }, [slug]);
+  // เปิดหน้าสินค้าต้องเริ่มที่บนสุดเสมอ (Next เลื่อนให้เฉพาะ segment ที่เปลี่ยน ไม่ใช่ทั้งหน้า)
+  useEffect(() => { setShot(0); setVariantId(null); setQty(1); window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }, [slug]);
 
   if (error) return <><SiteHeader /><main className="ev-page"><div className="ev-hero-simple"><h1>{error}</h1><Link className="button dark" to="/shop">กลับไปร้านค้า</Link></div></main><SiteFooter /></>;
   if (!p) return <><SiteHeader /><PageLoader /></>;
@@ -28,6 +29,13 @@ export default function ProductPage({ slug, initialProduct = null }) {
   const max = variant ? variant.stock : p.stock;
   const price = variant ? variant.price : p.price;
   const canBuy = p.available && !needVariant && max > 0;
+  // ไซส์ล้วน (S/M/L/XL/2XL/ตัวเลข) ไม่ต้องย้ำว่าเลือกอะไร · สี/แบบ/ตัวละคร ต้องบอกให้ชัด (แด๊ดสั่ง 14 ก.ย.)
+  const isSizeOnly = (name) => /^\s*(xs|s|m|l|xl|xxl|\d?xl|free|f|\d+)\s*$/i.test(name || '');
+  const showChosen = variant && (variant.image || !isSizeOnly(variant.name));
+  const pickVariant = (v) => {
+    setVariantId(v.id); setQty(1);
+    if (v.image) { const i = gallery.indexOf(v.image); if (i >= 0) setShot(i); }
+  };
   const add = (go) => {
     if (!canBuy) return;
     cart.add(p, variant, qty); setAdded(true);
@@ -58,7 +66,8 @@ export default function ProductPage({ slug, initialProduct = null }) {
           <div className="price big">{baht(price)}{p.compare_price && <s>{baht(p.compare_price)}</s>}</div>
           {p.variants.length > 0 && <div className="variant-pick">
             <span className="eyebrow">เลือกแบบ</span>
-            <div className="chips">{p.variants.map(v => <button key={v.id} className={`chip ${variantId === v.id ? 'active' : ''} ${v.stock <= 0 ? 'off' : ''}`} disabled={v.stock <= 0} onClick={() => { setVariantId(v.id); setQty(1); }}>{v.name}{v.price_delta ? ` +${baht(v.price_delta)}` : ''}{v.stock <= 0 ? ' (หมด)' : ''}</button>)}</div>
+            <div className="chips">{p.variants.map(v => <button key={v.id} className={`chip ${v.image ? 'with-img' : ''} ${variantId === v.id ? 'active' : ''} ${v.stock <= 0 ? 'off' : ''}`} disabled={v.stock <= 0} aria-pressed={variantId === v.id} onClick={() => pickVariant(v)}>{v.image && <img src={v.image} alt="" loading="lazy" />}{v.name}{v.price_delta ? ` +${baht(v.price_delta)}` : ''}{v.stock <= 0 ? ' (หมด)' : ''}</button>)}</div>
+            {showChosen && <p className="variant-chosen">{variant.image && <img src={variant.image} alt="" />}<span>แบบที่เลือก: <strong>{variant.name}</strong>{variant.price_delta ? ` (+${baht(variant.price_delta)})` : ''}</span></p>}
           </div>}
           <div className="unit-row">
             <span className="eyebrow">จำนวน</span>

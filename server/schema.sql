@@ -182,6 +182,7 @@ CREATE TABLE IF NOT EXISTS product_variants (
   price_delta INT NOT NULL DEFAULT 0,
   stock INT NOT NULL DEFAULT 0,
   sku VARCHAR(60) NULL,
+  image VARCHAR(300) NULL,
   sort INT NOT NULL DEFAULT 0,
   CONSTRAINT fk_var_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
