@@ -29,6 +29,8 @@ Production: `npm run build` แล้ว `npm start` (รัน `next start` + E
 ### ตรวจสลิปอัตโนมัติ (`server/slip.js`)
 `.env` → `SLIP_PROVIDER=none|mock|slipok|easyslip` · `mock` ผ่านทุกสลิป (ทดสอบบนเครื่อง) · SlipOK ฟรี 100 สลิป/เดือน ต้องใส่ `SLIP_API_KEY` + `SLIP_BRANCH_ID` · EasySlip ใส่ `SLIP_API_KEY`
 เงื่อนไขอนุมัติอัตโนมัติ: ยอดในสลิป ≥ ที่แจ้ง, ชื่อผู้รับตรง `SLIP_RECEIVER_NAME` (ถ้าตั้ง), เลขอ้างอิงไม่ซ้ำ, สลิปไม่เก่ากว่า `SLIP_MAX_AGE_DAYS` — ไม่ผ่านข้อใดจะเป็น `pending` พร้อม `verify_note` ให้ทีมงานดูใน `/admin`
+**ตาข่ายชั้นสอง (ค่าเริ่มต้น)**: `SLIP_AUTO_APPROVE` ไม่ตั้ง/`false` → ต่อให้ตรวจผ่าน รายการยังเป็น `pending` (บันทึก `trans_ref`+`verified_at` ไว้แล้ว กันสลิปซ้ำ) ให้แอดมินกดอนุมัติเองทุกใบ · มั่นใจแล้วค่อยตั้ง `SLIP_AUTO_APPROVE=true`
+ถ้า `SLIP_PROVIDER=slipok` แต่ยังไม่ใส่ key → ไม่ยิง API, ทุกรายการเป็น `pending` พร้อมโน้ต «รอตั้งค่า slipok» · สลิปที่ `trans_ref` ซ้ำของเดิมจะได้ 409 «สลิปใบนี้ถูกใช้ยืนยันไปแล้ว»
 
 ### LINE Messaging API (`server/line.js`)
 1. สร้าง LINE Official Account → เปิด Messaging API → ใส่ `LINE_CHANNEL_ACCESS_TOKEN`, `LINE_CHANNEL_SECRET`, `LINE_OA_ID`
@@ -102,6 +104,10 @@ build บน runner arm64 → rsync โฟลเดอร์ `release/` ไป `
 **ครั้งแรกบน EC2** (ทำครั้งเดียว): ติดตั้ง Node 20 + pm2 · สร้าง user `deploy` ที่เขียน `/var/www/bigcat` ได้ ·
 สร้าง `/var/www/bigcat/.env` ด้วยมือ (rsync ไม่แตะไฟล์นี้) · สร้าง DB `bigcat` แล้วรัน `node server/seed.js` จากโฟลเดอร์ release ·
 `pm2 startup` แล้ว `pm2 save`
+
+**แก้ `.env` บน EC2 แล้วต้องสร้างโปรเซสใหม่** — pm2 จำ env ตอน start ครั้งแรกไว้ และ dotenv ไม่ทับค่าที่มีอยู่แล้ว
+`pm2 restart --update-env` จึง**ไม่**เห็นค่าใหม่: `cd /var/www/bigcat && pm2 delete bigcat-api && pm2 start ecosystem.config.cjs --only bigcat-api && pm2 save`
+(ทำแบบเดียวกันกับ `bigcat-web` ถ้าแก้ค่าที่ Next ใช้)
 
 **Secrets ใน GitHub** (Settings → Secrets → Actions): `EC2_HOST` · `EC2_USER` · `EC2_SSH_KEY` · `EC2_KNOWN_HOSTS`
 โฟลเดอร์ `server/uploads/` (สลิป) ถูก exclude จาก rsync — ไม่ถูกลบตอน deploy
