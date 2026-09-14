@@ -1,0 +1,27 @@
+name: CI
+
+# ด่านตรวจก่อนถึง prod — รันทุก PR และทุก branch ที่ไม่ใช่ main
+# ผ่านที่นี่ก่อน ค่อย merge เข้า main แล้ว deploy.yml จะเอาขึ้น prod ให้
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint --if-present
+      - name: Build (ต้อง build ผ่านบน arm64 เหมือน prod)
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+      - name: API syntax check
+        run: node --check server/index.js && node --check server/seed.js
