@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from '../lib/nav.jsx';
 import { SiteHeader, SiteFooter, Notice, LineNotify } from '../components/EventShell.jsx';
 import { Icon, PageLoader } from '../components/ui.jsx';
+import { FileDrop } from '../components/forms.jsx';
 import { api } from '../lib/api.js';
 import { baht } from '../lib/format.js';
 
@@ -63,7 +64,7 @@ export default function OrderPage({ code }) {
       {o.status === 'pending' && <section className="order-box">
         <span className="eyebrow">ชำระเงิน</span>
         <p>{o.slip_path ? `แนบสลิปแล้ว รอทีมงานตรวจสอบ${o.verify_note ? ` (${o.verify_note})` : ''}` : 'ยังไม่ได้แนบสลิป โอนแล้วแนบได้ที่นี่'}</p>
-        <form className="booking-form inline" onSubmit={uploadSlip}><label>สลิปโอนเงิน {baht(o.total)}<input type="file" accept="image/*" onChange={e => setSlip(e.target.files?.[0] || null)} /></label><div className="form-actions"><button className="button dark small" disabled={!slip || busy}>ส่งสลิป</button></div></form>
+        <form className="booking-form inline" onSubmit={uploadSlip}><FileDrop file={slip} onChange={setSlip} label={`สลิปโอนเงิน ${baht(o.total)}`} /><div className="form-actions"><button className="button dark small" disabled={!slip || busy}>ส่งสลิป</button></div></form>
         {msg && <Notice>{msg}</Notice>}
       </section>}
 

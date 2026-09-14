@@ -18,3 +18,7 @@ preview-mobile.png
 bigcat-website-preview.png
 index-original.html
 tools/_originals/
+.env.bak*
+
+# Finder temp files (.!<pid>!<name>)
+.!*!*

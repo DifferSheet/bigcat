@@ -32,15 +32,20 @@ export default function CartPage() {
         : <div className="cart-layout">
           <ul className="cart-lines">{items.map(i => <li key={i.key} className="cart-line">
             <img src={i.image || '/images/bigcat-merch.png'} alt="" />
-            <div className="cart-line-info"><Link to={`/shop/${i.slug}`}><strong>{i.name}</strong></Link>{i.variantName && <span className="muted"> · {i.variantName}</span>}<p className="muted">{baht(i.price)} / ชิ้น{i.max ? ` · เหลือ ${i.max}` : ''}</p></div>
+            <div className="cart-line-info">
+              <Link to={`/shop/${i.slug}`}><strong>{i.name}</strong></Link>
+              {i.variantName && <span className="muted variant">{i.variantName}</span>}
+              <p className="muted">{baht(i.price)} / ชิ้น</p>
+            </div>
             <div className="quantity"><button aria-label="ลด" onClick={() => cart.setQty(i.key, i.qty - 1)}><Icon name="minus" size={14} /></button><span>{i.qty}</span><button aria-label="เพิ่ม" onClick={() => cart.setQty(i.key, i.qty + 1)} disabled={i.max && i.qty >= i.max}><Icon name="plus" size={14} /></button></div>
-            <strong className="cart-line-total">{baht(i.price * i.qty)}</strong>
-            <button className="link-button" onClick={() => cart.remove(i.key)} aria-label={`ลบ ${i.name}`}>ลบ</button>
+            <div className="cart-line-end">
+              <strong className="cart-line-total">{baht(i.price * i.qty)}</strong>
+              <button className="link-button" onClick={() => cart.remove(i.key)} aria-label={`ลบ ${i.name}`}>ลบ</button>
+            </div>
           </li>)}</ul>
           <aside className="cart-side">
             <CartSummary subtotal={subtotal} settings={settings} />
             <Link className="button dark" to="/checkout">ไปชำระเงิน <Icon name="arrow" /></Link>
-            {settings?.pickup?.enabled && <small className="muted">เลือกรับหน้างานได้ในขั้นตอนถัดไป (ไม่มีค่าส่ง)</small>}
           </aside>
         </div>}
     </main>

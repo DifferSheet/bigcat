@@ -1,0 +1,45 @@
+/* ---------- Design tokens: แหล่งเดียวของสี · ระยะ · มุมโค้ง · เงา (โหลดก่อนทุกไฟล์) ----------
+   หน้าแรก (.hm) มีชุดสีของตัวเองซ้อนทับใน home.css/cozy.css */
+:root {
+  /* พื้นผิว */
+  --cream: #fcf8f1;        /* พื้นหลังหน้า */
+  --paper: #fffaf3;        /* การ์ด / กล่อง */
+  --sand: #efe7dc;         /* hover · พื้นรูปยังไม่โหลด · แถบ progress */
+  --sand-2: #f0e8dc;       /* กล่องข้อความจาง ๆ (notice, pay-box) */
+  --line: #e8e1d6;         /* เส้นขอบ */
+  --line-strong: #d8d2c8;  /* เส้นขอบเข้ม · ที่นั่งจองแล้ว */
+  /* หมึก */
+  --ink: #33332f;
+  --muted: #8c7460;        /* ข้อความรอง */
+  --muted-2: #7d7062;      /* คำอธิบาย/hint */
+  --muted-3: #958779;      /* หมายเหตุเล็ก ๆ */
+  /* สีแบรนด์ */
+  --pink: #df8190;
+  --pink-soft: #f0b3b9;
+  --pink-pale: #f2c7c8;    /* selection · ขอบ milestone */
+  --pink-tint: #fbe1e4;    /* ที่นั่ง VIP · แถบโพล */
+  --pink-wash: #fff1ef;    /* พื้นจางที่สุด */
+  --yellow-soft: #f2d492;
+  --yellow-wash: #fff8e6;
+  --sage-soft: #d9dfc9;
+  --sage-wash: #f1f5ea;
+  /* สถานะ */
+  --ok: #5f9a6b;
+  --ok-text: #3d6a3f;
+  --warn: #c9812f;
+  --danger: #8c3131;
+  --line-green: #06c755;   /* LINE brand */
+  /* มุมโค้ง */
+  --r-sm: 12px;            /* input · รูปเล็ก */
+  --r-md: 16px;            /* การ์ดแถว */
+  --r-lg: 20px;            /* กล่องข้าง */
+  --r-xl: 24px;            /* การ์ดใหญ่ · modal */
+  --r-pill: 100px;         /* ปุ่ม · badge */
+  /* เงา */
+  --shadow-pop: 0 14px 30px #4a37241a;   /* dropdown · popover */
+  --shadow-card: 0 5px 20px #7b503218;   /* การ์ดลอย */
+  --shadow-press: 0 7px 0 #33332f15;     /* ปุ่มตอน hover */
+  /* ระยะ */
+  --gutter: 5.2%;          /* ขอบซ้าย-ขวาของหน้า */
+  --header-h: 86px;
+}

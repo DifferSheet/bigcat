@@ -20,10 +20,22 @@
 .party-sparkles span { position: absolute; left: var(--x); top: var(--y); width: 5px; height: 5px; border-radius: 50%; background: #fff1c7; box-shadow: 0 0 13px 3px #ffe6a78c; animation: party-glimmer 5s ease-in-out infinite alternate; }
 .party-sparkles span:nth-child(3n) { animation-delay: -2s; width: 3px; height: 3px; }
 .party-sparkles span:nth-child(3n + 1) { animation-delay: -4s; }
-@keyframes party-glimmer { from { opacity: .1; transform: translateY(10px); } to { opacity: .8; transform: translateY(-14px); } }
-@keyframes party-arrow { 50% { transform: translateY(4px); } }
-@keyframes party-arrive { from { opacity: 0; translate: 0 16px; } to { opacity: 1; translate: 0 0; } }
-@media (max-width: 1100px) and (orientation: landscape) { .party-copy { width: 38%; } .hm .party-copy h1 { font-size: 36px; } .party-copy p { font-size: 13px; } }
+@keyframes party-glimmer {
+  from { opacity: .1; transform: translateY(10px); }
+  to { opacity: .8; transform: translateY(-14px); }
+}
+@keyframes party-arrow {
+  50% { transform: translateY(4px); }
+}
+@keyframes party-arrive {
+  from { opacity: 0; translate: 0 16px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@media (max-width: 1100px) and (orientation: landscape) {
+  .party-copy { width: 38%; }
+  .hm .party-copy h1 { font-size: 36px; }
+  .party-copy p { font-size: 13px; }
+}
 @media (max-width: 900px) and (orientation: portrait) {
   .party-hero { align-items: flex-start; min-height: 650px; }
   .party-scene img { object-position: center 70%; }
@@ -43,10 +55,23 @@
   .party-copy { padding-top: clamp(22px, 5svh, 45px); }
   .party-scroll { padding: 6px 15px; font-size: 10px; bottom: 14px; }
 }
-@media (max-height: 700px) and (orientation: portrait) { .party-copy { padding-top: 20px; } .party-eyebrow { margin-bottom: 9px; font-size: 7px; } .hm .party-copy h1 { font-size: 30px; } .party-copy p { margin: 10px 0 12px; font-size: 11px; } }
+@media (max-height: 700px) and (orientation: portrait) {
+  .party-copy { padding-top: 20px; }
+  .party-eyebrow { margin-bottom: 9px; font-size: 7px; }
+  .hm .party-copy h1 { font-size: 30px; }
+  .party-copy p { margin: 10px 0 12px; font-size: 11px; }
+}
 @media (max-width: 600px) and (max-aspect-ratio: 9/16) {
   .party-scene { background: #e8d0b7; }
   .party-scene img { object-fit: contain; object-position: center bottom; transform: translate3d(0, var(--cozy-y, 0px), 0); mask-image: linear-gradient(180deg, transparent, #000 18%); }
 }
-@media (max-height: 600px) and (orientation: landscape) { .party-hero { min-height: 400px; } .party-copy { padding-block: 20px 45px; } .party-eyebrow { margin-bottom: 12px; } .party-hand { display: none; } }
-@media (prefers-reduced-motion: reduce) { .party-copy, .party-scroll > span:last-child, .party-sparkles span { animation: none; } .party-sparkles { display: none; } }
+@media (max-height: 600px) and (orientation: landscape) {
+  .party-hero { min-height: 400px; }
+  .party-copy { padding-block: 20px 45px; }
+  .party-eyebrow { margin-bottom: 12px; }
+  .party-hand { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .party-copy, .party-scroll > span:last-child, .party-sparkles span { animation: none; }
+  .party-sparkles { display: none; }
+}

@@ -1,7 +1,9 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useUser, prefillFrom } from '../lib/auth.js';
 import { Link } from '../lib/nav.jsx';
 import { Section, Notice } from '../components/EventShell.jsx';
+import { PhoneInput } from '../components/forms.jsx';
 import { Icon } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 
@@ -10,6 +12,8 @@ export default function SimpleRegister({ data }) {
   const { event: ev, registrations } = data;
   const capacity = ev.config.capacity;
   const [form, setForm] = useState({ name: '', phone: '' });
+  const { user } = useUser();
+  useEffect(() => { setForm(f => prefillFrom(user, f, { name: 'display_name', phone: 'phone' })); }, [user]);
   const [done, setDone] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -25,7 +29,7 @@ export default function SimpleRegister({ data }) {
         : taken >= capacity ? <Notice tone="muted">เต็มแล้ว</Notice>
           : <form className="booking-form" onSubmit={submit}>
             <label>ชื่อ<input id="sr-name" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>
-            <label>เบอร์โทร<input id="sr-phone" required inputMode="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></label>
+            <label>เบอร์โทร<PhoneInput id="sr-phone" required value={form.phone} onChange={phone => setForm({ ...form, phone })} /></label>
             {error && <Notice tone="error">{error}</Notice>}
             <div className="form-actions"><button className="button dark" disabled={busy}>ลงทะเบียน <Icon name="arrow" /></button></div>
           </form>}

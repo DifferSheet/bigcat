@@ -35,3 +35,8 @@
 * แก้ `.env` บน EC2 แล้วต้อง `pm2 delete` + `pm2 start ecosystem.config.cjs --only <app>` + `pm2 save`
   (`pm2 restart --update-env` **ไม่**เห็นค่าใหม่ เพราะ pm2 จำ env ตอน start ครั้งแรก และ dotenv ไม่ทับ)
 * ตรวจสลิป: `SLIP_PROVIDER=slipok` + `SLIP_AUTO_APPROVE=false` = ตรวจแล้วยังรอแอดมินกดยืนยัน (ตาข่ายชั้นสอง) — เปิด auto เมื่อแด๊ดสั่งเท่านั้น
+
+## CSS — ไม่มี framework เขียนเอง (จัดระเบียบ 15 ก.ย. 2026)
+* **สี/มุมโค้ง/เงา ใช้ token จาก `src/tokens.css` เท่านั้น** (`var(--sand)`, `var(--r-md)`, `var(--shadow-pop)` …) — ห้ามใส่ hex ใหม่ใน CSS นอกจากเป็นสีเฉพาะจุดจริง ๆ · หน้าแรก `.hm` มีชุดสีของตัวเองใน `home.css`/`cozy.css`
+* ไฟล์แบ่งตามส่วนงาน: `styles.css` base+header · `event.css` กิจกรรม/บัตร/แอดมิน · `forms.css` ฟอร์ม/ที่อยู่/แนบไฟล์ · `shop.css` ร้าน/ตะกร้า/คำสั่งซื้อ · `account.css` สมาชิก — ใส่ rule ใหม่ให้ถูกไฟล์ ไม่ต่อท้าย `event.css`
+* รูปแบบ: **rule ละบรรทัด** `.sel { a: b; c: d; }` · `@media` เป็นบล็อกย่อหน้า 2 ช่อง · ห้าม minify ลง repo

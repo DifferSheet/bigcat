@@ -8,7 +8,8 @@
 .hm-btn { display: inline-flex; align-items: center; gap: 14px; padding: 15px 30px; border-radius: 100px; background: var(--pink); color: #fff; font-family: var(--font-head); font-size: 15px; font-weight: 500; transition: transform .2s, box-shadow .2s; box-shadow: 0 10px 24px -12px #df819088; }
 .hm-btn:hover { transform: translateY(-2px); }
 .hm-btn.light { background: #fff1f1; color: var(--brown); box-shadow: none; font-family: var(--font-display); letter-spacing: .12em; font-size: 13px; }
-.hm-btn span { transition: transform .2s; } .hm-btn:hover span { transform: translateX(4px); }
+.hm-btn span { transition: transform .2s; }
+.hm-btn:hover span { transform: translateX(4px); }
 
 /* header */
 .hm-header { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 24px; height: 78px; margin: 0 clamp(-16px, -4vw, -52px); padding: 0 clamp(16px, 4vw, 52px); background: #fcf8f1ee; backdrop-filter: blur(16px); }
@@ -33,7 +34,9 @@
 .hm-hand-2 { position: absolute; right: 8px; top: 24px; text-align: right; }
 .hm-sign { position: absolute; left: -18px; bottom: 26px; background: #fffaf3; border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; font-family: var(--font-display); font-size: 12px; letter-spacing: .16em; line-height: 1.5; color: #8d8174; box-shadow: 0 14px 30px -18px #0004; transform: rotate(-3deg); }
 .hm-flower { position: absolute; color: #fff; opacity: .9; pointer-events: none; }
-.hm-flower-1 { width: 60px; left: -30px; top: 40%; } .hm-flower-2 { width: 46px; right: -14px; bottom: 60px; } .hm-flower-3 { width: 70px; left: 42%; bottom: -20px; color: #fff; }
+.hm-flower-1 { width: 60px; left: -30px; top: 40%; }
+.hm-flower-2 { width: 46px; right: -14px; bottom: 60px; }
+.hm-flower-3 { width: 70px; left: 42%; bottom: -20px; color: #fff; }
 
 /* section heads */
 .hm-section { padding: 34px 0; }
@@ -46,7 +49,8 @@ a.hm-note:hover { text-decoration: underline; text-underline-offset: 4px; }
 .hm-chars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
 .hm-char { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; text-align: left; padding: 30px 26px 0 0; min-height: 300px; border-radius: 170px 170px 26px 26px; background: var(--pink-card); transition: transform .25s, box-shadow .25s; overflow: hidden; position: relative; }
 .hm-char:hover { transform: translateY(-6px); box-shadow: 0 30px 50px -36px #5a3a2a77; }
-.hm-char.tone-yellow { background: var(--yellow-card); } .hm-char.tone-sage { background: var(--sage-card); }
+.hm-char.tone-yellow { background: var(--yellow-card); }
+.hm-char.tone-sage { background: var(--sage-card); }
 .hm-char-img { align-self: end; height: 300px; }
 .hm-char-img img { width: 100%; height: 100%; object-fit: cover; object-position: center top; border-radius: 120px 120px 0 0; display: block; }
 .hm-char-text { display: flex; flex-direction: column; gap: 8px; padding-bottom: 30px; align-self: center; }
@@ -85,7 +89,8 @@ a.hm-note:hover { text-decoration: underline; text-underline-offset: 4px; }
 .hm-product-img img { width: 100%; height: 100%; object-fit: cover; }
 .hm-tag { position: absolute; left: 10px; top: 10px; background: var(--brown); color: #fff; font-size: 11px; padding: 3px 9px; border-radius: 100px; }
 .hm-product-info { display: flex; justify-content: space-between; gap: 10px; padding: 12px 14px 14px; align-items: flex-end; }
-.hm-product h3 { font-size: 15px; } .hm-product p { font-size: 12px; color: #8d8174; }
+.hm-product h3 { font-size: 15px; }
+.hm-product p { font-size: 12px; color: #8d8174; }
 .hm-product-buy { display: flex; align-items: center; gap: 6px; font-family: var(--font-display); font-size: 16px; color: var(--brown); }
 .hm-product-buy .icon-button { width: 34px; height: 34px; background: var(--pink-card); }
 
@@ -110,26 +115,55 @@ a.hm-note:hover { text-decoration: underline; text-underline-offset: 4px; }
 
 /* modal portrait */
 .hm-modal-portrait { border-radius: 120px 120px 16px 16px; overflow: hidden; aspect-ratio: 4/5; max-height: 320px; background: #f6d9dc; margin: 8px 0 14px; }
-.hm-modal-portrait.tone-yellow { background: #f8e8c8; } .hm-modal-portrait.tone-sage { background: #e2e9d6; }
+.hm-modal-portrait.tone-yellow { background: #f8e8c8; }
+.hm-modal-portrait.tone-sage { background: #e2e9d6; }
 .hm-modal-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 
 /* reveal */
 .hm .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease var(--delay, 0ms), transform .6s ease var(--delay, 0ms); }
 .hm .reveal.is-visible { opacity: 1; transform: none; }
-@media (prefers-reduced-motion: reduce) { .hm .reveal { opacity: 1; transform: none; transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .hm .reveal { opacity: 1; transform: none; transition: none; }
+}
 
 /* responsive */
-@media (max-width: 1100px) { .hm-events { grid-template-columns: 1fr 1fr; } .hm-events-copy { grid-column: 1 / -1; } .hm-products { grid-template-columns: repeat(2, 1fr); } .hm-album { grid-template-columns: 1fr; } .hm-sticky { justify-self: center; width: 200px; } }
+@media (max-width: 1100px) {
+  .hm-events { grid-template-columns: 1fr 1fr; }
+  .hm-events-copy { grid-column: 1 / -1; }
+  .hm-products { grid-template-columns: repeat(2, 1fr); }
+  .hm-album { grid-template-columns: 1fr; }
+  .hm-sticky { justify-self: center; width: 200px; }
+}
 @media (max-width: 900px) {
-  .hm-hero { grid-template-columns: 1fr; padding-top: 10px; } .hm-hero-art { order: -1; } .hm-arch { border-radius: 160px 160px 24px 24px; }
-  .hm-chars { grid-template-columns: 1fr; } .hm-char { min-height: 240px; padding-top: 16px; } .hm-char-img { height: 240px; }
-  .hm-merch { grid-template-columns: 1fr; } .hm-merch-art { aspect-ratio: 4/3; }
-  .hm-footer { grid-template-columns: 1fr; text-align: center; gap: 18px; } .hm-footer-hand { text-align: center; } .hm-social { justify-content: center; } .hm-footer-brand { align-items: center; }
+  .hm-hero { grid-template-columns: 1fr; padding-top: 10px; }
+  .hm-hero-art { order: -1; }
+  .hm-arch { border-radius: 160px 160px 24px 24px; }
+  .hm-chars { grid-template-columns: 1fr; }
+  .hm-char { min-height: 240px; padding-top: 16px; }
+  .hm-char-img { height: 240px; }
+  .hm-merch { grid-template-columns: 1fr; }
+  .hm-merch-art { aspect-ratio: 4/3; }
+  .hm-footer { grid-template-columns: 1fr; text-align: center; gap: 18px; }
+  .hm-footer-hand { text-align: center; }
+  .hm-social { justify-content: center; }
+  .hm-footer-brand { align-items: center; }
   .hm-nav { position: fixed; inset: 78px 0 auto 0; flex-direction: column; align-items: stretch; gap: 0; background: #fcf8f1; border-bottom: 1px solid var(--line); padding: 10px 24px 18px; transform: translateY(-120%); opacity: 0; transition: transform .25s, opacity .25s; }
-  .hm-nav.open { transform: none; opacity: 1; } .hm-nav a { padding: 12px 0; border-bottom: 1px dashed var(--line); }
+  .hm-nav.open { transform: none; opacity: 1; }
+  .hm-nav a { padding: 12px 0; border-bottom: 1px dashed var(--line); }
   .hm-menu { display: inline-flex; }
 }
-@media (max-width: 640px) { .hm-events { grid-template-columns: 1fr; } .hm-event { grid-template-columns: 120px 1fr; } .hm-products { grid-template-columns: 1fr 1fr; gap: 10px; } .hm-polaroids { flex-direction: column; } .hm-polaroid { max-width: 260px; } .hm-sign { left: 6px; bottom: 10px; padding: 10px 12px; font-size: 10px; } .hm-hand-2 { display: none; } .hm-hand-1 { margin-left: 20px; } .brand-word { font-size: 22px; } }
+@media (max-width: 640px) {
+  .hm-events { grid-template-columns: 1fr; }
+  .hm-event { grid-template-columns: 120px 1fr; }
+  .hm-products { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hm-polaroids { flex-direction: column; }
+  .hm-polaroid { max-width: 260px; }
+  .hm-sign { left: 6px; bottom: 10px; padding: 10px 12px; font-size: 10px; }
+  .hm-hand-2 { display: none; }
+  .hm-hand-1 { margin-left: 20px; }
+  .brand-word { font-size: 22px; }
+}
+
 /* polaroid: คง tilt ไว้แม้ใช้ reveal */
 .hm .hm-polaroid.reveal { transform: rotate(var(--tilt)) translateY(14px); }
 .hm .hm-polaroid.reveal.is-visible { transform: rotate(var(--tilt)); }

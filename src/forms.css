@@ -1,0 +1,87 @@
+/* ---------- ฟอร์ม: booking-form · pay-box · chips · ตัวเลือกจัดส่ง · ที่อยู่ · แนบไฟล์ ---------- */
+.booking-form { display: flex; flex-direction: column; gap: 14px; max-width: 560px; }
+.booking-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; }
+.booking-form label.check { flex-direction: row; align-items: center; gap: 10px; font-weight: 500; }
+.booking-form input:not([type=checkbox]), .booking-form select, .ticket-lookup input, .scan-box input, .song-form input { width: 100%; padding: 12px 14px; border-radius: var(--r-sm); border: 1px solid var(--line); background: #fff; font-size: 15px; color: var(--ink); }
+.booking-form input:focus, .booking-form select:focus, .ticket-lookup input:focus, .scan-box input:focus, .song-form input:focus { outline: 2px solid var(--pink); outline-offset: 1px; border-color: transparent; }
+.booking-form input[type=file] { padding: 10px; font-size: 13px; background: var(--paper); }
+.booking-form .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 6px; }
+.form-actions .button { margin: 0; }
+.pay-box { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: var(--r-sm); background: var(--sand-2); font-size: 13px; color: var(--muted); }
+.pay-box strong { font-family: var(--font-display); font-size: 24px; letter-spacing: .06em; color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: var(--r-pill); background: #fff; border: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+.chip small { color: var(--muted); font-weight: 400; }
+.chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.pay-box.with-qr { flex-direction: row; align-items: center; gap: 18px; background: #fff; border: 1px solid var(--line); }
+.pay-qr { width: 150px; height: 150px; border-radius: var(--r-sm); border: 1px solid var(--line); background: #fff; padding: 6px; flex-shrink: 0; }
+.pay-info { display: flex; flex-direction: column; gap: 4px; }
+.pay-name { font-family: var(--font-head); font-size: 16px; color: var(--ink); }
+@media (max-width: 480px) {
+  .pay-box.with-qr { flex-direction: column; align-items: flex-start; }
+  .pay-qr { width: 200px; height: 200px; }
+}
+
+/* ---------- การ์ดจัดส่ง (checkout) — ข้อมูลอย่างเดียว ไม่ใช่ตัวเลือก ---------- */
+.delivery-card { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-radius: var(--r-md); border: 1.5px solid var(--line); background: #fff; }
+.delivery-card > svg { color: var(--pink); flex-shrink: 0; }
+.delivery-card span { display: flex; flex-direction: column; gap: 2px; }
+.delivery-card strong { font-size: 14px; }
+.delivery-card small { color: var(--muted); font-size: 12px; }
+/* (ตัวเลือกแบบ radio เดิม — ยังใช้ที่อื่นได้) */
+.delivery-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.delivery-opt { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; border: 1.5px solid var(--line); background: #fff; cursor: pointer; font-weight: 500 !important; }
+.delivery-opt.active { border-color: var(--ink); }
+.delivery-opt input { margin-top: 4px; }
+.delivery-opt span { display: flex; flex-direction: column; gap: 2px; }
+.delivery-opt small { color: var(--muted); font-weight: 400; }
+
+/* responsive */
+@media (max-width: 640px) {
+  .booking-form .two, .booking-form .three { grid-template-columns: 1fr; }
+  .delivery-pick { grid-template-columns: 1fr; }
+}
+
+/* ---------- ฟอร์มที่อยู่ (ค้นหา + dropdown ต่อกัน) ---------- */
+.addr { display: flex; flex-direction: column; gap: 14px; }
+.addr-search { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.addr-search > label { display: flex; flex-direction: column; gap: 2px; font-size: 13px; font-weight: 600; }
+.addr-search > label small { font-weight: 400; font-size: 12px; }
+.addr-search-box { position: relative; }
+.addr-search-box svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.booking-form .addr-search-box input { padding-left: 40px; }
+.addr-hits { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: 6px 0 0; padding: 6px; list-style: none; background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-pop); max-height: 300px; overflow: auto; }
+.addr-hits li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 9px 12px; border-radius: 10px; font-size: 13px; cursor: pointer; }
+.addr-hits li span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.addr-hits li b { font-family: var(--font-display); font-weight: 700; color: var(--pink); }
+.addr-hits li.hi, .addr-hits li:hover { background: #f6efe4; }
+.addr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+.booking-form .addr-grid select:disabled, .booking-form .addr-grid input[readonly] { background: #f6f1e9; color: var(--muted-2); cursor: default; }
+.addr-preview { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: -4px 0 0; }
+.addr-preview svg { color: var(--pink); flex-shrink: 0; }
+@media (max-width: 640px) {
+  .addr-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- แนบไฟล์แบบลากวาง ---------- */
+.file-drop-wrap { display: flex; flex-direction: column; gap: 6px; }
+.file-drop-label { font-size: 13px; font-weight: 600; }
+.file-drop { position: relative; border: 1.5px dashed #d9cdbd; border-radius: var(--r-md); background: var(--paper); transition: border-color .2s, background .2s, transform .2s; }
+.file-drop:hover, .file-drop.over { border-color: var(--pink); background: #fff6f4; }
+.file-drop.over { transform: scale(1.01); }
+.file-drop.has-file { border-style: solid; border-color: var(--line); background: #fff; }
+.file-drop input[type=file] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.file-drop.has-file input[type=file] { pointer-events: none; }
+.file-drop-empty { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 26px 18px; text-align: center; cursor: pointer; font-weight: 500 !important; }
+.file-drop-empty strong { font-size: 14px; }
+.file-drop-empty .muted { font-size: 12px; font-weight: 400; }
+.file-drop-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #fbe3e5; color: #c25b6b; margin-bottom: 6px; }
+.file-drop-preview { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px; }
+.file-drop-preview img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.file-drop-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; }
+.file-drop-meta strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-drop-meta .muted { font-size: 12px; }
+.file-drop-actions { display: flex; gap: 4px; position: relative; z-index: 1; }
+.file-drop-actions .link-button { cursor: pointer; display: inline; font-weight: 500; }

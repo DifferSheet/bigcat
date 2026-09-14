@@ -1,8 +1,14 @@
 import React from 'react';
 import { Anuphan, Fredoka, Mitr, Caveat } from 'next/font/google';
 import { SITE, jsonLd, orgSchema } from '@/lib/seo.js';
-import '@/styles.css';
-import '@/event.css';
+import '@/tokens.css';    // design tokens — ต้องมาก่อนทุกไฟล์
+import '@/styles.css';    // base · header/footer · ปุ่ม
+import '@/event.css';     // ระบบกิจกรรม · บัตร · แอดมิน
+import '@/forms.css';     // ฟอร์ม · ที่อยู่ · แนบไฟล์
+import '@/shop.css';      // ร้านค้า · ตะกร้า · คำสั่งซื้อ
+import '@/account.css';   // สมาชิก / login
+import ScrollManager from '@/components/ScrollManager.jsx';
+import CookieConsent from '@/components/CookieConsent.jsx';
 
 // ฟอนต์โหลดผ่าน next/font — self-host อัตโนมัติ ไม่มี layout shift และไม่ยิง Google ตอน runtime
 const anuphan = Anuphan({ subsets: ['thai', 'latin'], weight: ['400', '500', '600', '700'], variable: '--font-body', display: 'swap' });
@@ -27,7 +33,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="th" className={`${anuphan.variable} ${mitr.variable} ${fredoka.variable} ${caveat.variable}`}>
       <body>
+        <ScrollManager />
         {children}
+        <CookieConsent />
         <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(orgSchema())} />
       </body>
     </html>

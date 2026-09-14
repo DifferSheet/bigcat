@@ -1,7 +1,9 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useUser, prefillFrom } from '../lib/auth.js';
 import { Link } from '../lib/nav.jsx';
 import { Section, Notice } from '../components/EventShell.jsx';
+import { PhoneInput } from '../components/forms.jsx';
 import { Icon } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 
@@ -13,6 +15,8 @@ export default function BuskingRegister({ data }) {
   // ปิดส่วนขอเพลงได้ต่องาน: config.songs = { enabled: false }
   const songsEnabled = ev.config.songs?.enabled !== false;
   const [form, setForm] = useState({ name: '', nickname: '', social: '', phone: '' });
+  const { user } = useUser();
+  useEffect(() => { setForm(f => prefillFrom(user, f, { name: 'display_name', phone: 'phone' })); }, [user]);
   const [mine, setMine] = useState(null);       // การลงทะเบียนของเบราว์เซอร์นี้
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -72,7 +76,7 @@ export default function BuskingRegister({ data }) {
             <p className="muted">ฟรี ไม่จำกัดจำนวน ลงทะเบียนแล้วเช็คอินหน้างานเพื่อลุ้น Lucky Fan ถ่ายรูปคู่กับโนบิ ({rounds} รางวัล)</p>
             <label>ชื่อ<input id="rg-name" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>
             <div className="two"><label>ชื่อเล่น (ที่จะประกาศตอนสุ่ม)<input id="rg-nick" value={form.nickname} onChange={e => setForm({ ...form, nickname: e.target.value })} /></label><label>IG / TikTok<input id="rg-social" value={form.social} onChange={e => setForm({ ...form, social: e.target.value })} placeholder="@" /></label></div>
-            <label>เบอร์โทร (ถ้ามี)<input id="rg-phone" inputMode="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></label>
+            <label>เบอร์โทร (ถ้ามี)<PhoneInput id="rg-phone" value={form.phone} onChange={phone => setForm({ ...form, phone })} /></label>
             {error && <Notice tone="error">{error}</Notice>}
             <div className="form-actions"><button className="button dark" disabled={busy}>{busy ? 'กำลังลงทะเบียน…' : 'ลงทะเบียน'} <Icon name="arrow" /></button></div>
           </form>}
