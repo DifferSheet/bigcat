@@ -11,8 +11,7 @@
     "start": "concurrently -n web,api -c cyan,magenta \"npm:start:web\" \"npm:start:api\"",
     "start:web": "next start -p ${WEB_PORT:-3100}",
     "start:api": "node server/index.js",
-    "db:seed": "node server/seed.js",
-    "lint": "next lint"
+    "db:seed": "node server/seed.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
