@@ -13,8 +13,6 @@ import '../housewarming.css';
 import { useCozyMotion } from '../lib/cozy-motion.js';
 
 const HERO = '/images/cozy/hero.png';
-const POSTER_EVENT = '/events/nobi-busking-26sep-2026';   // โปสเตอร์ฮีโร่ชี้ไปงาน 26 ก.ย.
-const POSTER_ALT = 'โปสเตอร์ NobiBigcat ร้องสดทุกเพลง — ครั้งแรกในร่างใหม่ เสาร์ 26 ก.ย. 69 เวลา 19:00–21:00 น. ตลาดเลียบด่วนแดนเนรมิต BTS ห้าแยกลาดพร้าว ทางออก 4 เข้าฟรี';
 const MERCH = '/images/bigcat-merch.png';
 const MERCH_DISPLAY = '/images/bigcat-merch-pink-v4.webp';
 const characterImage = id => `/images/cozy/${id}-personality-v2.png`;
@@ -97,7 +95,11 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
 
     <main id="main">
       {/* ---------- HERO ---------- */}
-      <section className="party-hero party-hero--poster" aria-labelledby="hero-title">
+      <section className="party-hero" aria-labelledby="hero-title">
+        <picture className="party-scene">
+          <source media="(max-width: 900px) and (orientation: portrait)" srcSet="/images/cozy/housewarming-fresh-mobile.png" />
+          <img src="/images/cozy/housewarming-fresh-desktop.png" alt="โนบิ บูตะ และชิบะ เต้นฉลองเปิดบ้านไม้โทนอุ่น มีลูกโป่งและไฟประดับ" fetchPriority="high" width="1672" height="941" data-cozy-depth="0.04" />
+        </picture>
         <div className="party-light" aria-hidden="true" />
         <div className="party-sparkles" aria-hidden="true">{Array.from({ length: 12 }, (_, i) => <span key={i} style={{ '--x': `${8 + (i * 23) % 85}%`, '--y': `${12 + (i * 17) % 70}%` }} />)}</div>
         <div className="party-copy">
@@ -107,12 +109,6 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
           <a className="hm-btn" href="#friends">เข้าบ้านมารู้จักกัน <span>→</span></a>
           <span className="party-hand">Come on in,<br />you’re part of the family.</span>
         </div>
-        <Link to={POSTER_EVENT} className="party-poster" aria-label="เปิดหน้างาน NobiBigcat ร้องสดทุกเพลง 26 ก.ย.">
-          <picture>
-            <source type="image/webp" srcSet="/images/cozy/hero-26sep.webp" />
-            <img src="/images/cozy/hero-26sep.jpg" alt={POSTER_ALT} fetchPriority="high" width="1120" height="1400" />
-          </picture>
-        </Link>
         <a className="party-scroll" href="#friends"><span>เรื่องราวของบ้านเรา</span><span aria-hidden="true">↓</span></a>
       </section>
 

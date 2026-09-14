@@ -76,17 +76,3 @@
   .party-sparkles { display: none; }
 }
 
-/* ---------- ฮีโร่แบบโปสเตอร์ (26 ก.ย.) — ข้อความซ้าย · โปสเตอร์ 4:5 เป็นกรอบขวา ไม่ crop ตัวอักษร · มือถือเต็มความกว้าง ---------- */
-.party-hero--poster { height: auto; min-height: 0; padding: clamp(22px, 4vw, 48px) clamp(16px, 4vw, 52px) 64px; gap: clamp(20px, 4vw, 56px); background: linear-gradient(135deg, #f7e9dc, #efd6cf 60%, #e9cfd8); }
-.party-hero--poster .party-light { background: radial-gradient(circle at 18% 30%, #fff9f0d0, transparent 55%); }
-.party-hero--poster .party-copy { width: auto; flex: 1 1 340px; margin-left: 0; padding-block: 20px 40px; }
-.party-poster { flex: 0 1 min(400px, 34vw); display: block; border-radius: 22px; overflow: hidden; background: #fff; box-shadow: 0 30px 60px -28px #5a3a2a99, 0 0 0 6px #fff9; transform: rotate(1.5deg); transition: transform .35s ease, box-shadow .35s ease; }
-.party-poster:hover { transform: rotate(0deg) translateY(-6px); box-shadow: 0 40px 70px -28px #5a3a2a99, 0 0 0 6px #fff; }
-.party-poster img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: contain; }
-@media (max-width: 900px) {
-  .party-hero--poster { flex-direction: column; align-items: stretch; padding-bottom: 70px; }
-  .party-hero--poster .party-copy { text-align: center; padding: 20px 0 8px; order: 2; }
-  .party-poster { order: 1; flex: none; width: min(100%, 460px); margin: 0 auto; transform: none; }
-  .party-poster:hover { transform: translateY(-4px); }
-}
-@media (prefers-reduced-motion: reduce) { .party-poster, .party-poster:hover { transform: none; transition: none; } }
