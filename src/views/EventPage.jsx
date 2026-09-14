@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from '../lib/nav.jsx';
 import dynamic from 'next/dynamic';
 import { SiteHeader, SiteFooter, StatusPill, Countdown, Section, CalendarButton } from '../components/EventShell.jsx';
@@ -69,7 +69,7 @@ export default function EventPage({ slug, initialData = null }) {
             <CalendarButton event={ev} />
           </div>
         </div>
-        <div className="ev-hero-art"><img src={ev.cover || '/images/bigcat-hero.png'} alt={`ภาพปกงาน ${ev.title}`} /><span className={`date-badge ${ev.tone} big`}><strong>{d.day}</strong><span>{d.month}</span></span></div>
+        <HeroSlides ev={ev} d={d} />
       </section>
 
       <div className="ev-columns">
@@ -87,4 +87,25 @@ export default function EventPage({ slug, initialData = null }) {
     </main>
     <SiteFooter />
   </>;
+}
+
+// ภาพฮีโร่: ปก + แกลเลอรี (config.gallery) เลื่อนดูได้ — scroll-snap ปัดบนมือถือ / ปุ่มซ้ายขวา + จุดบนเดสก์ท็อป
+function HeroSlides({ ev, d }) {
+  const slides = [ev.cover, ...(ev.config?.gallery || [])].filter(Boolean);
+  if (!slides.length) slides.push('/images/bigcat-hero.png');
+  const ref = useRef(null);
+  const [i, setI] = useState(0);
+  const go = (n) => { const el = ref.current; if (!el) return; const k = (n + slides.length) % slides.length; el.scrollTo({ left: k * el.clientWidth, behavior: 'smooth' }); setI(k); };
+  const onScroll = () => { const el = ref.current; if (el) setI(Math.round(el.scrollLeft / el.clientWidth)); };
+  return <div className={`ev-hero-art ${slides.length > 1 ? 'has-slides' : ''}`}>
+    <div className="ev-slides" ref={ref} onScroll={onScroll} aria-roledescription="carousel">
+      {slides.map((src, k) => <div className="ev-slide" key={src} aria-hidden={k !== i}><img src={src} alt={k === 0 ? `ภาพปกงาน ${ev.title}` : `ภาพประกอบงาน ${ev.title} (${k + 1}/${slides.length})`} loading={k === 0 ? 'eager' : 'lazy'} /></div>)}
+    </div>
+    <span className={`date-badge ${ev.tone} big`}><strong>{d.day}</strong><span>{d.month}</span></span>
+    {slides.length > 1 && <>
+      <button type="button" className="ev-slide-btn prev" aria-label="ภาพก่อนหน้า" onClick={() => go(i - 1)}>‹</button>
+      <button type="button" className="ev-slide-btn next" aria-label="ภาพถัดไป" onClick={() => go(i + 1)}>›</button>
+      <div className="ev-dots" role="tablist">{slides.map((_, k) => <button key={k} type="button" role="tab" aria-selected={k === i} aria-label={`ภาพที่ ${k + 1}`} className={k === i ? 'on' : ''} onClick={() => go(k)} />)}</div>
+    </>}
+  </div>;
 }

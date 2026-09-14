@@ -101,9 +101,14 @@ r.get('/events/:slug/full', wrap(async (req, res) => {
   res.json({ ...ev, config, categories, counts: { bookings, donations, registrations } });
 }));
 
-r.post('/events', upload.single('cover'), wrap(async (req, res) => {
+const eventUploads = upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]);
+// แกลเลอรี = รูปเดิมที่ยังเก็บไว้ (payload.gallery) + ไฟล์ใหม่ที่อัปโหลด
+const mergeGallery = (p, files) => [...(Array.isArray(p.gallery) ? p.gallery.map(x => clean(x, 300)).filter(Boolean) : []), ...((files?.gallery || []).map(f => `/uploads/${f.filename}`))].slice(0, 10);
+
+r.post('/events', eventUploads, wrap(async (req, res) => {
   const p = typeof req.body.payload === 'string' ? JSON.parse(req.body.payload) : req.body;
-  const row = eventRow(p, req.file);
+  const cfg = parseConfig(p.config); cfg.gallery = mergeGallery(p, req.files); p.config = cfg;
+  const row = eventRow(p, req.files?.cover?.[0]);
   row.slug = slugify(p.slug || p.title, row.type, row.starts_at);
   if (await one('SELECT id FROM events WHERE slug=?', [row.slug])) throw new HttpError(409, `slug "${row.slug}" มีอยู่แล้ว ตั้งชื่ออื่น`);
   const ins = await q('INSERT INTO events SET ?', [row]);
@@ -112,11 +117,12 @@ r.post('/events', upload.single('cover'), wrap(async (req, res) => {
   res.json({ ok: true, slug: row.slug });
 }));
 
-r.put('/events/:slug', upload.single('cover'), wrap(async (req, res) => {
+r.put('/events/:slug', eventUploads, wrap(async (req, res) => {
   const cur = await one('SELECT * FROM events WHERE slug=?', [req.params.slug]);
   if (!cur) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
   const p = typeof req.body.payload === 'string' ? JSON.parse(req.body.payload) : req.body;
-  const row = eventRow(p, req.file, cur);
+  const cfg = parseConfig(p.config); cfg.gallery = mergeGallery(p, req.files); p.config = cfg;
+  const row = eventRow(p, req.files?.cover?.[0], cur);
   await q('UPDATE events SET ? WHERE id=?', [row, cur.id]);
   await ensureSeats(cur.id, JSON.parse(row.config));
   if (cur.type === 'merit') await syncCategories(cur.id, p.categories);

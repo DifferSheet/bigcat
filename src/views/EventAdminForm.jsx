@@ -11,7 +11,7 @@ const TYPES = ['fanmeet', 'merit', 'busking', 'workshop', 'popup'];
 const STATUSES = [['upcoming', 'เร็ว ๆ นี้ (ยังไม่เปิด)'], ['open', 'เปิดรับ'], ['soldout', 'เต็ม'], ['live', 'กำลังจัด'], ['ended', 'จบแล้ว']];
 const TONES = [['pink', 'ชมพู'], ['yellow', 'เหลือง'], ['sage', 'เขียวอ่อน'], ['blue', 'ฟ้า']];
 // key ใน config ที่ฟอร์มมีช่องให้แล้ว — ที่เหลือไปอยู่ในกล่อง JSON ขั้นสูง
-const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs'];
+const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs', 'gallery'];
 
 const toLocal = (v) => (v ? String(v).slice(0, 16).replace(' ', 'T') : '');
 const lines = (arr, sep = ' | ') => (arr || []).map(x => Array.isArray(x) ? x.join(sep) : x).join('\n');
@@ -33,6 +33,8 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
   });
   const [cats, setCats] = useState(initial?.categories?.length ? initial.categories : [{ name: '', description: '', goal: '', unit_name: '', unit_price: '' }]);
   const [cover, setCover] = useState(null);
+  const [gallery, setGallery] = useState(cfg.gallery || []);   // รูปเดิมที่เก็บไว้ (path)
+  const [newPics, setNewPics] = useState([]);                  // ไฟล์ใหม่รออัปโหลด
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const set = (k, v) => setF(x => ({ ...x, [k]: v }));
@@ -48,8 +50,8 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
       if (f.type === 'workshop' || f.type === 'popup') config.capacity = f.capacity === '' ? undefined : Number(f.capacity);
       if (f.type === 'merit') { config.donateUntil = f.donateUntil ? f.donateUntil.replace('T', ' ') + ':00' : undefined; config.attend = { enabled: !!f.attendEnabled, note: f.attendNote }; }
       if (f.type === 'merit' || f.type === 'fanmeet') config.payment = { ...(cfg.payment || {}), accountName: f.payAccount, promptpay: f.payPromptpay };
-      const payload = { ...f, config, categories: f.type === 'merit' ? cats.filter(c => c.name) : undefined };
-      const fd = new FormData(); fd.append('payload', JSON.stringify(payload)); if (cover) fd.append('cover', cover);
+      const payload = { ...f, config, gallery, categories: f.type === 'merit' ? cats.filter(c => c.name) : undefined };
+      const fd = new FormData(); fd.append('payload', JSON.stringify(payload)); if (cover) fd.append('cover', cover); newPics.forEach(file => fd.append('gallery', file));
       const r = await api(editing ? `/admin/events/${initial.slug}` : '/admin/events', { method: editing ? 'PUT' : 'POST', body: fd, admin: true });
       onSaved(r.slug);
     } catch (err) { setError(err.message); } finally { setBusy(false); }
@@ -77,7 +79,15 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
     </div>
     {!editing && <label>slug (ที่อยู่หน้าเว็บ /events/…) <small>เว้นว่าง = สร้างจากชื่องาน</small><input value={f.slug} onChange={e => set('slug', e.target.value)} placeholder="nobi-busking-26sep-2026" /></label>}
     <label>รายละเอียดงาน<textarea rows={6} value={f.description} onChange={e => set('description', e.target.value)} placeholder="เล่าว่างานนี้คืออะไร เจอกันยังไง (ขึ้นบรรทัดใหม่ได้)" /></label>
-    <FileDrop file={cover} onChange={setCover} label="ภาพปกงาน" hint={initial?.cover ? `มีภาพอยู่แล้ว (${initial.cover.split('/').pop()}) — เลือกใหม่เพื่อเปลี่ยน` : 'แนวนอนหรือโปสเตอร์ก็ได้ · JPG / PNG'} />
+    <FileDrop file={cover} onChange={setCover} label="ภาพปกงาน (ภาพแรกของสไลด์)" hint={initial?.cover ? `มีภาพอยู่แล้ว (${initial.cover.split('/').pop()}) — เลือกใหม่เพื่อเปลี่ยน` : 'แนวนอนหรือโปสเตอร์ก็ได้ · JPG / PNG'} />
+    <div className="gallery-edit">
+      <span className="file-drop-label">ภาพเพิ่มเติมในสไลด์ <small>(กำหนดการ · แผนที่ · โปสเตอร์เวอร์ชันอื่น — สูงสุด 10 ภาพ)</small></span>
+      <div className="gallery-grid">
+        {gallery.map(src => <figure key={src}><img src={src} alt="" /><button type="button" className="link-button" onClick={() => setGallery(gallery.filter(x => x !== src))}>เอาออก</button></figure>)}
+        {newPics.map((file, i) => <figure key={file.name + i} className="new"><img src={URL.createObjectURL(file)} alt="" /><button type="button" className="link-button" onClick={() => setNewPics(newPics.filter((_, j) => j !== i))}>เอาออก</button></figure>)}
+        <label className="gallery-add"><input type="file" accept="image/*" multiple onChange={e => { setNewPics([...newPics, ...Array.from(e.target.files || [])]); e.target.value = ''; }} /><Icon name="plus" /> เพิ่มภาพ</label>
+      </div>
+    </div>
 
     <h2>กำหนดการ &amp; คำถามที่พบบ่อย</h2>
     <label>กำหนดการ <small>บรรทัดละรายการ: เวลา | สิ่งที่ทำ</small><textarea rows={4} value={f.schedule} onChange={e => set('schedule', e.target.value)} placeholder={'19:00 | เริ่มร้อง\n20:45 | สุ่ม Lucky Fan'} /></label>
