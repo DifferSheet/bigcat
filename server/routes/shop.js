@@ -118,7 +118,7 @@ r.post('/orders/:code/slip', upload.single('slip'), wrap(async (req, res) => {
   await q('UPDATE orders SET ?, status=? WHERE id=?', [{ slip_path: `/uploads/${req.file.filename}`, trans_ref: verify.transRef || null, verified_at: verify.verified ? new Date() : null, verify_note: verify.note }, verify.ok ? 'paid' : 'pending', o.id]);
   if (verify.ok && o.line_user_id) push(o.line_user_id, msg.orderStatus({ code: req.params.code.toUpperCase(), status: 'paid', url: `${process.env.SITE_URL || 'http://localhost:5173'}/order/${req.params.code.toUpperCase()}` })).catch(() => {});
   if (!verify.ok) notifyStaff(msg.staffNew('สลิปออเดอร์', 'ร้านค้า', `${req.params.code.toUpperCase()} · ฿${o.total}\n${verify.note}`)).catch(() => {});
-  res.json({ ok: true, autoApproved: verify.ok, note: verify.note, status: verify.ok ? 'paid' : 'pending' });
+  res.json({ ok: true, autoApproved: verify.ok, verified: !!verify.verified, note: verify.note, status: verify.ok ? 'paid' : 'pending' });
 }));
 
 export default r;

@@ -4,6 +4,7 @@ html { scroll-padding-top: 100px; }
 body { margin: 0; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button, input { font: inherit; }
+::placeholder { color: #b9ae9f; opacity: 1; }
 button { color: inherit; cursor: pointer; }
 button, a { touch-action: manipulation; }
 button { border: 0; }

@@ -6,6 +6,7 @@ import { SiteHeader, SiteFooter, LineNotify } from '../components/EventShell.jsx
 import { Icon, Paw, PageLoader } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { eventDate, baht } from '../lib/format.js';
+import { drawMeritCertificate } from '../lib/merit-certificate.js';
 
 const bookingStatus = { pending: ['รอตรวจสอบสลิป', 'muted'], paid: ['ชำระแล้ว · ใช้เข้างานได้', 'open'], rejected: ['ไม่ผ่านการตรวจสอบ', 'full'], checked_in: ['เช็คอินแล้ว', 'live'] };
 const donationStatus = { pending: ['รอตรวจสอบ', 'muted'], approved: ['ยืนยันแล้ว', 'open'], rejected: ['ไม่ผ่านการตรวจสอบ', 'full'] };
@@ -18,6 +19,7 @@ function QR({ value }) {
 
 // ใบอนุโมทนาเป็นภาพขนาด IG Story (1080×1920) วาดด้วย canvas ฝั่ง client
 async function drawCertificate(item) {
+  if (item.slug === 'merit-vassa-2026') return drawMeritCertificate(item);
   const W = 1080, H = 1920;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d');
@@ -54,9 +56,10 @@ async function drawCertificate(item) {
 function CertificateButton({ item }) {
   const [busy, setBusy] = useState(false);
   const [url, setUrl] = useState(null);
-  const make = async () => { setBusy(true); try { setUrl(await drawCertificate(item)); } finally { setBusy(false); } };
+  const [error, setError] = useState('');
+  const make = async () => { setBusy(true); setError(''); try { setUrl(await drawCertificate(item)); } catch (e) { setError(e.message || 'สร้างภาพไม่สำเร็จ กรุณาลองอีกครั้ง'); } finally { setBusy(false); } };
   if (url) return <div className="cert-preview"><img src={url} alt="ใบอนุโมทนาบัตร" /><a className="button dark" href={url} download={`anumodana-${item.code}.png`}>บันทึกภาพ <Icon name="arrow" /></a></div>;
-  return <button className="button dark" onClick={make} disabled={busy}>{busy ? 'กำลังสร้างภาพ…' : 'สร้างใบอนุโมทนาเป็นภาพ (IG Story)'} <Icon name="heart" /></button>;
+  return <><button className="button dark" onClick={make} disabled={busy}>{busy ? 'กำลังสร้างภาพ…' : 'สร้างใบอนุโมทนาเป็นภาพ (IG Story)'} <Icon name="heart" /></button>{error && <p className="notice error" role="alert">{error}</p>}</>;
 }
 
 // ค้นหาบัตรจากรหัส: ลองการจอง → ลงทะเบียน → ทำบุญ

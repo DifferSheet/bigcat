@@ -131,6 +131,8 @@ r.put('/settings', upload.single('qr'), wrap(async (req, res) => {
     freeShippingOver: p.freeShippingOver ? Math.round(Number(p.freeShippingOver)) : null,
     pickup: { enabled: !!p.pickup?.enabled, label: String(p.pickup?.label || cur.pickup.label || 'รับหน้างาน').slice(0, 160) },
     carriers: Array.isArray(p.carriers) ? p.carriers.map(c => String(c).slice(0, 40)).filter(Boolean) : cur.carriers,
+    // ผู้ส่งบนจ่าหน้าพัสดุ (พิมพ์จากหน้าแอดมิน)
+    sender: { name: String(p.sender?.name ?? cur.sender?.name ?? '').slice(0, 120), phone: String(p.sender?.phone ?? cur.sender?.phone ?? '').slice(0, 30), address: String(p.sender?.address ?? cur.sender?.address ?? '').slice(0, 500) },
     payment: { ...cur.payment, promptpay: p.payment?.promptpay ?? cur.payment.promptpay, accountName: p.payment?.accountName ?? cur.payment.accountName, ...(req.file ? { qrImage: `/uploads/${req.file.filename}` } : {}) },
   };
   await q('INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value=VALUES(value)', ['shop', JSON.stringify(next)]);

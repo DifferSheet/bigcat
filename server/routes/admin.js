@@ -28,6 +28,112 @@ r.get('/overview', wrap(async (_req, res) => {
   res.json(events);
 }));
 
+/* ---------- Events: เพิ่ม / แก้ไข / ลบ (เพิ่ม 15 ก.ย. 2026) ---------- */
+const EV_TYPES = ['fanmeet', 'merit', 'busking', 'workshop', 'popup'];
+const EV_STATUS = ['upcoming', 'open', 'soldout', 'live', 'ended'];
+const TONES = ['pink', 'yellow', 'sage', 'blue'];
+const clean = (v, n) => String(v ?? '').trim().slice(0, n);
+// slug เป็น a-z0-9 เท่านั้น (URL อ่านง่าย) — ชื่อไทยล้วนจะได้ <ประเภท>-<วันที่> เช่น busking-20260926
+const slugify = (s, type, starts) => clean(s, 80).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || `${type}-${String(starts).slice(0, 10).replace(/-/g, '')}`;
+// datetime-local จากฟอร์ม ("2026-09-26T19:00") → MySQL DATETIME · ว่าง = null
+const toSql = (v) => { const t = clean(v, 30).replace('T', ' '); if (!t) return null; if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(t)) throw new HttpError(400, 'รูปแบบวันเวลาไม่ถูกต้อง'); return t.length === 16 ? `${t}:00` : t; };
+const parseConfig = (c) => { if (c == null || c === '') return {}; if (typeof c === 'object') return c; try { return JSON.parse(c); } catch { throw new HttpError(400, 'config ไม่ใช่ JSON ที่ถูกต้อง'); } };
+
+function eventRow(p, file, cur = null) {
+  const title = clean(p.title, 160);
+  if (!title) throw new HttpError(400, 'กรุณาใส่ชื่องาน');
+  const type = cur ? cur.type : (EV_TYPES.includes(p.type) ? p.type : null);
+  if (!type) throw new HttpError(400, 'ประเภทงานไม่ถูกต้อง');
+  const starts_at = toSql(p.starts_at);
+  if (!starts_at) throw new HttpError(400, 'กรุณาใส่วันเวลาเริ่มงาน');
+  const row = {
+    type, title,
+    status: EV_STATUS.includes(p.status) ? p.status : (cur?.status || 'upcoming'),
+    category: clean(p.category, 60) || cur?.category || { fanmeet: 'Meet & greet', merit: 'ทำบุญ', busking: 'Busking', workshop: 'Workshop', popup: 'Pop-up store' }[type],
+    subtitle: clean(p.subtitle, 200) || null,
+    description: clean(p.description, 5000) || null,
+    place: clean(p.place, 200) || null,
+    map_url: clean(p.map_url, 400) || null,
+    starts_at, ends_at: toSql(p.ends_at),
+    tone: TONES.includes(p.tone) ? p.tone : (cur?.tone || 'pink'),
+    config: JSON.stringify(parseConfig(p.config)),
+  };
+  if (file) row.cover = `/uploads/${file.filename}`;
+  else if (p.cover !== undefined) row.cover = clean(p.cover, 300) || null;
+  return row;
+}
+
+// ที่นั่งจาก seatMap (fanmeet) — สร้างเมื่อยังไม่มีที่นั่งของงานนั้น
+async function ensureSeats(eventId, cfg) {
+  const sm = cfg?.seatMap; if (!sm?.rows?.length || !sm.cols) return;
+  const [{ n }] = await q('SELECT COUNT(*) AS n FROM seats WHERE event_id=?', [eventId]);
+  if (n > 0) return;
+  const values = [];
+  for (const r of sm.rows) for (let c = 1; c <= sm.cols; c++) { const z = sm.zones?.[r] || sm.zones?.default || { name: 'Standard', price: 0 }; values.push([eventId, `${r}${c}`, r, c, z.name, z.price, 'available']); }
+  await q('INSERT INTO seats (event_id, label, row_label, col_num, zone, price, status) VALUES ?', [values]);
+}
+
+// หมวดทำบุญ: [{id?, name, description, goal, unit_name, unit_price}] — แก้ตาม id · เพิ่มใหม่ · ลบที่หายไปเฉพาะเมื่อยังไม่มียอด
+async function syncCategories(eventId, cats) {
+  if (!Array.isArray(cats)) return;
+  const existing = await q('SELECT id FROM donation_categories WHERE event_id=?', [eventId]);
+  const keep = new Set();
+  for (const [i, c] of cats.entries()) {
+    const row = { name: clean(c.name, 80), description: clean(c.description, 300) || null, goal: Math.max(0, Math.round(Number(c.goal) || 0)), unit_name: clean(c.unit_name, 40) || null, unit_price: c.unit_price ? Math.round(Number(c.unit_price)) : null, sort: i };
+    if (!row.name) continue;
+    if (c.id && existing.some(e => e.id === Number(c.id))) { await q('UPDATE donation_categories SET ? WHERE id=? AND event_id=?', [row, Number(c.id), eventId]); keep.add(Number(c.id)); }
+    else { const ins = await q('INSERT INTO donation_categories SET ?', [{ ...row, event_id: eventId }]); keep.add(ins.insertId); }
+  }
+  for (const e of existing) if (!keep.has(e.id)) {
+    const [{ n }] = await q('SELECT COUNT(*) AS n FROM donations WHERE category_id=?', [e.id]);
+    if (n === 0) await q('DELETE FROM donation_categories WHERE id=?', [e.id]);
+  }
+}
+
+// ข้อมูลเต็มสำหรับฟอร์มแก้ไข
+r.get('/events/:slug/full', wrap(async (req, res) => {
+  const ev = await one('SELECT * FROM events WHERE slug=?', [req.params.slug]);
+  if (!ev) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
+  const config = typeof ev.config === 'string' ? JSON.parse(ev.config || '{}') : (ev.config || {});
+  const categories = ev.type === 'merit' ? await q('SELECT id, name, description, goal, unit_name, unit_price FROM donation_categories WHERE event_id=? ORDER BY sort', [ev.id]) : [];
+  const [[{ bookings }], [{ donations }], [{ registrations }]] = await Promise.all([
+    q('SELECT COUNT(*) AS bookings FROM bookings WHERE event_id=?', [ev.id]), q('SELECT COUNT(*) AS donations FROM donations WHERE event_id=?', [ev.id]), q('SELECT COUNT(*) AS registrations FROM registrations WHERE event_id=?', [ev.id])]);
+  res.json({ ...ev, config, categories, counts: { bookings, donations, registrations } });
+}));
+
+r.post('/events', upload.single('cover'), wrap(async (req, res) => {
+  const p = typeof req.body.payload === 'string' ? JSON.parse(req.body.payload) : req.body;
+  const row = eventRow(p, req.file);
+  row.slug = slugify(p.slug || p.title, row.type, row.starts_at);
+  if (await one('SELECT id FROM events WHERE slug=?', [row.slug])) throw new HttpError(409, `slug "${row.slug}" มีอยู่แล้ว ตั้งชื่ออื่น`);
+  const ins = await q('INSERT INTO events SET ?', [row]);
+  await ensureSeats(ins.insertId, JSON.parse(row.config));
+  if (row.type === 'merit') await syncCategories(ins.insertId, p.categories);
+  res.json({ ok: true, slug: row.slug });
+}));
+
+r.put('/events/:slug', upload.single('cover'), wrap(async (req, res) => {
+  const cur = await one('SELECT * FROM events WHERE slug=?', [req.params.slug]);
+  if (!cur) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
+  const p = typeof req.body.payload === 'string' ? JSON.parse(req.body.payload) : req.body;
+  const row = eventRow(p, req.file, cur);
+  await q('UPDATE events SET ? WHERE id=?', [row, cur.id]);
+  await ensureSeats(cur.id, JSON.parse(row.config));
+  if (cur.type === 'merit') await syncCategories(cur.id, p.categories);
+  emit(cur.slug, 'event', { status: row.status });
+  res.json({ ok: true, slug: cur.slug });
+}));
+
+// ลบได้เฉพาะงานที่ยังไม่มีคนจอง/ร่วมบุญ/ลงทะเบียน — ถ้ามี ให้ตั้งสถานะ ended แทน (ข้อมูลลูกค้าจะไม่หาย)
+r.delete('/events/:slug', wrap(async (req, res) => {
+  const ev = await one('SELECT id FROM events WHERE slug=?', [req.params.slug]);
+  if (!ev) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
+  const [[{ b }], [{ d }], [{ g }]] = await Promise.all([q('SELECT COUNT(*) AS b FROM bookings WHERE event_id=?', [ev.id]), q('SELECT COUNT(*) AS d FROM donations WHERE event_id=?', [ev.id]), q('SELECT COUNT(*) AS g FROM registrations WHERE event_id=?', [ev.id])]);
+  if (b + d + g > 0) throw new HttpError(400, `ลบไม่ได้ — มีข้อมูลผูกอยู่ (จอง ${b} · ทำบุญ ${d} · ลงทะเบียน ${g}) ให้เปลี่ยนสถานะเป็น ended แทน`);
+  await q('DELETE FROM events WHERE id=?', [ev.id]);
+  res.json({ ok: true });
+}));
+
 r.patch('/events/:slug', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
   const allowed = ['upcoming', 'open', 'soldout', 'live', 'ended'];

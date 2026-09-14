@@ -29,7 +29,7 @@ export default function OrderPage({ code }) {
 
   const uploadSlip = async (e) => {
     e.preventDefault(); if (!slip) return; setBusy(true); setMsg('');
-    try { const fd = new FormData(); fd.append('slip', slip); const r = await api(`/orders/${code}/slip`, { method: 'POST', body: fd }); setMsg(r.autoApproved ? 'ตรวจสลิปผ่านแล้ว ยืนยันการชำระเงินเรียบร้อย' : `รับสลิปแล้ว รอตรวจสอบ (${r.note})`); load(); }
+    try { const fd = new FormData(); fd.append('slip', slip); const r = await api(`/orders/${code}/slip`, { method: 'POST', body: fd }); setMsg(r.autoApproved ? 'ตรวจสลิปผ่านแล้ว ยืนยันการชำระเงินเรียบร้อย' : r.verified ? 'รับสลิปแล้ว ✓ ระบบตรวจสลิปผ่าน กำลังรอยืนยันการชำระเงิน — จะแจ้งทันทีที่ยืนยัน' : 'รับสลิปแล้ว รอตรวจสอบภายใน 24 ชั่วโมง'); load(); }
     catch (err) { setMsg(err.message); } finally { setBusy(false); }
   };
 
@@ -63,7 +63,7 @@ export default function OrderPage({ code }) {
 
       {o.status === 'pending' && <section className="order-box">
         <span className="eyebrow">ชำระเงิน</span>
-        <p>{o.slip_path ? `แนบสลิปแล้ว รอตรวจสอบ${o.verify_note ? ` (${o.verify_note})` : ''}` : 'ยังไม่ได้แนบสลิป โอนแล้วแนบได้ที่นี่'}</p>
+        <p>{o.slip_path ? (o.verified_at ? 'แนบสลิปแล้ว ✓ ระบบตรวจสลิปผ่าน กำลังรอยืนยันการชำระเงิน — จะแจ้งทันทีที่ยืนยัน (ทาง LINE ถ้าผูกไว้ หรือกลับมาดูหน้านี้)' : 'แนบสลิปแล้ว รอตรวจสอบภายใน 24 ชั่วโมง') : 'ยังไม่ได้แนบสลิป โอนแล้วแนบได้ที่นี่'}</p>
         <form className="booking-form inline" onSubmit={uploadSlip}><FileDrop file={slip} onChange={setSlip} label={`สลิปโอนเงิน ${baht(o.total)}`} /><div className="form-actions"><button className="button dark small" disabled={!slip || busy}>ส่งสลิป</button></div></form>
         {msg && <Notice>{msg}</Notice>}
       </section>}

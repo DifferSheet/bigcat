@@ -2,13 +2,31 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from '../lib/nav.jsx';
 import { Notice } from '../components/EventShell.jsx';
-import { Icon, PageLoader } from '../components/ui.jsx';
+import { Icon, PageLoader, Modal } from '../components/ui.jsx';
 import { api, getAdminKey } from '../lib/api.js';
 import { baht } from '../lib/format.js';
 import RichText from '../components/RichText.jsx';
 
 const ORDER_STATUS = [['pending', 'รอชำระ'], ['paid', 'ชำระแล้ว'], ['packing', 'กำลังแพ็ก'], ['shipped', 'จัดส่งแล้ว'], ['completed', 'สำเร็จ'], ['cancelled', 'ยกเลิก']];
 const label = (s) => ORDER_STATUS.find(x => x[0] === s)?.[1] || s;
+const FALLBACK_IMG = '/images/bigcat-merch.png';
+
+/* ---------- จ่าหน้าพัสดุ: เลือกออเดอร์ → พิมพ์ (ผู้ส่งจากตั้งค่า · ผู้รับจากออเดอร์) ---------- */
+function LabelSheet({ orders, sender, onClose }) {
+  useEffect(() => { document.body.classList.add('print-labels'); return () => document.body.classList.remove('print-labels'); }, []);
+  const noSender = !sender?.name && !sender?.address;
+  return <div className="label-overlay" role="dialog" aria-label="จ่าหน้าพัสดุ">
+    <div className="label-toolbar">
+      <div><strong>จ่าหน้าพัสดุ {orders.length} ชิ้น</strong><small className="muted"> · A4 แนวตั้ง 4 ใบ/หน้า</small>{noSender && <small className="warn-text"> · ยังไม่ได้ตั้งค่าผู้ส่ง (แท็บ ตั้งค่า)</small>}</div>
+      <div className="form-actions"><button className="button dark small" onClick={() => window.print()}>พิมพ์ <Icon name="check" size={14} /></button><button className="button ghost small" onClick={onClose}>ปิด</button></div>
+    </div>
+    <div className="label-sheet">{orders.map(o => <article key={o.id} className="ship-label">
+      <div className="label-from"><span className="label-tag">ผู้ส่ง / FROM</span><strong>{sender?.name || 'BIGCAT'}</strong><p>{sender?.address}</p>{sender?.phone && <p>โทร {sender.phone}</p>}</div>
+      <div className="label-to"><span className="label-tag">ผู้รับ / TO</span><strong>{o.name}</strong><p>{o.address}</p><p>โทร {o.phone}</p></div>
+      <div className="label-foot"><span className="code">{o.code}</span><span>{o.items.map(i => `${i.name}${i.variant_name ? ` (${i.variant_name})` : ''} ×${i.qty}`).join(' · ')}</span>{o.carrier && <span>{o.carrier} {o.tracking_no}</span>}</div>
+    </article>)}</div>
+  </div>;
+}
 
 /* ---------- ออเดอร์ ---------- */
 function Orders({ settings, onMsg }) {
@@ -16,8 +34,14 @@ function Orders({ settings, onMsg }) {
   const [orders, setOrders] = useState(null);
   const [summary, setSummary] = useState(null);
   const [edit, setEdit] = useState({});
+  const [selected, setSelected] = useState([]);   // id ที่ติ๊กไว้พิมพ์จ่าหน้า
+  const [slipView, setSlipView] = useState(null); // ออเดอร์ที่กำลังดูสลิป
+  const [labels, setLabels] = useState(false);
   const load = () => Promise.all([api(`/admin/shop/orders?status=${filter}`, { admin: true }), api('/admin/shop/orders/summary', { admin: true })]).then(([o, s]) => { setOrders(o); setSummary(s); }).catch(e => onMsg(e.message));
-  useEffect(() => { setOrders(null); load(); }, [filter]);
+  useEffect(() => { setOrders(null); setSelected([]); load(); }, [filter]);
+  const toggle = (id) => setSelected(sel => sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);
+  const shippable = (orders || []).filter(o => o.delivery === 'ship' && !['cancelled'].includes(o.status));
+  const selectedOrders = (orders || []).filter(o => selected.includes(o.id));
   const patch = async (o, body) => { onMsg(''); try { await api(`/admin/shop/orders/${o.id}`, { method: 'PATCH', body, admin: true }); onMsg(`อัปเดต ${o.code} แล้ว`, 'ok'); load(); } catch (e) { onMsg(e.message); } };
   const exportCsv = async () => { const res = await fetch('/api/admin/shop/orders.csv', { headers: { 'x-admin-key': getAdminKey() } }); const url = URL.createObjectURL(await res.blob()); const a = document.createElement('a'); a.href = url; a.download = 'orders.csv'; a.click(); URL.revokeObjectURL(url); };
 
@@ -28,19 +52,19 @@ function Orders({ settings, onMsg }) {
       <div><span className="eyebrow">ส่งแล้ว</span><strong>{summary.shipped}</strong></div>
       <div><span className="eyebrow">ยอดขาย (ชำระแล้ว)</span><strong>{baht(summary.revenue)}</strong><small>{summary.total} ออเดอร์</small></div>
     </div>}
-    <div className="tabs-row"><div className="filter-tabs">{[['pending', 'รอชำระ'], ['paid', 'รอแพ็ก'], ['packing', 'กำลังแพ็ก'], ['shipped', 'ส่งแล้ว'], ['all', 'ทั้งหมด']].map(([k, l]) => <button key={k} className={filter === k ? 'active' : ''} onClick={() => setFilter(k)}>{l}</button>)}</div><button className="button ghost small" onClick={exportCsv}>CSV ↓</button></div>
+    <div className="tabs-row"><div className="filter-tabs">{[['pending', 'รอชำระ'], ['paid', 'รอแพ็ก'], ['packing', 'กำลังแพ็ก'], ['shipped', 'ส่งแล้ว'], ['all', 'ทั้งหมด']].map(([k, l]) => <button key={k} className={filter === k ? 'active' : ''} onClick={() => setFilter(k)}>{l}</button>)}</div><div className="form-actions"><button className="button ghost small" onClick={exportCsv}>CSV ↓</button>{shippable.length > 0 && <><label className="check check-all"><input type="checkbox" checked={selected.length === shippable.length} onChange={e => setSelected(e.target.checked ? shippable.map(o => o.id) : [])} /> เลือกทั้งหมด ({shippable.length})</label><button className="button dark small" disabled={!selected.length} onClick={() => setLabels(true)}>พิมพ์จ่าหน้า {selected.length ? `(${selected.length})` : ''}</button></>}</div></div>
     {!orders ? <PageLoader /> : orders.length === 0 ? <p className="muted">ไม่มีออเดอร์ในสถานะนี้</p> : <div className="order-admin-list">{orders.map(o => {
       const e = edit[o.id] || { carrier: o.carrier || settings?.carriers?.[0] || '', tracking_no: o.tracking_no || '' };
       return <div key={o.id} className={`order-admin ${o.status}`}>
         <div className="order-admin-head">
-          <div><strong className="code">{o.code}</strong>{o.lineLinked ? <span className="mini-tag">LINE</span> : null}<span className={`status-pill ${o.status === 'cancelled' ? 'full' : o.status === 'pending' ? 'muted' : 'open'}`}>{label(o.status)}</span></div>
+          <div>{o.delivery === 'ship' && o.status !== 'cancelled' && <input type="checkbox" className="pick" checked={selected.includes(o.id)} onChange={() => toggle(o.id)} aria-label={`เลือก ${o.code} พิมพ์จ่าหน้า`} />}<strong className="code">{o.code}</strong>{o.lineLinked ? <span className="mini-tag">LINE</span> : null}<span className={`status-pill ${o.status === 'cancelled' ? 'full' : o.status === 'pending' ? 'muted' : 'open'}`}>{label(o.status)}</span></div>
           <span className="muted">{o.created_at} · {o.delivery === 'pickup' ? 'รับหน้างาน' : 'ส่งไปรษณีย์'}</span>
           <strong>{baht(o.total)}</strong>
         </div>
         <div className="order-admin-body">
           <div><p><strong>{o.name}</strong> · {o.phone}{o.email ? ` · ${o.email}` : ''}</p><p className="muted">{o.delivery === 'pickup' ? 'รับหน้างาน' : o.address}</p>{o.note && <p className="muted">หมายเหตุ: {o.note}</p>}</div>
-          <ul className="mini-lines compact">{o.items.map(i => <li key={i.id}><span>{i.name}{i.variant_name ? ` · ${i.variant_name}` : ''} × {i.qty}</span><strong>{baht(i.price * i.qty)}</strong></li>)}</ul>
-          <div className="order-admin-pay">{o.slip_path ? <a href={o.slip_path} target="_blank" rel="noreferrer">ดูสลิป</a> : <span className="muted">ยังไม่มีสลิป</span>}{o.verify_note && <small className={o.verified_at ? 'ok-text' : ''}>{o.verify_note}</small>}</div>
+          <ul className="mini-lines compact with-thumbs">{o.items.map(i => <li key={i.id}><img src={i.image || FALLBACK_IMG} alt="" /><span>{i.name}{i.variant_name ? ` · ${i.variant_name}` : ''} × {i.qty}</span><strong>{baht(i.price * i.qty)}</strong></li>)}</ul>
+          <div className="order-admin-pay">{o.slip_path ? <button type="button" className="slip-thumb" onClick={() => setSlipView(o)} aria-label={`ดูสลิป ${o.code}`}><img src={o.slip_path} alt="" /><span>ดูสลิป</span></button> : <span className="muted">ยังไม่มีสลิป</span>}{o.verify_note && <small className={o.verified_at ? 'ok-text' : ''}>{o.verify_note}</small>}</div>
         </div>
         <div className="order-admin-actions">
           {o.status === 'pending' && <><button className="button dark small" onClick={() => patch(o, { status: 'paid' })}>ยืนยันชำระเงิน</button><button className="link-button" onClick={() => patch(o, { status: 'cancelled' })}>ยกเลิก (คืนสต็อก)</button></>}
@@ -52,6 +76,15 @@ function Orders({ settings, onMsg }) {
         </div>
       </div>;
     })}</div>}
+    {slipView && <Modal title={`สลิป ${slipView.code} · ${baht(slipView.total)}`} wide onClose={() => setSlipView(null)}>
+      <img className="slip-full" src={slipView.slip_path} alt={`สลิปโอนเงินของ ${slipView.name}`} />
+      <div className="detail-strip">{slipView.verify_note || 'ยังไม่ได้ตรวจอัตโนมัติ'}</div>
+      <div className="form-actions">
+        {slipView.status === 'pending' && <button className="button dark small" onClick={() => { patch(slipView, { status: 'paid' }); setSlipView(null); }}>ยืนยันชำระเงิน</button>}
+        <a className="link-button" href={slipView.slip_path} target="_blank" rel="noreferrer">เปิดไฟล์เต็ม ↗</a>
+      </div>
+    </Modal>}
+    {labels && <LabelSheet orders={selectedOrders} sender={settings?.sender} onClose={() => setLabels(false)} />}
   </>;
 }
 
@@ -127,6 +160,9 @@ function Settings({ settings, onSaved, onMsg }) {
     <label className="check"><input type="checkbox" checked={!!s.pickup?.enabled} onChange={e => setS({ ...s, pickup: { ...s.pickup, enabled: e.target.checked } })} /> เปิดให้เลือก "รับหน้างาน"</label>
     <label>ข้อความรับหน้างาน<input value={s.pickup?.label || ''} onChange={e => setS({ ...s, pickup: { ...s.pickup, label: e.target.value } })} /></label>
     <label>ขนส่งที่ใช้ (คั่นด้วย ,)<input value={s.carriersText} onChange={e => setS({ ...s, carriersText: e.target.value })} /></label>
+    <h2>ผู้ส่งบนจ่าหน้าพัสดุ</h2>
+    <div className="two"><label>ชื่อผู้ส่ง<input value={s.sender?.name || ''} onChange={e => setS({ ...s, sender: { ...s.sender, name: e.target.value } })} placeholder="BIGCAT" /></label><label>เบอร์ผู้ส่ง<input value={s.sender?.phone || ''} onChange={e => setS({ ...s, sender: { ...s.sender, phone: e.target.value } })} /></label></div>
+    <label>ที่อยู่ผู้ส่ง<textarea rows={2} value={s.sender?.address || ''} onChange={e => setS({ ...s, sender: { ...s.sender, address: e.target.value } })} /></label>
     <div className="two"><label>ชื่อบัญชีรับเงิน<input value={s.payment?.accountName || ''} onChange={e => setS({ ...s, payment: { ...s.payment, accountName: e.target.value } })} /></label><label>เลข PromptPay (ถ้าไม่ใช้ QR)<input value={s.payment?.promptpay || ''} onChange={e => setS({ ...s, payment: { ...s.payment, promptpay: e.target.value } })} /></label></div>
     <label>รูป QR รับเงิน {s.payment?.qrImage && <small>(มีอยู่แล้ว)</small>}<input type="file" accept="image/*" onChange={e => setQr(e.target.files?.[0] || null)} /></label>
     <div className="form-actions"><button className="button dark small">บันทึก</button></div>

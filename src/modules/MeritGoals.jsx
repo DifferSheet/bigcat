@@ -119,10 +119,12 @@ export default function MeritGoals({ data }) {
         const pct = c.goal ? Math.min(100, Math.round(c.raised / c.goal * 100)) : 0;
         return <button key={c.id} className={`cat-card ${String(form.categoryId) === String(c.id) ? 'active' : ''}`} onClick={() => { setForm({ ...form, categoryId: c.id }); document.getElementById('donate-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
           <span className="eyebrow">{c.donors} คนร่วมบุญ</span><h3>{c.name}</h3><p>{c.description}</p>
-          <div className="mini-bar"><i style={{ width: `${pct}%` }} /></div>
+          {c.goal > 0 && <div className="mini-bar"><i style={{ width: `${pct}%` }} /></div>}
           {c.unit_price
             ? <span className="cat-figures"><strong>{c.unitsDone}/{c.unitsGoal} {c.unit_name}</strong> · {c.unit_name}ละ {baht(c.unit_price)} · {pct}%</span>
-            : <span className="cat-figures"><strong>{baht(c.raised)}</strong> / {baht(c.goal)} · {pct}%</span>}
+            : c.goal > 0
+              ? <span className="cat-figures"><strong>{baht(c.raised)}</strong> / {baht(c.goal)} · {pct}%</span>
+              : <span className="cat-figures"><strong>{baht(c.raised)}</strong> · ตามศรัทธา</span>}
         </button>;
       })}</div>
     </Section>

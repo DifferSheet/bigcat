@@ -178,3 +178,38 @@
 .rt-area li { margin: 3px 0; }
 .rt-label { gap: 8px !important; }
 .rt-label small { font-weight: 400; color: var(--muted); }
+
+/* ---------- แอดมินออเดอร์: thumbnail สินค้า/สลิป · เลือกพิมพ์จ่าหน้า ---------- */
+.order-admin-head .pick { width: 18px; height: 18px; accent-color: var(--ink); margin-right: 4px; }
+.mini-lines.with-thumbs li { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.mini-lines.with-thumbs img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: var(--sand); }
+.slip-thumb { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; background: none; border: 0; cursor: pointer; }
+.slip-thumb img { width: 72px; height: 96px; object-fit: cover; object-position: top; border-radius: 8px; border: 1px solid var(--line); background: var(--sand); transition: transform .2s; }
+.slip-thumb:hover img { transform: scale(1.04); border-color: var(--pink); }
+.slip-thumb span { font-size: 11px; text-decoration: underline; text-underline-offset: 3px; }
+.slip-full { max-height: 70vh; width: auto; max-width: 100%; margin: 0 auto 12px; border-radius: var(--r-sm); border: 1px solid var(--line); }
+.warn-text { color: var(--warn); }
+
+/* จ่าหน้าพัสดุ */
+.label-overlay { position: fixed; inset: 0; z-index: 80; background: #efe9e0; overflow: auto; padding: 20px; }
+.label-toolbar { max-width: 900px; margin: 0 auto 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.label-sheet { max-width: 900px; margin: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ship-label { background: #fff; border: 1.5px solid #000; border-radius: 6px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; line-height: 1.5; break-inside: avoid; }
+.ship-label p { margin: 0; white-space: pre-line; }
+.ship-label strong { font-size: 16px; display: block; }
+.label-tag { display: block; font-size: 10px; letter-spacing: .1em; color: #666; font-weight: 700; margin-bottom: 2px; }
+.label-from { border-bottom: 1px dashed #999; padding-bottom: 8px; font-size: 12px; }
+.label-from strong { font-size: 14px; }
+.label-to strong { font-size: 19px; }
+.label-to p { font-size: 14px; }
+.label-foot { border-top: 1px dashed #999; padding-top: 8px; font-size: 11px; color: #444; display: flex; flex-direction: column; gap: 2px; }
+.label-foot .code { font-family: var(--font-display); font-size: 13px; color: #000; }
+@media print {
+  body.print-labels * { visibility: hidden !important; }
+  body.print-labels .label-overlay, body.print-labels .label-overlay * { visibility: visible !important; }
+  body.print-labels .label-overlay { position: absolute; inset: 0; padding: 0; background: #fff; overflow: visible; }
+  body.print-labels .label-toolbar { display: none !important; }
+  body.print-labels .label-sheet { max-width: none; gap: 8mm; grid-template-columns: 1fr 1fr; }
+  body.print-labels .ship-label { height: 128mm; border-radius: 0; }
+  @page { size: A4 portrait; margin: 10mm; }
+}

@@ -381,3 +381,18 @@
 .footer-social .hm-openchat { font-family: var(--font-display); font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: var(--r-pill); background: var(--ink); color: #fff; white-space: nowrap; }
 .footer-top p b { display: block; font-family: var(--font-display); font-size: 15px; color: var(--ink); }
 .openchat-link { align-self: flex-start; font-size: 13px; font-weight: 600; color: var(--line-green); text-decoration: underline; text-underline-offset: 4px; }
+
+/* ---------- แอดมิน: ฟอร์มกิจกรรม · ลบ 2 จังหวะ ---------- */
+.event-form { max-width: 760px; }
+.event-form h2 { font-size: 17px; margin-top: 10px; }
+.event-form label small { font-weight: 400; color: var(--muted); }
+.event-form .adv summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
+.event-form .adv textarea { margin-top: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.cat-edit { display: flex; flex-direction: column; gap: 8px; }
+.cat-row { display: grid; grid-template-columns: 1.2fr 1.6fr .8fr .6fr .7fr auto; gap: 6px; align-items: center; }
+.booking-form .cat-row input { padding: 9px 10px; font-size: 13px; }
+.confirm-del { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--danger); }
+.button.danger { background: var(--danger); }
+.check-all { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.check-all input { accent-color: var(--ink); width: 16px; height: 16px; }
+@media (max-width: 760px) { .cat-row { grid-template-columns: 1fr 1fr; } }

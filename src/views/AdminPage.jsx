@@ -9,6 +9,7 @@ import { eventDate, typeLabel, baht } from '../lib/format.js';
 import dynamic from 'next/dynamic';
 
 const ShopAdmin = dynamic(() => import('./ShopAdmin.jsx'), { ssr: false, loading: () => <PageLoader /> });
+const EventAdminForm = dynamic(() => import('./EventAdminForm.jsx'), { ssr: false, loading: () => <PageLoader /> });
 
 const STATUSES = ['upcoming', 'open', 'soldout', 'live', 'ended'];
 
@@ -70,8 +71,10 @@ function MeritTools({ ev, onMsg }) {
   </div>;
 }
 
-function EventAdmin({ ev, refresh }) {
+function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
   const [tab, setTab] = useState('pending');
+  const [confirmDel, setConfirmDel] = useState(false);
+  const remove = async () => { setMsg(''); try { await api(`/admin/events/${ev.slug}`, { method: 'DELETE', admin: true }); onDeleted(); } catch (e) { setMsg(e.message); setConfirmDel(false); } };
   const [rows, setRows] = useState(null);
   const [msg, setMsgRaw] = useState('');
   const [msgTone, setMsgTone] = useState('error');
@@ -94,6 +97,8 @@ function EventAdmin({ ev, refresh }) {
     <div className="admin-event-head">
       <div><span className="eyebrow">{typeLabel[ev.type]}</span><h2>{ev.title}</h2></div>
       <label className="status-select">สถานะ <select value={ev.status} onChange={e => setStatus(e.target.value)}>{STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
+      <button className="button ghost small" onClick={onEdit}>แก้ไขงาน</button>
+      {confirmDel ? <span className="confirm-del"><span>ลบ «{ev.title}» ถาวร?</span><button className="button dark small danger" onClick={remove}>ลบเลย</button><button className="link-button" onClick={() => setConfirmDel(false)}>ไม่ลบ</button></span> : <button className="link-button" onClick={() => setConfirmDel(true)}>ลบงาน</button>}
       <Link className="button ghost small" to={`/events/${ev.slug}`}>ดูหน้าเว็บ ↗</Link>
       {ev.type === 'busking' && <Link className="button dark small" to={`/events/${ev.slug}/draw`}>จอสุ่ม Lucky Fan 🎲</Link>}
     </div>
@@ -119,6 +124,8 @@ export default function AdminPage() {
   const [active, setActive] = useState(null);
   const [scan, setScan] = useState('');
   const [scanResult, setScanResult] = useState(null);
+  const [form, setForm] = useState(null);   // null | 'new' | {…ข้อมูลเต็มของงานที่แก้}
+  const openEdit = async (slug) => { try { setForm(await api(`/admin/events/${slug}/full`, { admin: true })); } catch { /* แสดงใน EventAdmin */ } };
   const refresh = () => api('/admin/overview', { admin: true }).then(list => { setEvents(list); setActive(a => a ? list.find(e => e.slug === a.slug) : list[0]); }).catch(e => { if (e.status === 401) { setAdminKey(''); setAuthed(false); } });
   useEffect(() => { if (authed) refresh(); }, [authed]);
 
@@ -130,12 +137,12 @@ export default function AdminPage() {
 
   return <><SiteHeader /><main className="ev-page">
     {!mounted ? <PageLoader /> : !authed ? <Login onDone={() => setAuthed(true)} /> : <>
-      <div className="admin-head"><div><span className="eyebrow">STAFF DASHBOARD</span><h1>{area === 'shop' ? 'จัดการร้านค้า' : 'จัดการกิจกรรม'}</h1></div><div className="area-tabs"><button className={area === 'events' ? 'active' : ''} onClick={() => { setArea('events'); history.replaceState(null, '', '/admin'); }}>กิจกรรม</button><button className={area === 'shop' ? 'active' : ''} onClick={() => { setArea('shop'); history.replaceState(null, '', '/admin/shop'); }}>ร้านค้า</button><button className="link-button" onClick={() => { setAdminKey(''); setAuthed(false); }}>ออกจากระบบ</button></div></div>
-      {area === 'shop' ? <ShopAdmin /> : <>
+      <div className="admin-head"><div><span className="eyebrow">STAFF DASHBOARD</span><h1>{area === 'shop' ? 'จัดการร้านค้า' : 'จัดการกิจกรรม'}</h1></div>{area === 'events' && <button className="button dark small" onClick={() => setForm('new')}>+ เพิ่มกิจกรรม</button>}<div className="area-tabs"><button className={area === 'events' ? 'active' : ''} onClick={() => { setArea('events'); history.replaceState(null, '', '/admin'); }}>กิจกรรม</button><button className={area === 'shop' ? 'active' : ''} onClick={() => { setArea('shop'); history.replaceState(null, '', '/admin/shop'); }}>ร้านค้า</button><button className="link-button" onClick={() => { setAdminKey(''); setAuthed(false); }}>ออกจากระบบ</button></div></div>
+      {area === 'shop' ? <ShopAdmin /> : form ? <div className="admin-panel"><EventAdminForm initial={form === 'new' ? null : form} onCancel={() => setForm(null)} onSaved={async (slug) => { setForm(null); const list = await api('/admin/overview', { admin: true }); setEvents(list); setActive(list.find(e => e.slug === slug) || list[0]); }} /></div> : <>
       <form className="scan-box" onSubmit={checkin}><Icon name="check" /><input id="ad-scan" value={scan} onChange={e => setScan(e.target.value)} placeholder="เช็คอินหน้างาน: พิมพ์/สแกนรหัสบัตร" /><button className="button dark small">เช็คอิน</button>{scanResult && <span className={`notice ${scanResult.ok ? '' : 'error'}`}>{scanResult.ok ? `${scanResult.already ? 'เช็คอินไปแล้ว' : 'เช็คอินสำเร็จ'}: ${scanResult.name}${scanResult.seats ? ` (${scanResult.seats.join(', ')})` : scanResult.number ? ` #${scanResult.number}` : ''}` : scanResult.error}</span>}</form>
       {!events ? <PageLoader /> : <div className="admin-layout">
         <aside className="admin-list">{events.map(ev => { const pending = Number(ev.pendingBookings) + Number(ev.pendingDonations); return <button key={ev.slug} className={`admin-item ${active?.slug === ev.slug ? 'active' : ''}`} onClick={() => setActive(ev)}><span className="eyebrow">{typeLabel[ev.type]} · {eventDate(ev).long}</span><strong>{ev.title}</strong><span className="admin-item-meta"><StatusPill status={ev.status} />{pending > 0 && <span className="badge-count">{pending} รอตรวจ</span>}</span></button>; })}</aside>
-        {active && <EventAdmin key={active.slug + active.status} ev={active} refresh={refresh} />}
+        {active && <EventAdmin key={active.slug + active.status} ev={active} refresh={refresh} onEdit={() => openEdit(active.slug)} onDeleted={async () => { const list = await api('/admin/overview', { admin: true }); setEvents(list); setActive(list[0] || null); }} />}
       </div>}
       </>}
     </>}
