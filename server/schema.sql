@@ -230,3 +230,27 @@ CREATE TABLE IF NOT EXISTS settings (
   `key` VARCHAR(60) PRIMARY KEY,
   value JSON NOT NULL
 );
+
+-- สมาชิก (เข้าสู่ระบบด้วย LINE / Google) — เพิ่ม 14 ก.ย. 2026
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  provider VARCHAR(20) NOT NULL,
+  provider_id VARCHAR(120) NOT NULL,
+  display_name VARCHAR(120) NOT NULL,
+  avatar VARCHAR(500) NULL,
+  email VARCHAR(160) NULL,
+  phone VARCHAR(30) NULL,
+  address VARCHAR(500) NULL,
+  line_user_id VARCHAR(64) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_login_at DATETIME NULL,
+  UNIQUE KEY uq_user_provider (provider, provider_id)
+);
+CREATE TABLE IF NOT EXISTS sessions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  token_hash CHAR(64) NOT NULL UNIQUE,
+  user_id INT NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_session_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { q, one, tx, parseJSON } from '../db.js';
 import { wrap, HttpError, code, emit } from '../lib.js';
 import { verifySlip } from '../slip.js';
+import { requirePhone } from '../validate.js';
+import { ownerFields } from '../auth.js';
 import { notifyStaff, push, msg } from '../line.js';
 import { upload } from './public.js';
 
@@ -57,11 +59,12 @@ r.get('/shop/products/:slug', wrap(async (req, res) => {
 r.post('/shop/orders', upload.single('slip'), wrap(async (req, res) => {
   const body = req.body.payload ? parseJSON(req.body.payload, {}) : req.body;
   const items = (body.items || []).map(i => ({ productId: Number(i.productId), variantId: i.variantId ? Number(i.variantId) : null, qty: Math.max(1, Math.min(99, Math.round(Number(i.qty) || 1))) })).filter(i => i.productId);
-  const name = clean(body.name, 120), phone = clean(body.phone, 30), email = clean(body.email, 160), note = clean(body.note, 300);
+  const name = clean(body.name, 120), email = clean(body.email, 160), note = clean(body.note, 300);
   const delivery = body.delivery === 'pickup' ? 'pickup' : 'ship';
   const address = clean(body.address, 600);
   if (!items.length) throw new HttpError(400, 'ตะกร้าว่าง');
-  if (!name || !phone) throw new HttpError(400, 'กรุณากรอกชื่อและเบอร์โทร');
+  if (!name) throw new HttpError(400, 'กรุณากรอกชื่อ');
+  const phone = requirePhone(body.phone);
   if (delivery === 'ship' && !address) throw new HttpError(400, 'กรุณากรอกที่อยู่จัดส่ง');
   const settings = await shopSettings();
   if (delivery === 'pickup' && !settings.pickup?.enabled) throw new HttpError(400, 'ยังไม่เปิดรับหน้างาน');
@@ -90,7 +93,7 @@ r.post('/shop/orders', upload.single('slip'), wrap(async (req, res) => {
     const total = subtotal + shipping_fee;
     const verify = req.file ? await verifySlip(req.file.path, { expectedAmount: total }) : { ok: false, note: 'ยังไม่แนบสลิป' };
     const orderCode = code(7) + 'X'; // ลงท้าย X = ออเดอร์ (แยกจากรหัสกิจกรรม 8 หลัก)
-    const ins = await q('INSERT INTO orders SET ?', [{ code: orderCode, status: verify.ok ? 'paid' : 'pending', name, phone, email: email || null, delivery, address: address || null, note: note || null, subtotal, shipping_fee, total, slip_path: req.file ? `/uploads/${req.file.filename}` : null, trans_ref: verify.transRef || null, verified_at: verify.verified ? new Date() : null, verify_note: verify.note }]);
+    const ins = await q('INSERT INTO orders SET ?', [{ code: orderCode, status: verify.ok ? 'paid' : 'pending', name, phone, email: email || null, delivery, address: address || null, note: note || null, subtotal, shipping_fee, total, slip_path: req.file ? `/uploads/${req.file.filename}` : null, trans_ref: verify.transRef || null, verified_at: verify.verified ? new Date() : null, verify_note: verify.note, ...ownerFields(req) }]);
     for (const l of lines) await q('INSERT INTO order_items SET ?', [{ ...l, order_id: ins.insertId }]);
     return { code: orderCode, total, subtotal, shipping_fee, status: verify.ok ? 'paid' : 'pending', autoApproved: verify.ok, note: verify.note, lines };
   });

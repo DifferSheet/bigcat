@@ -36,10 +36,22 @@ export async function migrate() {
     "ALTER TABLE bookings ADD COLUMN trans_ref VARCHAR(64) NULL, ADD COLUMN verified_at DATETIME NULL, ADD COLUMN verify_note VARCHAR(300) NULL, ADD COLUMN line_user_id VARCHAR(64) NULL",
     "ALTER TABLE bookings ADD UNIQUE KEY uq_bk_ref (trans_ref)",
     "ALTER TABLE product_variants ADD COLUMN image VARCHAR(300) NULL",
+    // สมาชิก: ผูกรายการกับ users.id (NULL = ทำตอนไม่ได้ล็อกอิน)
+    "ALTER TABLE orders ADD COLUMN user_id INT NULL, ADD INDEX ix_ord_user (user_id)",
+    "ALTER TABLE bookings ADD COLUMN user_id INT NULL, ADD INDEX ix_bk_user (user_id)",
+    "ALTER TABLE donations ADD COLUMN user_id INT NULL, ADD INDEX ix_don_user (user_id)",
+    "ALTER TABLE registrations ADD COLUMN user_id INT NULL, ADD INDEX ix_reg_user (user_id)",
     "ALTER TABLE registrations ADD COLUMN kind VARCHAR(20) NOT NULL DEFAULT 'attend', ADD COLUMN line_user_id VARCHAR(64) NULL",
   ];
   for (const sql of alters) {
-    try { await admin.query(sql); } catch (e) { if (![1060, 1061].includes(e.errno)) throw e; }
+    for (let attempt = 0; ; attempt++) {
+      try { await admin.query(sql); break; }
+      catch (e) {
+        if ([1060, 1061].includes(e.errno)) break;                    // คอลัมน์/คีย์มีอยู่แล้ว
+        if (e.errno === 1213 && attempt < 3) { await new Promise(r => setTimeout(r, 300)); continue; }   // deadlock ตอน dev restart ถี่ ๆ → ลองใหม่
+        throw e;
+      }
+    }
   }
   await admin.end();
 }

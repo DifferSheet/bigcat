@@ -18,8 +18,7 @@ export default function ProductPage({ slug, initialProduct = null }) {
   const [shot, setShot] = useState(0);   // รูปที่กำลังแสดงในแกลเลอรี
   useEffect(() => { if (!initialProduct) api(`/shop/products/${slug}`).then(setP).catch(e => setError(e.message)); }, [slug, initialProduct]);
   useEventSocket('shop', { products: list => { const n = list.find(x => x.slug === slug); if (n) setP(n); } });
-  // เปิดหน้าสินค้าต้องเริ่มที่บนสุดเสมอ (Next เลื่อนให้เฉพาะ segment ที่เปลี่ยน ไม่ใช่ทั้งหน้า)
-  useEffect(() => { setShot(0); setVariantId(null); setQty(1); window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }, [slug]);
+  useEffect(() => { setShot(0); setVariantId(null); setQty(1); }, [slug]);   // scroll ไปบนสุดจัดการรวมที่ components/ScrollManager.jsx
 
   if (error) return <><SiteHeader /><main className="ev-page"><div className="ev-hero-simple"><h1>{error}</h1><Link className="button dark" to="/shop">กลับไปร้านค้า</Link></div></main><SiteFooter /></>;
   if (!p) return <><SiteHeader /><PageLoader /></>;

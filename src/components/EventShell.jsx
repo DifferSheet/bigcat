@@ -5,9 +5,22 @@ import { Icon, Paw, Logo } from './ui.jsx';
 import { statusLabel, parseDate } from '../lib/format.js';
 import { siteConfig } from '../lib/api.js';
 import { useCart } from '../lib/cart.js';
+import { useUser } from '../lib/auth.js';
+import { CookieSettingsLink } from './CookieConsent.jsx';
+
+// ตะกร้า + ปุ่มเข้าสู่ระบบ/โปรไฟล์ — ใช้ร่วมกันทุก header (SiteHeader และหน้าแรก)
+// ปุ่มเข้าสู่ระบบแสดงเสมอเมื่อยังไม่ล็อกอิน (ไม่รอ /api/me) จะได้ไม่มีช่วงที่มุมขวาบนว่างเปล่า
+export function UserNav({ iconSize = 23 }) {
+  const { count } = useCart();
+  const { user } = useUser();
+  return <>
+    <Link className="icon-button cart-button" to="/cart" aria-label={`ตะกร้า ${count} ชิ้น`}><Icon name="bag" size={iconSize} />{count > 0 && <span className="cart-count">{count}</span>}</Link>
+    {user ? <Link className="user-button" to="/account" title={user.display_name}>{user.avatar ? <img className="avatar" src={user.avatar} alt="" referrerPolicy="no-referrer" /> : <span className="avatar placeholder">{user.display_name.slice(0, 1)}</span>}<span className="user-name">{user.display_name}</span></Link>
+      : <Link className="button ghost small login-link" to="/login"><Icon name="user" size={15} />เข้าสู่ระบบ</Link>}
+  </>;
+}
 
 export function SiteHeader({ live }) {
-  const { count } = useCart();
   return <header className="header">
     <div className="nav-shell">
       <Link to="/" className="logo" aria-label="Bigcat หน้าแรก"><Logo /></Link>
@@ -19,14 +32,14 @@ export function SiteHeader({ live }) {
       </nav>
       <div className="nav-actions">
         {live != null && <span className={`live-dot ${live ? 'on' : ''}`} title={live ? 'เชื่อมต่อ realtime แล้ว' : 'กำลังเชื่อมต่อ…'}><span />{live ? 'LIVE' : 'OFFLINE'}</span>}
-        <Link className="icon-button cart-button" to="/cart" aria-label={`ตะกร้า ${count} ชิ้น`}><Icon name="bag" size={23} />{count > 0 && <span className="cart-count">{count}</span>}</Link>
+        <UserNav />
       </div>
     </div>
   </header>;
 }
 
 export function SiteFooter() {
-  return <footer className="footer"><div className="footer-top"><Link to="/" className="logo"><Logo /></Link><p>แมวตัวโต แต่มีหัวใจเล็ก ๆ ที่รักคุณเสมอ ♡</p><Link to="/admin" className="back-top">สำหรับทีมงาน</Link></div><div className="footer-bottom"><span>© {new Date().getFullYear()} BIGCAT. Made with a whole lot of love.</span></div></footer>;
+  return <footer className="footer"><div className="footer-top"><Link to="/" className="logo"><Logo /></Link><p>แมวตัวโต แต่มีหัวใจเล็ก ๆ ที่รักคุณเสมอ ♡</p><Link to="/privacy" className="back-top">นโยบายความเป็นส่วนตัว</Link></div><div className="footer-bottom"><span>© {new Date().getFullYear()} BIGCAT. Made with a whole lot of love.</span><CookieSettingsLink className="footer-link" /></div></footer>;
 }
 
 export function StatusPill({ status }) {

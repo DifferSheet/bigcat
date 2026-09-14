@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from '../lib/nav.jsx';
 import { Icon, Paw, Flower, Modal, Logo } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
-import { cart, useCart } from '../lib/cart.js';
+import { cart } from '../lib/cart.js';
+import { UserNav } from '../components/EventShell.jsx';
 import { eventDate } from '../lib/format.js';
 import '@/home.css';
 import '../cozy.css';
@@ -12,6 +13,7 @@ import { useCozyMotion } from '../lib/cozy-motion.js';
 
 const HERO = '/images/cozy/hero.png';
 const MERCH = '/images/bigcat-merch.png';
+const MERCH_DISPLAY = '/images/bigcat-merch-pink-v4.webp';
 const characterImage = id => `/images/cozy/${id}-personality-v2.png`;
 const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
@@ -42,7 +44,6 @@ function SectionHead({ label, note, to }) {
 
 export default function Home({ initialEvents = [], initialProducts = [] }) {
   const navigate = useNavigate();
-  const { count } = useCart();
   const [menu, setMenu] = useState(false);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState('');
@@ -70,7 +71,7 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
         <Link to="/shop" className="hm-nav-shop" onClick={() => setMenu(false)}>SHOP</Link>
       </nav>
       <div className="hm-nav-actions">
-        <Link className="icon-button cart-button" to="/cart" aria-label={`ตะกร้า ${count} ชิ้น`}><Icon name="bag" size={22} />{count > 0 && <span className="cart-count">{count}</span>}</Link>
+        <UserNav iconSize={22} />
         <button className="icon-button hm-menu" aria-label={menu ? 'ปิดเมนู' : 'เปิดเมนู'} aria-expanded={menu} aria-controls="main-nav" onClick={() => setMenu(!menu)}><Icon name={menu ? 'close' : 'menu'} /></button>
       </div>
     </header>
@@ -125,7 +126,7 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
             <p>ของเล็ก ๆ ที่เก็บความสุข<br />ไว้ได้เสมอ</p>
             <Link className="hm-btn light" to="/shop">SHOP NOW <span>→</span></Link>
           </div>
-          <div className="hm-merch-art"><img src={MERCH} alt="ภาพคอนเซ็ปต์กระเป๋าผ้า Bigcat และพวงกุญแจโนบิ บูตะ ชิบะ" loading="lazy" data-cozy-depth="0.025" /></div>
+          <div className="hm-merch-art hm-merch-art--studio"><img src={MERCH_DISPLAY} srcSet="/images/bigcat-merch-pink-v4-small.webp 840w, /images/bigcat-merch-pink-v4.webp 1672w" sizes="(max-width: 760px) 100vw, 67vw" width="1672" height="941" alt="สินค้า Bigcat บนพื้นชมพู: หมวก 4 สี ตุ๊กตาโนบิ บูตะ ชิบะ ยางรัดผม และเสื้อดำ Call Me My Boo" loading="lazy" decoding="async" /></div>
           <Flower className="hm-flower hm-flower-3" />
         </div>
         {products.length > 0 && <div className="hm-products">{products.map((p, i) => <article key={p.id} className="hm-product reveal" style={{ '--delay': `${i * 90}ms` }}>
@@ -147,7 +148,7 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
 
     <footer className="hm-footer">
       <div className="hm-footer-brand"><Logo /><small>Small Cats. A Brighter Tomorrow.</small></div>
-      <nav className="hm-footer-nav" aria-label="เมนูท้ายเว็บ">{navItems.map(([label, href]) => href.startsWith('#') ? <a key={href} href={href}>{label}</a> : <Link key={href} to={href}>{label}</Link>)}<Link to="/shop">SHOP</Link><Link to="/admin">ทีมงาน</Link></nav>
+      <nav className="hm-footer-nav" aria-label="เมนูท้ายเว็บ">{navItems.map(([label, href]) => href.startsWith('#') ? <a key={href} href={href}>{label}</a> : <Link key={href} to={href}>{label}</Link>)}<Link to="/shop">SHOP</Link><Link to="/privacy">ความเป็นส่วนตัว</Link></nav>
       <div className="hm-social">{[['instagram', 'Instagram'], ['music', 'TikTok'], ['facebook', 'Facebook'], ['youtube', 'YouTube']].map(([icon, label]) => <button key={label} aria-label={label} onClick={() => setModal({ type: 'social', label })}><Icon name={icon} size={18} /></button>)}</div>
       <span className="hm-hand hm-footer-hand">โลกนี้น่ารักขึ้น<br />เพราะมีพวกเรา</span>
     </footer>

@@ -1,7 +1,9 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
+import { useUser, prefillFrom } from '../lib/auth.js';
 import { Link } from '../lib/nav.jsx';
 import { Section, Notice, PayBox } from '../components/EventShell.jsx';
+import { PhoneInput, FileDrop } from '../components/forms.jsx';
 import { Icon } from '../components/ui.jsx';
 import { api, holdTokenFor } from '../lib/api.js';
 import { baht } from '../lib/format.js';
@@ -17,6 +19,8 @@ export default function SeatBooking({ data }) {
   const [hold, setHold] = useState(null);          // { expiresAt, seats }
   const [remaining, setRemaining] = useState(0);
   const [form, setForm] = useState({ name: '', phone: '', email: '' });
+  const { user } = useUser();
+  useEffect(() => { setForm(f => prefillFrom(user, f, { name: 'display_name', phone: 'phone', email: 'email' })); }, [user]);
   const [slip, setSlip] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -105,10 +109,10 @@ export default function SeatBooking({ data }) {
         ? <button className="button dark" disabled={!selected.length || busy} onClick={startHold}>ยืนยันที่นั่งและกรอกข้อมูล <Icon name="arrow" /></button>
         : <form className="booking-form" onSubmit={submit}>
           <label>ชื่อ-นามสกุล<input id="bk-name" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="ชื่อที่ใช้รับบัตรหน้างาน" /></label>
-          <label>เบอร์โทร<input id="bk-phone" required inputMode="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="08x-xxx-xxxx" /></label>
+          <label>เบอร์โทร<PhoneInput id="bk-phone" required value={form.phone} onChange={phone => setForm({ ...form, phone })} /></label>
           <label>อีเมล (ถ้ามี)<input id="bk-email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="สำหรับส่งบัตร" /></label>
           <PayBox payment={ev.config.payment} note={`โอน ${baht(total)} แล้วแนบสลิปด้านล่าง (แนบทีหลังได้ที่หน้าบัตร)`} />
-          <label>สลิปโอนเงิน<input id="bk-slip" type="file" accept="image/*" onChange={e => setSlip(e.target.files?.[0] || null)} /></label>
+          <FileDrop id="bk-slip" file={slip} onChange={setSlip} hint="โอนแล้วแนบได้เลย หรือแนบทีหลังที่หน้าบัตร · JPG / PNG" />
           <div className="form-actions"><button type="button" className="button ghost" onClick={cancelHold} disabled={busy}>เลือกใหม่</button><button className="button dark" disabled={busy}>{busy ? 'กำลังบันทึก…' : 'ยืนยันการจอง'} <Icon name="check" /></button></div>
         </form>}
     </div>

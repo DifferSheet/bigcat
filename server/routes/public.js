@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import multer from 'multer';
+import { requirePhone } from '../validate.js';
 import path from 'node:path';
 import { q, one, tx } from '../db.js';
 import { wrap, HttpError, code, getEvent, shapeEvent, eventDetail, seatsOf, donationSummary, registrationSummary, drawsOf, songsOf, pollSummary, emit } from '../lib.js';
 import { verifySlip, slipEnabled } from '../slip.js';
+import { ownerFields, authProviders } from '../auth.js';
 import { lineEnabled, lineOaId, notifyStaff, push, msg } from '../line.js';
 
 export const upload = multer({
@@ -19,7 +21,7 @@ const r = Router();
 const clean = (v, max = 200) => String(v ?? '').trim().slice(0, max);
 
 // ค่าที่ frontend ต้องรู้ (ไม่มีความลับ)
-r.get('/config', (_req, res) => res.json({ slipEnabled, lineEnabled, lineOaId, siteUrl: process.env.SITE_URL || '' }));
+r.get('/config', (_req, res) => res.json({ slipEnabled, lineEnabled, lineOaId, authProviders, siteUrl: process.env.SITE_URL || '' }));
 
 /* ---------- Events ---------- */
 r.get('/events', wrap(async (_req, res) => {
@@ -78,8 +80,9 @@ r.post('/events/:slug/seats/release', wrap(async (req, res) => {
 r.post('/events/:slug/bookings', upload.single('slip'), wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
   const token = clean(req.body.holdToken, 64);
-  const name = clean(req.body.name, 120), phone = clean(req.body.phone, 30), email = clean(req.body.email, 160);
-  if (!token || !name || !phone) throw new HttpError(400, 'กรุณากรอกชื่อและเบอร์โทร');
+  const name = clean(req.body.name, 120), email = clean(req.body.email, 160);
+  if (!token || !name) throw new HttpError(400, 'กรุณากรอกชื่อและเบอร์โทร');
+  const phone = requirePhone(req.body.phone);
   const held = await q(`SELECT price FROM seats WHERE event_id=? AND status='held' AND hold_token=? AND hold_expires_at > UTC_TIMESTAMP()`, [ev.id, token]);
   if (!held.length) throw new HttpError(410, 'ที่นั่งที่เลือกหมดเวลาแล้ว กรุณาเลือกใหม่');
   const expected = held.reduce((s, x) => s + x.price, 0);
@@ -89,7 +92,7 @@ r.post('/events/:slug/bookings', upload.single('slip'), wrap(async (req, res) =>
     if (!seats.length) throw new HttpError(410, 'ที่นั่งที่เลือกหมดเวลาแล้ว กรุณาเลือกใหม่');
     const amount = seats.reduce((s, x) => s + x.price, 0);
     const bookingCode = code(8);
-    const ins = await q('INSERT INTO bookings SET ?', [{ code: bookingCode, event_id: ev.id, name, phone, email: email || null, seats: JSON.stringify(seats.map(s => s.label)), amount, slip_path: req.file ? `/uploads/${req.file.filename}` : null, trans_ref: verify.transRef || null, verified_at: verify.verified ? new Date() : null, verify_note: verify.note, status: verify.ok ? 'paid' : 'pending' }]);
+    const ins = await q('INSERT INTO bookings SET ?', [{ code: bookingCode, event_id: ev.id, name, phone, email: email || null, seats: JSON.stringify(seats.map(s => s.label)), amount, slip_path: req.file ? `/uploads/${req.file.filename}` : null, trans_ref: verify.transRef || null, verified_at: verify.verified ? new Date() : null, verify_note: verify.note, status: verify.ok ? 'paid' : 'pending', ...ownerFields(req) }]);
     await q(`UPDATE seats SET status='booked', booking_id=?, hold_token=NULL, hold_expires_at=NULL WHERE id IN (?)`, [ins.insertId, seats.map(s => s.id)]);
     return { code: bookingCode, amount, seats: seats.map(s => s.label), status: verify.ok ? 'paid' : 'pending', autoApproved: verify.ok, note: verify.note };
   });
@@ -126,7 +129,7 @@ r.post('/events/:slug/donations', upload.single('slip'), wrap(async (req, res) =
     code: c, event_id: ev.id, category_id: category.id, donor_name: donor, dedication: clean(req.body.dedication, 160) || null,
     message: clean(req.body.message, 300) || null, anonymous: req.body.anonymous === '1' || req.body.anonymous === 'true' ? 1 : 0,
     amount, units, slip_path: req.file ? `/uploads/${req.file.filename}` : null,
-    trans_ref: verify.transRef || null, verified_at: verify.verified ? new Date() : null, verify_note: verify.note, status: verify.ok ? 'approved' : 'pending',
+    trans_ref: verify.transRef || null, verified_at: verify.verified ? new Date() : null, verify_note: verify.note, status: verify.ok ? 'approved' : 'pending', ...ownerFields(req),
   }]);
   if (verify.ok) emit(ev.slug, 'donations', await donationSummary(ev.id));
   else notifyStaff(msg.staffNew('ยอดทำบุญ', ev.title, `${donor} · ฿${amount}${units ? ` (${units} ${category.unit_name})` : ''}\n${verify.note}`)).catch(() => {});
@@ -159,7 +162,7 @@ r.post('/events/:slug/registrations', wrap(async (req, res) => {
   const reg = await tx(async ({ q, one }) => {
     const n = await one('SELECT COALESCE(MAX(number),0)+1 AS next FROM registrations WHERE event_id=? FOR UPDATE', [ev.id]);
     const c = code(8);
-    await q('INSERT INTO registrations SET ?', [{ code: c, event_id: ev.id, number: n.next, name, nickname: clean(req.body.nickname, 60) || null, social: clean(req.body.social, 120) || null, phone: clean(req.body.phone, 30) || null, kind: clean(req.body.kind, 20) || 'attend' }]);
+    await q('INSERT INTO registrations SET ?', [{ code: c, event_id: ev.id, number: n.next, name, nickname: clean(req.body.nickname, 60) || null, social: clean(req.body.social, 120) || null, phone: requirePhone(req.body.phone, { required: false }) || null, kind: clean(req.body.kind, 20) || 'attend', ...ownerFields(req) }]);
     return { code: c, number: n.next };
   });
   emit(ev.slug, 'registrations', await registrationSummary(ev.id));

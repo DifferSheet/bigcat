@@ -1,7 +1,9 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useUser, prefillFrom } from '../lib/auth.js';
 import { Link } from '../lib/nav.jsx';
 import { Section, Notice, PayBox, Countdown, LineNotify } from '../components/EventShell.jsx';
+import { PhoneInput, FileDrop } from '../components/forms.jsx';
 import { Icon, Paw } from '../components/ui.jsx';
 import { api, voterToken } from '../lib/api.js';
 import { baht, parseDate, eventDate } from '../lib/format.js';
@@ -60,6 +62,8 @@ export default function MeritGoals({ data }) {
   const [error, setError] = useState('');
   const [done, setDone] = useState(null);
   const [attend, setAttend] = useState({ name: '', phone: '' });
+  const { user } = useUser();
+  useEffect(() => { setAttend(a => prefillFrom(user, a, { name: 'display_name', phone: 'phone' })); setForm(f => prefillFrom(user, f, { name: 'display_name' })); }, [user]);
   const [attendDone, setAttendDone] = useState(null);
   useEffect(() => { try { setAttendDone(JSON.parse(localStorage.getItem(attendKey(ev.slug)) || 'null')); } catch { /* optional */ } }, [ev.slug]);
   const [attendErr, setAttendErr] = useState('');
@@ -149,7 +153,7 @@ export default function MeritGoals({ data }) {
             <label>ข้อความถึงน้องแมว (ถ้ามี)<input id="dn-msg" value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} maxLength={300} /></label>
             <label className="check"><input id="dn-anon" type="checkbox" checked={form.anonymous} onChange={e => setForm({ ...form, anonymous: e.target.checked })} /> ไม่แสดงชื่อบนกำแพงผู้ร่วมบุญ</label>
             <PayBox payment={cfg.payment} note={`โอน ${baht(amount)} แล้วแนบสลิป — ระบบตรวจสลิปอัตโนมัติ ยอดขึ้นทันทีเมื่อผ่าน`} />
-            <label>สลิปโอนเงิน<input id="dn-slip" type="file" accept="image/*" onChange={e => setSlip(e.target.files?.[0] || null)} /></label>
+            <FileDrop id="dn-slip" file={slip} onChange={setSlip} />
             {error && <Notice tone="error">{error}</Notice>}
             <div className="form-actions"><button className="button dark" disabled={busy || !(amount >= 1)}>{busy ? 'กำลังส่ง…' : `แจ้งยอด ${baht(amount)}`} <Icon name="heart" /></button></div>
           </form>}
@@ -164,7 +168,7 @@ export default function MeritGoals({ data }) {
         : ev.status === 'ended' ? <Notice tone="muted">งานจบแล้ว</Notice>
           : <form className="booking-form inline" onSubmit={registerAttend}>
             <label>ชื่อ<input id="at-name" required value={attend.name} onChange={e => setAttend({ ...attend, name: e.target.value })} /></label>
-            <label>เบอร์โทร (ถ้ามี)<input id="at-phone" inputMode="tel" value={attend.phone} onChange={e => setAttend({ ...attend, phone: e.target.value })} /></label>
+            <label>เบอร์โทร (ถ้ามี)<PhoneInput id="at-phone" value={attend.phone} onChange={phone => setAttend({ ...attend, phone })} /></label>
             {attendErr && <Notice tone="error">{attendErr}</Notice>}
             <div className="form-actions"><button className="button dark small">ฉันจะไปวัดด้วย <Icon name="check" /></button></div>
           </form>}
