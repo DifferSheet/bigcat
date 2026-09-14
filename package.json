@@ -1,0 +1,35 @@
+{
+  "name": "bigcat-world",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,magenta \"npm:dev:web\" \"npm:dev:api\"",
+    "dev:web": "next dev -p ${WEB_PORT:-3100}",
+    "dev:api": "node --watch server/index.js",
+    "build": "next build",
+    "start": "concurrently -n web,api -c cyan,magenta \"npm:start:web\" \"npm:start:api\"",
+    "start:web": "next start -p ${WEB_PORT:-3100}",
+    "start:api": "node server/index.js",
+    "db:seed": "node server/seed.js",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "multer": "^2.3.0",
+    "mysql2": "^3.24.4",
+    "next": "^16.3.5",
+    "qrcode": "^1.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.18.3",
+    "sanitize-html": "^2.17.7",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

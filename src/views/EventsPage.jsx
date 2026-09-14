@@ -1,0 +1,61 @@
+'use client';
+import React, { useEffect, useState } from 'react';
+import { Link } from '../lib/nav.jsx';
+import { SiteHeader, SiteFooter, StatusPill } from '../components/EventShell.jsx';
+import { Icon, PageLoader } from '../components/ui.jsx';
+import { api } from '../lib/api.js';
+import { eventDate, typeLabel, baht } from '../lib/format.js';
+
+const FILTERS = [['all', 'ทั้งหมด'], ['fanmeet', 'Fan Meet'], ['merit', 'ทำบุญ'], ['busking', 'Busking'], ['workshop', 'Workshop'], ['popup', 'Pop-up']];
+
+function Summary({ ev }) {
+  const s = ev.summary || {};
+  if (s.seats) return <span className="ev-summary">{s.seats.free > 0 ? <>เหลือ <strong>{s.seats.free}</strong> / {s.seats.total} ที่นั่ง</> : 'ที่นั่งเต็มแล้ว'}</span>;
+  if (s.donation) return <span className="ev-summary"><span className="mini-bar"><i style={{ width: `${s.donation.percent}%` }} /></span>{baht(s.donation.total)} · {s.donation.percent}%</span>;
+  if (s.registrations) return <span className="ev-summary">ลงทะเบียนแล้ว <strong>{s.registrations.total}</strong> คน · เช็คอิน {s.registrations.checkedIn}</span>;
+  return null;
+}
+
+export default function EventsPage({ notFound = false, initialEvents = null }) {
+  const [events, setEvents] = useState(initialEvents);
+  const [error, setError] = useState('');
+  const [filter, setFilter] = useState('all');
+  useEffect(() => { if (!initialEvents) api('/events').then(setEvents).catch(e => setError(e.message)); }, [initialEvents]);
+  const list = (events || []).filter(ev => filter === 'all' || ev.type === filter);
+  const upcoming = list.filter(ev => ev.status !== 'ended');
+  const past = list.filter(ev => ev.status === 'ended');
+
+  const Card = ({ ev }) => {
+    const d = eventDate(ev);
+    return <Link to={`/events/${ev.slug}`} className={`ev-card tone-${ev.tone}`}>
+      <div className="ev-card-cover"><img src={ev.cover || '/images/bigcat-hero.png'} alt="" loading="lazy" /><span className={`date-badge ${ev.tone}`}><strong>{d.day}</strong><span>{d.month}</span></span></div>
+      <div className="ev-card-body">
+        <div className="ev-card-meta"><span className="eyebrow">{typeLabel[ev.type]}</span><StatusPill status={ev.status} /></div>
+        <h3>{ev.title}</h3>
+        <p>{ev.subtitle}</p>
+        <span className="ev-card-place"><Icon name="pin" size={14} />{ev.place || 'สถานที่จะแจ้งให้ทราบ'} · {d.time}</span>
+        <Summary ev={ev} />
+      </div>
+    </Link>;
+  };
+
+  return <>
+    <SiteHeader />
+    <main className="ev-page">
+      <div className="ev-hero-simple">
+        <span className="eyebrow">{notFound ? 'PAGE NOT FOUND' : 'LET’S MAKE A DATE'}</span>
+        <h1>{notFound ? 'ไม่พบหน้าที่คุณต้องการ' : 'กิจกรรมของแก๊ง Bigcat'}</h1>
+        <p>{notFound ? 'แต่ยังมีกิจกรรมสนุกๆ รอคุณอยู่ตรงนี้' : 'จองที่นั่ง ร่วมทำบุญ หรือมาเจอกันริมถนน เลือกงานที่ใช่แล้วกดเข้าไปได้เลย'}</p>
+        <div className="filter-tabs">{FILTERS.map(([id, label]) => <button key={id} className={filter === id ? 'active' : ''} aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>)}</div>
+      </div>
+      {error && <p className="notice error">โหลดรายการกิจกรรมไม่สำเร็จ: {error} — ตรวจสอบว่า API รันอยู่ (npm run dev)</p>}
+      {!events && !error && <PageLoader />}
+      {events && <>
+        <div className="ev-grid">{upcoming.map(ev => <Card key={ev.slug} ev={ev} />)}</div>
+        {upcoming.length === 0 && <p className="small-note">ยังไม่มีกิจกรรมในหมวดนี้</p>}
+        {past.length > 0 && <><h2 className="ev-subhead">ที่ผ่านมา</h2><div className="ev-grid">{past.map(ev => <Card key={ev.slug} ev={ev} />)}</div></>}
+      </>}
+    </main>
+    <SiteFooter />
+  </>;
+}

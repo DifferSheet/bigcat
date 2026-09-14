@@ -1,0 +1,62 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    # t4g = arm64 → ต้อง build บน runner arm ไม่งั้น native module พังตอนรันบน EC2
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build Next.js (standalone)
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Assemble release folder
+        run: |
+          set -e
+          rm -rf release && mkdir -p release
+          cp -r .next/standalone/. release/
+          mkdir -p release/.next/static release/public
+          cp -r .next/static/. release/.next/static/
+          cp -r public/. release/public/
+          cp -r server release/server
+          cp package.json package-lock.json ecosystem.config.cjs release/
+          # dependency ของ Express (standalone ของ Next มี node_modules ของตัวเองแล้ว)
+          cd release && npm ci --omit=dev --ignore-scripts
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "${{ secrets.EC2_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+
+      - name: Upload release
+        run: |
+          rsync -az --delete \
+            --exclude '.env' --exclude 'server/uploads/' \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            release/ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/bigcat/
+
+      - name: Reload app
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
+            'cd /var/www/bigcat && pm2 startOrReload ecosystem.config.cjs --update-env && pm2 save'

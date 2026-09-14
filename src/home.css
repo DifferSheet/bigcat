@@ -1,0 +1,136 @@
+/* ---------- Home: cozy collectible layout (อิงจากภาพพรีวิว) ---------- */
+.hm { --brown: #4a3b34; --pink: #df8190; --pink-2: #f2c7c8; --pink-card: #f6d9dc; --pink-band: #e9aeb6; --yellow-card: #f8e8c8; --sage-card: #e2e9d6; --line: #e8e1d6; --hand: #b26b78; max-width: 1440px; margin: auto; padding: 0 clamp(16px, 4vw, 52px) 40px; color: #33332f; }
+.hm h1, .hm h2, .hm h3 { font-family: var(--font-head); font-weight: 600; line-height: 1.15; color: var(--brown); }
+.hm-label { font-family: var(--font-display); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #8d8174; }
+.hm-hand { font-family: var(--font-hand); font-size: 22px; line-height: 1.15; color: var(--hand); }
+.hm-muted { color: #8d8174; font-size: 14px; }
+.hm i { font-style: normal; color: var(--pink); }
+.hm-btn { display: inline-flex; align-items: center; gap: 14px; padding: 15px 30px; border-radius: 100px; background: var(--pink); color: #fff; font-family: var(--font-head); font-size: 15px; font-weight: 500; transition: transform .2s, box-shadow .2s; box-shadow: 0 10px 24px -12px #df819088; }
+.hm-btn:hover { transform: translateY(-2px); }
+.hm-btn.light { background: #fff1f1; color: var(--brown); box-shadow: none; font-family: var(--font-display); letter-spacing: .12em; font-size: 13px; }
+.hm-btn span { transition: transform .2s; } .hm-btn:hover span { transform: translateX(4px); }
+
+/* header */
+.hm-header { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 24px; height: 78px; margin: 0 clamp(-16px, -4vw, -52px); padding: 0 clamp(16px, 4vw, 52px); background: #fcf8f1ee; backdrop-filter: blur(16px); }
+.hm-nav { display: flex; align-items: center; gap: 34px; font-family: var(--font-head); font-size: 15px; font-weight: 500; color: var(--brown); }
+.hm-nav a { position: relative; padding: 8px 0; }
+.hm-nav a::after { content: ''; position: absolute; left: 0; bottom: 2px; width: 0; height: 2px; background: var(--pink); transition: width .25s; }
+.hm-nav a:hover::after { width: 100%; }
+.hm-nav-shop { font-family: var(--font-display); letter-spacing: .1em; font-size: 14px; }
+.hm-nav-actions { display: flex; align-items: center; gap: 8px; }
+.hm-menu { display: none; }
+
+/* hero */
+.hm-hero { display: grid; grid-template-columns: .9fr 1.1fr; gap: 32px; align-items: center; padding: 26px 0 40px; }
+.hm-hero-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; position: relative; z-index: 2; }
+.hm-hero h1 { font-size: clamp(42px, 5.6vw, 76px); line-height: 1.05; margin: 4px 0; }
+.hm-hero h1 span { display: block; color: var(--pink); font-size: .74em; margin-top: 4px; }
+.hm-hero p { font-size: 17px; line-height: 1.7; color: #5a4f48; }
+.hm-hand-1 { margin: 10px 0 0 60px; transform: rotate(-4deg); }
+.hm-hero-art { position: relative; }
+.hm-arch { border-radius: 260px 260px 32px 32px; overflow: hidden; aspect-ratio: 4 / 3; background: #f4ece0; box-shadow: 0 40px 80px -50px #5a3a2a66; }
+.hm-arch img { width: 100%; height: 100%; object-fit: cover; }
+.hm-hand-2 { position: absolute; right: 8px; top: 24px; text-align: right; }
+.hm-sign { position: absolute; left: -18px; bottom: 26px; background: #fffaf3; border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; font-family: var(--font-display); font-size: 12px; letter-spacing: .16em; line-height: 1.5; color: #8d8174; box-shadow: 0 14px 30px -18px #0004; transform: rotate(-3deg); }
+.hm-flower { position: absolute; color: #fff; opacity: .9; pointer-events: none; }
+.hm-flower-1 { width: 60px; left: -30px; top: 40%; } .hm-flower-2 { width: 46px; right: -14px; bottom: 60px; } .hm-flower-3 { width: 70px; left: 42%; bottom: -20px; color: #fff; }
+
+/* section heads */
+.hm-section { padding: 34px 0; }
+.hm-sec-head { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+.hm-line { flex: 1; height: 1px; background: var(--line); }
+.hm-note { font-size: 12px; color: var(--pink); font-weight: 600; letter-spacing: .04em; white-space: nowrap; }
+a.hm-note:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+/* characters */
+.hm-chars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.hm-char { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; text-align: left; padding: 30px 26px 0 0; min-height: 300px; border-radius: 170px 170px 26px 26px; background: var(--pink-card); transition: transform .25s, box-shadow .25s; overflow: hidden; position: relative; }
+.hm-char:hover { transform: translateY(-6px); box-shadow: 0 30px 50px -36px #5a3a2a77; }
+.hm-char.tone-yellow { background: var(--yellow-card); } .hm-char.tone-sage { background: var(--sage-card); }
+.hm-char-img { align-self: end; height: 300px; }
+.hm-char-img img { width: 100%; height: 100%; object-fit: cover; object-position: center top; border-radius: 120px 120px 0 0; display: block; }
+.hm-char-text { display: flex; flex-direction: column; gap: 8px; padding-bottom: 30px; align-self: center; }
+.hm-char h3 { font-family: var(--font-display); font-weight: 600; font-size: 24px; letter-spacing: .12em; color: var(--brown); }
+.hm-char p { white-space: pre-line; font-size: 14px; line-height: 1.6; color: #5a4f48; }
+.hm-char-icon { font-size: 20px; color: var(--pink); }
+.hm-more { font-family: var(--font-display); font-size: 11px; letter-spacing: .16em; color: var(--brown); border-bottom: 1px solid var(--brown); align-self: flex-start; padding-bottom: 2px; }
+.hm-more b { font-weight: 400; margin-left: 4px; }
+
+/* events */
+.hm-events { display: grid; grid-template-columns: .7fr 1fr 1fr; gap: 22px; align-items: center; }
+.hm-events-copy h2, .hm-album-copy h2 { font-size: clamp(34px, 3.6vw, 48px); }
+.hm-events-copy p, .hm-album-copy p { margin-top: 12px; color: #5a4f48; line-height: 1.7; }
+.hm-event { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 12px; border-radius: 20px; background: #fffaf3; border: 1px solid var(--line); transition: transform .25s, box-shadow .25s; }
+.hm-event:hover { transform: translateY(-5px); box-shadow: 0 26px 44px -32px #5a3a2a77; }
+.hm-event-img { position: relative; aspect-ratio: 1; border-radius: 14px; overflow: hidden; }
+.hm-event-img img { width: 100%; height: 100%; object-fit: cover; }
+.hm-date { position: absolute; left: 10px; top: 10px; display: flex; flex-direction: column; align-items: center; padding: 6px 12px; border-radius: 12px; background: #f0b3b9; color: var(--brown); font-family: var(--font-head); font-size: 12px; line-height: 1.1; }
+.hm-date strong { font-family: var(--font-display); font-size: 22px; }
+.hm-event-body { display: flex; flex-direction: column; gap: 6px; padding: 6px 4px 6px 0; position: relative; }
+.hm-event h3 { font-size: 19px; }
+.hm-event p { font-size: 13px; color: #5a4f48; line-height: 1.6; }
+.hm-arrow { margin-top: auto; width: 34px; height: 34px; border-radius: 50%; background: #f6d9dc; color: var(--brown); display: grid; place-items: center; font-size: 14px; }
+
+/* merch */
+.hm-merch { position: relative; display: grid; grid-template-columns: .8fr 1.2fr; gap: 20px; align-items: center; border-radius: 32px; background: var(--pink-band); padding: clamp(26px, 4vw, 48px); overflow: hidden; min-height: 300px; }
+.hm-merch-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; position: relative; z-index: 1; }
+.hm-merch h2 { font-family: var(--font-hand); font-weight: 600; font-size: clamp(40px, 4.6vw, 62px); color: #fff; line-height: 1; }
+.hm-merch h2 i { color: #fff; }
+.hm-merch p { color: #fff; line-height: 1.6; font-size: 16px; }
+.hm-merch-art { border-radius: 24px; overflow: hidden; aspect-ratio: 16/9; }
+.hm-merch-art img { width: 100%; height: 100%; object-fit: cover; }
+.hm-products { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 22px; }
+.hm-product { display: flex; flex-direction: column; border-radius: 20px; background: #fffaf3; border: 1px solid var(--line); overflow: hidden; }
+.hm-product-img { position: relative; aspect-ratio: 1; background: #f4ece0; }
+.hm-product-img img { width: 100%; height: 100%; object-fit: cover; }
+.hm-tag { position: absolute; left: 10px; top: 10px; background: var(--brown); color: #fff; font-size: 11px; padding: 3px 9px; border-radius: 100px; }
+.hm-product-info { display: flex; justify-content: space-between; gap: 10px; padding: 12px 14px 14px; align-items: flex-end; }
+.hm-product h3 { font-size: 15px; } .hm-product p { font-size: 12px; color: #8d8174; }
+.hm-product-buy { display: flex; align-items: center; gap: 6px; font-family: var(--font-display); font-size: 16px; color: var(--brown); }
+.hm-product-buy .icon-button { width: 34px; height: 34px; background: var(--pink-card); }
+
+/* album */
+.hm-album { display: grid; grid-template-columns: .7fr 1.6fr .5fr; gap: 22px; align-items: center; }
+.hm-polaroids { display: flex; gap: 18px; justify-content: center; align-items: center; }
+.hm-polaroid { background: #fff; padding: 12px 12px 14px; border-radius: 6px; box-shadow: 0 20px 40px -26px #5a3a2a88; transform: rotate(var(--tilt)); transition: transform .25s; width: 100%; max-width: 230px; }
+.hm-polaroid:hover { transform: rotate(0) scale(1.04); z-index: 2; }
+.hm-polaroid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 3px; }
+.hm-polaroid span { display: block; margin-top: 10px; font-family: var(--font-hand); font-size: 20px; color: var(--brown); }
+.hm-sticky { position: relative; background: #f6d9dc; padding: 22px 20px 30px; border-radius: 4px; box-shadow: 0 14px 30px -20px #0004; transform: rotate(3deg); font-family: var(--font-hand); font-size: 24px; line-height: 1.2; color: var(--hand); text-align: center; }
+.hm-sticky-flower { position: absolute; width: 54px; right: -22px; bottom: -18px; color: #fff; }
+
+/* footer */
+.hm-footer { display: grid; grid-template-columns: auto 1fr auto auto; gap: 30px; align-items: center; padding: 36px 0 10px; margin-top: 30px; border-top: 1px solid var(--line); }
+.hm-footer-brand { display: flex; flex-direction: column; gap: 4px; }
+.hm-footer-brand small { font-family: var(--font-display); font-size: 11px; letter-spacing: .06em; color: #8d8174; }
+.hm-footer-nav { display: flex; gap: 22px; justify-content: center; font-family: var(--font-head); font-size: 13px; color: var(--brown); flex-wrap: wrap; }
+.hm-social { display: flex; gap: 8px; }
+.hm-social button { width: 38px; height: 38px; border-radius: 50%; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; color: var(--brown); }
+.hm-footer-hand { text-align: right; font-size: 18px; }
+
+/* modal portrait */
+.hm-modal-portrait { border-radius: 120px 120px 16px 16px; overflow: hidden; aspect-ratio: 4/5; max-height: 320px; background: #f6d9dc; margin: 8px 0 14px; }
+.hm-modal-portrait.tone-yellow { background: #f8e8c8; } .hm-modal-portrait.tone-sage { background: #e2e9d6; }
+.hm-modal-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+
+/* reveal */
+.hm .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease var(--delay, 0ms), transform .6s ease var(--delay, 0ms); }
+.hm .reveal.is-visible { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .hm .reveal { opacity: 1; transform: none; transition: none; } }
+
+/* responsive */
+@media (max-width: 1100px) { .hm-events { grid-template-columns: 1fr 1fr; } .hm-events-copy { grid-column: 1 / -1; } .hm-products { grid-template-columns: repeat(2, 1fr); } .hm-album { grid-template-columns: 1fr; } .hm-sticky { justify-self: center; width: 200px; } }
+@media (max-width: 900px) {
+  .hm-hero { grid-template-columns: 1fr; padding-top: 10px; } .hm-hero-art { order: -1; } .hm-arch { border-radius: 160px 160px 24px 24px; }
+  .hm-chars { grid-template-columns: 1fr; } .hm-char { min-height: 240px; padding-top: 16px; } .hm-char-img { height: 240px; }
+  .hm-merch { grid-template-columns: 1fr; } .hm-merch-art { aspect-ratio: 4/3; }
+  .hm-footer { grid-template-columns: 1fr; text-align: center; gap: 18px; } .hm-footer-hand { text-align: center; } .hm-social { justify-content: center; } .hm-footer-brand { align-items: center; }
+  .hm-nav { position: fixed; inset: 78px 0 auto 0; flex-direction: column; align-items: stretch; gap: 0; background: #fcf8f1; border-bottom: 1px solid var(--line); padding: 10px 24px 18px; transform: translateY(-120%); opacity: 0; transition: transform .25s, opacity .25s; }
+  .hm-nav.open { transform: none; opacity: 1; } .hm-nav a { padding: 12px 0; border-bottom: 1px dashed var(--line); }
+  .hm-menu { display: inline-flex; }
+}
+@media (max-width: 640px) { .hm-events { grid-template-columns: 1fr; } .hm-event { grid-template-columns: 120px 1fr; } .hm-products { grid-template-columns: 1fr 1fr; gap: 10px; } .hm-polaroids { flex-direction: column; } .hm-polaroid { max-width: 260px; } .hm-sign { left: 6px; bottom: 10px; padding: 10px 12px; font-size: 10px; } .hm-hand-2 { display: none; } .hm-hand-1 { margin-left: 20px; } .brand-word { font-size: 22px; } }
+/* polaroid: คง tilt ไว้แม้ใช้ reveal */
+.hm .hm-polaroid.reveal { transform: rotate(var(--tilt)) translateY(14px); }
+.hm .hm-polaroid.reveal.is-visible { transform: rotate(var(--tilt)); }
+.hm .hm-polaroid.reveal.is-visible:hover { transform: rotate(0) scale(1.04); }

@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.DS_Store
+
+.env
+server/uploads/
+.next/
+next-env.d.ts
+release/
+*.png.bak
+index-vite.html.bak
+.DS_Store
+# ของเก่า/พรีวิว ไม่ใช่โค้ด — เก็บในเครื่องอย่างเดียว
+dist/
+design-previews/
+preview-desktop.png
+preview-mobile.png
+bigcat-website-preview.png
+index-original.html

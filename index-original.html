@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIGCAT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Mitr:wght@400;500;600&family=Anuphan:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #FFFCF7;
+    --surface: #F6EFE4;
+    --line: #E9E0D3;
+    --ink: #2A2420;
+    --muted: #7C6F63;
+    --nobi: #FF8A3D;
+    --buta: #F0A0B4;
+    --shiba: #7DB6E4;
+    --nobi-soft: #FFE7D4;
+    --buta-soft: #FBE4EA;
+    --shiba-soft: #E2F0FA;
+    --ink-on-accent: #2A2420;
+    --shadow: 0 18px 40px -20px rgba(70, 40, 10, .35);
+    --display: "Fredoka", "Mitr", system-ui, sans-serif;
+    --head: "Mitr", "Fredoka", system-ui, sans-serif;
+    --body: "Anuphan", "Noto Sans Thai", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1B1815; --surface: #262019; --line: #3A322B; --ink: #F6F0E8; --muted: #AC9E90;
+      --nobi-soft: #4A2C17; --buta-soft: #472630; --shiba-soft: #1E3347;
+      --shadow: 0 18px 40px -20px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1B1815; --surface: #262019; --line: #3A322B; --ink: #F6F0E8; --muted: #AC9E90;
+    --nobi-soft: #4A2C17; --buta-soft: #472630; --shiba-soft: #1E3347;
+    --shadow: 0 18px 40px -20px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--body); font-size: 17px; line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: var(--head); font-weight: 500; line-height: 1.2; margin: 0; text-wrap: balance; }
+  p { margin: 0; }
+  a { color: inherit; }
+  img, svg { max-width: 100%; }
+  :focus-visible { outline: 3px solid var(--nobi); outline-offset: 3px; border-radius: 6px; }
+
+  .wrap { width: min(1120px, 100%); margin-inline: auto; padding-inline: clamp(16px, 4vw, 40px); }
+  section { padding-block: clamp(56px, 9vw, 112px); }
+  .eyebrow {
+    font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--nobi);
+  }
+  .h2 { font-size: clamp(30px, 4.2vw, 46px); margin-top: 10px; }
+  .lead { color: var(--muted); max-width: 58ch; margin-top: 14px; font-size: 18px; }
+
+  /* ---------- Nav ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 20px; height: 68px; }
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: .02em; }
+  .logo .mark { width: 34px; height: 34px; color: var(--nobi); }
+  .nav ul { list-style: none; display: flex; gap: 26px; margin: 0; padding: 0; font-weight: 500; font-size: 15px; }
+  .nav ul a { text-decoration: none; color: var(--muted); }
+  .nav ul a:hover { color: var(--ink); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+    font-family: var(--head); font-weight: 500; font-size: 16px;
+    padding: 12px 22px; border-radius: 999px; border: 1.5px solid transparent;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary { background: var(--nobi); color: var(--ink-on-accent); }
+  .btn-ghost { border-color: var(--line); color: var(--ink); }
+  .nav .btn { padding: 9px 18px; font-size: 15px; }
+  @media (max-width: 760px) { .nav ul { display: none; } }
+
+  /* ---------- Hero ---------- */
+  .hero { padding-block: clamp(40px, 7vw, 96px) clamp(40px, 6vw, 80px); overflow: hidden; }
+  .hero .wrap { display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(24px, 5vw, 64px); align-items: center; }
+  .hero h1 {
+    font-size: clamp(40px, 6.4vw, 76px); line-height: 1.08; font-weight: 600;
+  }
+  .hero h1 em { font-style: normal; color: var(--nobi); }
+  .hero .lead { font-size: clamp(17px, 1.6vw, 20px); }
+  .hero .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border-radius: 999px;
+    background: var(--nobi-soft); font-size: 14px; font-weight: 500; margin-bottom: 22px;
+  }
+  .badge .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--nobi); display: grid; place-items: center; color: #fff; }
+  .hero-art { position: relative; aspect-ratio: 1; max-width: 520px; margin-inline: auto; width: 100%; }
+  .hero-art .blob { position: absolute; inset: 6%; border-radius: 46% 54% 52% 48% / 52% 44% 56% 48%; background: var(--nobi-soft); }
+  .hero-art .cat { position: absolute; inset: 10%; color: var(--nobi); }
+  .hero-art .tag {
+    position: absolute; background: var(--bg); border: 1px solid var(--line); box-shadow: var(--shadow);
+    border-radius: 14px; padding: 8px 14px; font-size: 14px; line-height: 1.4;
+  }
+  .hero-art .tag b { display: block; font-family: var(--head); font-weight: 500; font-size: 15px; }
+  .tag-1 { left: 0; top: 18%; }
+  .tag-2 { right: 0; bottom: 16%; }
+  .friends { position: absolute; bottom: 0; left: 4%; display: flex; }
+  .friends span { width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--bg); display: grid; place-items: center; margin-right: -12px; }
+  .friends .f-buta { background: var(--buta-soft); color: var(--buta); }
+  .friends .f-shiba { background: var(--shiba-soft); color: var(--shiba); }
+  .friends svg { width: 38px; height: 38px; }
+  @media (max-width: 820px) {
+    .hero .wrap { grid-template-columns: 1fr; }
+    .hero-art { max-width: 380px; order: -1; }
+  }
+
+  /* ---------- Members ---------- */
+  .members { background: var(--surface); }
+  .members-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 44px; align-items: end; }
+  .member {
+    background: var(--bg); border-radius: 28px; padding: 26px; text-decoration: none; display: block;
+    transition: transform .2s ease, box-shadow .2s ease; box-shadow: 0 0 0 1px var(--line);
+  }
+  .member:hover { transform: translateY(-6px); box-shadow: var(--shadow), 0 0 0 1px var(--line); }
+  .member .pic { aspect-ratio: 1; border-radius: 20px; display: grid; place-items: center; margin-bottom: 18px; }
+  .member .pic svg { width: 78%; height: 78%; }
+  .member.nobi .pic { background: var(--nobi-soft); color: var(--nobi); }
+  .member.buta .pic { background: var(--buta-soft); color: var(--buta); }
+  .member.shiba .pic { background: var(--shiba-soft); color: var(--shiba); }
+  .member .role { font-family: var(--display); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .member h3 { font-size: 26px; margin-top: 4px; }
+  .member p { color: var(--muted); font-size: 15px; margin-top: 8px; }
+  .member.nobi { padding: 32px; }
+  .member.nobi h3 { font-size: 32px; }
+  .member.nobi .role { color: var(--nobi); }
+  @media (max-width: 760px) {
+    .members-grid { grid-template-columns: 1fr; }
+    .member.nobi { order: -1; }
+  }
+
+  /* ---------- Nobi feature ---------- */
+  .feature .wrap { display: grid; grid-template-columns: .9fr 1.1fr; gap: clamp(28px, 5vw, 72px); align-items: center; }
+  .feature-art { aspect-ratio: 4 / 5; border-radius: 32px; background: var(--nobi-soft); position: relative; overflow: hidden; }
+  .feature-art svg { position: absolute; inset: 8% -6% -10% 12%; width: 100%; height: auto; color: var(--nobi); }
+  .feature-art .num { position: absolute; top: 22px; left: 26px; font-family: var(--display); font-weight: 700; font-size: 84px; line-height: 1; color: var(--nobi); opacity: .55; }
+  .facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 28px; margin-top: 28px; }
+  .fact { padding-block: 12px; border-bottom: 1px solid var(--line); }
+  .fact dt { font-size: 13px; color: var(--muted); letter-spacing: .04em; }
+  .fact dd { margin: 2px 0 0; font-family: var(--head); font-size: 18px; }
+  .stats { margin-top: 30px; display: grid; gap: 14px; }
+  .stat { display: grid; grid-template-columns: 120px 1fr 44px; align-items: center; gap: 14px; font-size: 15px; }
+  .stat .bar { height: 10px; border-radius: 999px; background: var(--surface); overflow: hidden; }
+  .stat .bar i { display: block; height: 100%; border-radius: 999px; background: var(--nobi); }
+  .stat .val { font-family: var(--display); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  @media (max-width: 820px) {
+    .feature .wrap { grid-template-columns: 1fr; }
+    .feature-art { max-width: 420px; }
+    .stat { grid-template-columns: 100px 1fr 40px; }
+  }
+
+  /* ---------- Gallery ---------- */
+  .gallery-head { display: flex; justify-content: space-between; align-items: end; gap: 20px; flex-wrap: wrap; }
+  .gallery { margin-top: 36px; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 180px; gap: 14px; }
+  .tile {
+    border-radius: 22px; position: relative; overflow: hidden; display: grid; place-items: center;
+    transition: transform .2s ease;
+  }
+  .tile:hover { transform: scale(1.02); }
+  .tile svg { width: 46%; height: 46%; opacity: .55; }
+  .tile small { position: absolute; left: 14px; bottom: 10px; font-family: var(--display); font-size: 12px; letter-spacing: .12em; opacity: .6; }
+  .tile.a { background: var(--nobi-soft); color: var(--nobi); }
+  .tile.b { background: var(--buta-soft); color: var(--buta); }
+  .tile.c { background: var(--shiba-soft); color: var(--shiba); }
+  .tile.d { background: var(--surface); color: var(--muted); }
+  .tile.tall { grid-row: span 2; }
+  .tile.wide { grid-column: span 2; }
+  @media (max-width: 760px) {
+    .gallery { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; }
+    .tile.wide { grid-column: span 2; }
+  }
+
+  /* ---------- Story ---------- */
+  .story { background: var(--surface); }
+  .timeline { margin-top: 44px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; position: relative; }
+  .timeline::before { content: ""; position: absolute; left: 0; right: 0; top: 11px; height: 2px; background: var(--line); }
+  .step { position: relative; padding-top: 34px; }
+  .step::before { content: ""; position: absolute; top: 4px; left: 0; width: 16px; height: 16px; border-radius: 50%; background: var(--nobi); box-shadow: 0 0 0 4px var(--surface); }
+  .step.buta::before { background: var(--buta); }
+  .step.shiba::before { background: var(--shiba); }
+  .step .year { font-family: var(--display); font-weight: 600; font-size: 22px; }
+  .step h3 { font-size: 19px; margin-top: 6px; }
+  .step p { color: var(--muted); font-size: 15px; margin-top: 8px; }
+  @media (max-width: 820px) {
+    .timeline { grid-template-columns: 1fr; gap: 8px; padding-left: 28px; }
+    .timeline::before { left: 7px; right: auto; top: 0; bottom: 0; width: 2px; height: auto; }
+    .step { padding: 8px 0 22px; }
+    .step::before { left: -28px; top: 14px; }
+  }
+
+  /* ---------- Collab ---------- */
+  .collab .card {
+    background: var(--ink); color: var(--bg); border-radius: 32px; padding: clamp(32px, 5vw, 64px);
+    display: grid; grid-template-columns: 1.2fr .8fr; gap: 40px; align-items: center; position: relative; overflow: hidden;
+  }
+  .collab .card::after {
+    content: ""; position: absolute; right: -80px; bottom: -120px; width: 320px; height: 320px; border-radius: 50%;
+    background: var(--nobi); opacity: .9;
+  }
+  .collab h2 { font-size: clamp(28px, 3.8vw, 42px); color: var(--bg); }
+  .collab p { opacity: .8; margin-top: 12px; max-width: 48ch; }
+  .collab ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; position: relative; z-index: 1; }
+  .collab li { display: flex; gap: 12px; align-items: start; font-size: 16px; }
+  .collab li::before { content: "●"; color: var(--nobi); font-size: 10px; margin-top: 10px; }
+  .collab .btn-primary { margin-top: 26px; }
+  @media (max-width: 760px) { .collab .card { grid-template-columns: 1fr; } .collab .card::after { width: 220px; height: 220px; right: -90px; bottom: -110px; } }
+
+  /* ---------- Footer ---------- */
+  footer { border-top: 1px solid var(--line); padding-block: 36px; font-size: 14px; color: var(--muted); }
+  footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; }
+  footer nav { display: flex; gap: 18px; }
+  footer a { text-decoration: none; }
+  footer a:hover { color: var(--ink); }
+
+  /* ---------- Motion ---------- */
+  .eye { transform-origin: center; animation: blink 5s infinite; }
+  .tail { transform-origin: 150px 165px; animation: wag 3s ease-in-out infinite; }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+  @keyframes wag { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-10deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .eye, .tail { animation: none; }
+    .btn, .member, .tile { transition: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- แมวหลัก: ตัวใหญ่ ตาสงบ มีลายบนหัว -->
+    <symbol id="cat-nobi" viewBox="0 0 200 200">
+      <path class="tail" d="M150 165 C185 160 190 120 170 105" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round"/>
+      <ellipse cx="100" cy="152" rx="72" ry="42" fill="currentColor"/>
+      <path d="M52 62 L62 18 L98 50 Z M148 62 L138 18 L102 50 Z" fill="currentColor"/>
+      <path d="M62 56 L66 34 L86 50 Z M138 56 L134 34 L114 50 Z" fill="#fff" opacity=".35"/>
+      <circle cx="100" cy="98" r="56" fill="currentColor"/>
+      <path d="M88 48 L92 66 M100 46 L100 64 M112 48 L108 66" stroke="#fff" stroke-opacity=".4" stroke-width="5" stroke-linecap="round"/>
+      <ellipse class="eye" cx="80" cy="96" rx="6" ry="7" fill="#2A2420"/>
+      <ellipse class="eye" cx="120" cy="96" rx="6" ry="7" fill="#2A2420"/>
+      <path d="M96 110 L104 110 L100 116 Z" fill="#2A2420"/>
+      <path d="M100 116 Q94 124 88 119 M100 116 Q106 124 112 119" fill="none" stroke="#2A2420" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M40 104 L68 108 M40 116 L68 114 M160 104 L132 108 M160 116 L132 114" stroke="#2A2420" stroke-opacity=".6" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="68" cy="112" r="8" fill="#fff" opacity=".25"/>
+      <circle cx="132" cy="112" r="8" fill="#fff" opacity=".25"/>
+    </symbol>
+    <!-- แมวกลม แก้มป่อง -->
+    <symbol id="cat-buta" viewBox="0 0 200 200">
+      <ellipse cx="100" cy="150" rx="78" ry="44" fill="currentColor"/>
+      <path d="M50 70 L58 30 L92 58 Z M150 70 L142 30 L108 58 Z" fill="currentColor"/>
+      <path d="M60 64 L64 44 L82 58 Z M140 64 L136 44 L118 58 Z" fill="#fff" opacity=".4"/>
+      <ellipse cx="100" cy="102" rx="62" ry="54" fill="currentColor"/>
+      <ellipse class="eye" cx="78" cy="98" rx="5" ry="6" fill="#2A2420"/>
+      <ellipse class="eye" cx="122" cy="98" rx="5" ry="6" fill="#2A2420"/>
+      <circle cx="64" cy="116" r="10" fill="#fff" opacity=".35"/>
+      <circle cx="136" cy="116" r="10" fill="#fff" opacity=".35"/>
+      <path d="M96 112 L104 112 L100 118 Z" fill="#2A2420"/>
+      <path d="M100 118 Q93 126 87 121 M100 118 Q107 126 113 121" fill="none" stroke="#2A2420" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M36 108 L64 112 M36 120 L64 118 M164 108 L136 112 M164 120 L136 118" stroke="#2A2420" stroke-opacity=".6" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <!-- แมวเล็ก หูตั้ง ซน -->
+    <symbol id="cat-shiba" viewBox="0 0 200 200">
+      <path d="M140 160 C175 150 178 118 156 112" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>
+      <ellipse cx="100" cy="154" rx="62" ry="38" fill="currentColor"/>
+      <path d="M58 70 L60 14 L96 56 Z M142 70 L140 14 L104 56 Z" fill="currentColor"/>
+      <path d="M66 62 L68 34 L84 54 Z M134 62 L132 34 L116 54 Z" fill="#fff" opacity=".4"/>
+      <circle cx="100" cy="102" r="50" fill="currentColor"/>
+      <ellipse class="eye" cx="82" cy="100" rx="6" ry="8" fill="#2A2420"/>
+      <ellipse class="eye" cx="118" cy="100" rx="6" ry="8" fill="#2A2420"/>
+      <circle cx="84" cy="97" r="2" fill="#fff"/>
+      <circle cx="120" cy="97" r="2" fill="#fff"/>
+      <path d="M96 114 L104 114 L100 120 Z" fill="#2A2420"/>
+      <path d="M100 120 Q94 128 88 123 M100 120 Q106 128 112 123" fill="none" stroke="#2A2420" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M44 110 L70 114 M44 122 L70 120 M156 110 L130 114 M156 122 L130 120" stroke="#2A2420" stroke-opacity=".6" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="paw" viewBox="0 0 100 100">
+      <ellipse cx="50" cy="66" rx="24" ry="20" fill="currentColor"/>
+      <circle cx="24" cy="44" r="10" fill="currentColor"/><circle cx="42" cy="28" r="10" fill="currentColor"/>
+      <circle cx="60" cy="28" r="10" fill="currentColor"/><circle cx="78" cy="44" r="10" fill="currentColor"/>
+    </symbol>
+    <symbol id="face" viewBox="0 0 100 100">
+      <path d="M22 40 L24 12 L44 32 Z M78 40 L76 12 L56 32 Z" fill="currentColor"/>
+      <circle cx="50" cy="56" r="32" fill="currentColor"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="#top"><svg class="mark" aria-hidden="true"><use href="#face"/></svg>BIGCAT</a>
+    <ul>
+      <li><a href="#members">สมาชิก</a></li>
+      <li><a href="#nobi">โนบิ</a></li>
+      <li><a href="#gallery">แกลเลอรี</a></li>
+      <li><a href="#story">เรื่องราว</a></li>
+    </ul>
+    <a class="btn btn-primary" href="#collab">ร่วมงานกับเรา</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <span class="badge"><span class="dot"><svg width="13" height="13" aria-hidden="true"><use href="#paw"/></svg></span>แก๊งแมว 3 ตัว · นำทีมโดยโนบิ</span>
+        <h1>แมวตัวใหญ่<br>หัวใจ<em>ใหญ่กว่า</em></h1>
+        <p class="lead">BIGCAT คือแก๊งแมวสามตัว โนบิ บูตะ และชิบะ ที่ใช้ชีวิตแบบสบายๆ แต่มีแฟนคลับติดตามทุกวัน มาทำความรู้จักพวกเราและดูผลงานได้ที่นี่</p>
+        <div class="cta">
+          <a class="btn btn-primary" href="#members">รู้จักสมาชิก</a>
+          <a class="btn btn-ghost" href="#gallery">ดูแกลเลอรี</a>
+        </div>
+      </div>
+      <div class="hero-art" aria-label="ภาพน้องโนบิ (ภาพประกอบชั่วคราว)">
+        <div class="blob"></div>
+        <svg class="cat"><use href="#cat-nobi"/></svg>
+        <div class="tag tag-1"><b>โนบิ</b>หัวหน้าแก๊ง</div>
+        <div class="tag tag-2"><b>ขี้เกียจ 95%</b>แต่หล่อ 100%</div>
+        <div class="friends" aria-hidden="true">
+          <span class="f-buta"><svg><use href="#cat-buta"/></svg></span>
+          <span class="f-shiba"><svg><use href="#cat-shiba"/></svg></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="members" id="members">
+    <div class="wrap">
+      <span class="eyebrow">Members</span>
+      <h2 class="h2">สมาชิกแก๊ง BIGCAT</h2>
+      <p class="lead">สามตัว สามนิสัย แต่อยู่ด้วยกันแล้วลงตัว</p>
+      <div class="members-grid">
+        <a class="member buta" href="#">
+          <div class="pic"><svg aria-hidden="true"><use href="#cat-buta"/></svg></div>
+          <span class="role">มือขวา</span>
+          <h3>บูตะ</h3>
+          <p>ตัวกลมที่สุดในแก๊ง กินเก่ง นอนเก่ง และเป็นคนแรกที่วิ่งมาตอนได้ยินเสียงเปิดกระป๋อง</p>
+        </a>
+        <a class="member nobi" href="#nobi">
+          <div class="pic"><svg aria-hidden="true"><use href="#cat-nobi"/></svg></div>
+          <span class="role">หัวหน้าแก๊ง</span>
+          <h3>โนบิ</h3>
+          <p>แมวตัวใหญ่ที่ทำอะไรก็ดูเท่ ใจเย็น สุขุม เป็นพี่ใหญ่ที่ทุกตัวในบ้านยอมรับ และเป็นดาวเด่นของแฟนคลับ</p>
+        </a>
+        <a class="member shiba" href="#">
+          <div class="pic"><svg aria-hidden="true"><use href="#cat-shiba"/></svg></div>
+          <span class="role">ตัวป่วน</span>
+          <h3>ชิบะ</h3>
+          <p>น้องเล็กพลังเยอะ ขี้เล่น ชอบซุ่มโจมตีพี่ๆ และเป็นต้นเหตุของเสียงของตกตอนตีสาม</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="feature" id="nobi">
+    <div class="wrap">
+      <div class="feature-art" aria-label="ภาพน้องโนบิ (ภาพประกอบชั่วคราว)">
+        <span class="num">01</span>
+        <svg><use href="#cat-nobi"/></svg>
+      </div>
+      <div>
+        <span class="eyebrow">Featured · หัวหน้าแก๊ง</span>
+        <h2 class="h2">โนบิ</h2>
+        <p class="lead">พี่ใหญ่ที่ไม่ต้องพยายามก็เป็นจุดสนใจ ชอบนอนตรงที่คนต้องเดินผ่านมากที่สุด และมองทุกอย่างด้วยสายตาเหมือนรู้ทัน</p>
+        <dl class="facts">
+          <div class="fact"><dt>วันเกิด</dt><dd>— (รอใส่ข้อมูล)</dd></div>
+          <div class="fact"><dt>สายพันธุ์</dt><dd>— (รอใส่ข้อมูล)</dd></div>
+          <div class="fact"><dt>ของโปรด</dt><dd>กล่องกระดาษ, แดดยามเช้า</dd></div>
+          <div class="fact"><dt>ไม่ชอบ</dt><dd>เครื่องดูดฝุ่น</dd></div>
+        </dl>
+        <div class="stats" aria-label="สถิติโนบิ">
+          <div class="stat"><span>ความขี้เกียจ</span><span class="bar"><i style="width:95%"></i></span><span class="val">95</span></div>
+          <div class="stat"><span>ความหล่อ</span><span class="bar"><i style="width:100%"></i></span><span class="val">100</span></div>
+          <div class="stat"><span>ความหิว</span><span class="bar"><i style="width:88%"></i></span><span class="val">88</span></div>
+          <div class="stat"><span>ความซน</span><span class="bar"><i style="width:20%"></i></span><span class="val">20</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="gallery">
+    <div class="wrap">
+      <div class="gallery-head">
+        <div>
+          <span class="eyebrow">Gallery</span>
+          <h2 class="h2">แกลเลอรี</h2>
+          <p class="lead">ภาพและผลงานของแก๊ง อัปเดตเรื่อยๆ</p>
+        </div>
+        <a class="btn btn-ghost" href="#">ดูทั้งหมด</a>
+      </div>
+      <div class="gallery">
+        <div class="tile a tall"><svg aria-hidden="true"><use href="#cat-nobi"/></svg><small>NOBI · 01</small></div>
+        <div class="tile d"><svg aria-hidden="true"><use href="#paw"/></svg><small>02</small></div>
+        <div class="tile b"><svg aria-hidden="true"><use href="#cat-buta"/></svg><small>BUTA · 03</small></div>
+        <div class="tile c tall"><svg aria-hidden="true"><use href="#cat-shiba"/></svg><small>SHIBA · 04</small></div>
+        <div class="tile a wide"><svg aria-hidden="true"><use href="#face"/></svg><small>BIGCAT · 05</small></div>
+        <div class="tile c"><svg aria-hidden="true"><use href="#paw"/></svg><small>06</small></div>
+        <div class="tile b"><svg aria-hidden="true"><use href="#paw"/></svg><small>07</small></div>
+        <div class="tile d"><svg aria-hidden="true"><use href="#face"/></svg><small>08</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="story" id="story">
+    <div class="wrap">
+      <span class="eyebrow">Our story</span>
+      <h2 class="h2">กว่าจะมาเป็น BIGCAT</h2>
+      <p class="lead">เริ่มจากแมวหนึ่งตัว จนกลายเป็นแก๊งที่มีคนติดตาม</p>
+      <div class="timeline">
+        <div class="step">
+          <div class="year">ปีที่ 1</div>
+          <h3>โนบิมาถึงบ้าน</h3>
+          <p>จุดเริ่มต้นของทุกอย่าง แมวตัวใหญ่ที่เข้ามาแล้วยึดโซฟาเป็นของตัวเองตั้งแต่วันแรก</p>
+        </div>
+        <div class="step buta">
+          <div class="year">ปีที่ 2</div>
+          <h3>บูตะเข้าแก๊ง</h3>
+          <p>เพื่อนคนแรกของโนบิ ใช้เวลาไม่นานก็กลายเป็นคู่หูนอนกอดกันทุกคืน</p>
+        </div>
+        <div class="step shiba">
+          <div class="year">ปีที่ 3</div>
+          <h3>ชิบะมาป่วน</h3>
+          <p>น้องเล็กที่ทำให้บ้านไม่เงียบอีกต่อไป และทำให้แก๊งครบสามตัว</p>
+        </div>
+        <div class="step">
+          <div class="year">วันนี้</div>
+          <h3>แก๊ง BIGCAT</h3>
+          <p>มีแฟนคลับติดตาม มีผลงานร่วมกับแบรนด์ และยังนอนวันละ 16 ชั่วโมงเหมือนเดิม</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="collab" id="collab">
+    <div class="wrap">
+      <div class="card">
+        <div>
+          <span class="eyebrow">Work with us</span>
+          <h2>ร่วมงานกับ BIGCAT</h2>
+          <p>เปิดรับงานรีวิวสินค้า คอนเทนต์ร่วมกับแบรนด์ และโปรเจกต์พิเศษ ติดต่อพูดคุยรายละเอียดได้เลย</p>
+          <a class="btn btn-primary" href="mailto:bootabigcat@gmail.com">ติดต่อทีมงาน</a>
+        </div>
+        <ul>
+          <li>รีวิวอาหาร ของเล่น และของใช้สำหรับแมว</li>
+          <li>คอนเทนต์ภาพและวิดีโอร่วมกับแบรนด์</li>
+          <li>สินค้า collaboration และงานอีเวนต์</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 BIGCAT · โนบิ บูตะ ชิบะ</span>
+    <nav>
+      <a href="#">Instagram</a>
+      <a href="#">TikTok</a>
+      <a href="#">Facebook</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>
