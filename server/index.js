@@ -6,7 +6,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { Server } from 'socket.io';
 import { migrate, one } from './db.js';
-import { setIO, room, releaseExpiredHolds, eventDetail } from './lib.js';
+import { setIO, room, releaseExpiredHolds, eventDetail, HttpError } from './lib.js';
 import publicRoutes from './routes/public.js';
 import adminRoutes from './routes/admin.js';
 import shopRoutes from './routes/shop.js';
@@ -48,6 +48,8 @@ if (fs.existsSync(dist)) {
 }
 
 app.use((err, _req, res, _next) => {
+  // trans_ref ซ้ำ (UNIQUE KEY) = สลิปใบเดิมถูกใช้ไปแล้ว — ตอบให้คนอ่านรู้เรื่อง ไม่ใช่ 500
+  if (err.errno === 1062 && /_ref/.test(err.message)) err = new HttpError(409, 'สลิปใบนี้ถูกใช้ยืนยันไปแล้ว กรุณาใช้สลิปของรายการนี้เท่านั้น');
   const status = err.status || (err.code === 'LIMIT_FILE_SIZE' ? 413 : 500);
   if (status === 500) console.error(err);
   res.status(status).json({ error: status === 500 ? 'เกิดข้อผิดพลาดในระบบ' : err.message });

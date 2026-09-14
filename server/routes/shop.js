@@ -90,7 +90,7 @@ r.post('/shop/orders', upload.single('slip'), wrap(async (req, res) => {
     const total = subtotal + shipping_fee;
     const verify = req.file ? await verifySlip(req.file.path, { expectedAmount: total }) : { ok: false, note: 'ยังไม่แนบสลิป' };
     const orderCode = code(7) + 'X'; // ลงท้าย X = ออเดอร์ (แยกจากรหัสกิจกรรม 8 หลัก)
-    const ins = await q('INSERT INTO orders SET ?', [{ code: orderCode, status: verify.ok ? 'paid' : 'pending', name, phone, email: email || null, delivery, address: address || null, note: note || null, subtotal, shipping_fee, total, slip_path: req.file ? `/uploads/${req.file.filename}` : null, trans_ref: verify.ok ? verify.transRef : null, verified_at: verify.ok ? new Date() : null, verify_note: verify.note }]);
+    const ins = await q('INSERT INTO orders SET ?', [{ code: orderCode, status: verify.ok ? 'paid' : 'pending', name, phone, email: email || null, delivery, address: address || null, note: note || null, subtotal, shipping_fee, total, slip_path: req.file ? `/uploads/${req.file.filename}` : null, trans_ref: verify.transRef || null, verified_at: verify.verified ? new Date() : null, verify_note: verify.note }]);
     for (const l of lines) await q('INSERT INTO order_items SET ?', [{ ...l, order_id: ins.insertId }]);
     return { code: orderCode, total, subtotal, shipping_fee, status: verify.ok ? 'paid' : 'pending', autoApproved: verify.ok, note: verify.note, lines };
   });
@@ -112,7 +112,7 @@ r.post('/orders/:code/slip', upload.single('slip'), wrap(async (req, res) => {
   if (o.status !== 'pending') throw new HttpError(400, 'คำสั่งซื้อนี้ยืนยันการชำระเงินแล้ว');
   if (!req.file) throw new HttpError(400, 'กรุณาแนบสลิป');
   const verify = await verifySlip(req.file.path, { expectedAmount: o.total });
-  await q('UPDATE orders SET ?, status=? WHERE id=?', [{ slip_path: `/uploads/${req.file.filename}`, trans_ref: verify.ok ? verify.transRef : null, verified_at: verify.ok ? new Date() : null, verify_note: verify.note }, verify.ok ? 'paid' : 'pending', o.id]);
+  await q('UPDATE orders SET ?, status=? WHERE id=?', [{ slip_path: `/uploads/${req.file.filename}`, trans_ref: verify.transRef || null, verified_at: verify.verified ? new Date() : null, verify_note: verify.note }, verify.ok ? 'paid' : 'pending', o.id]);
   if (verify.ok && o.line_user_id) push(o.line_user_id, msg.orderStatus({ code: req.params.code.toUpperCase(), status: 'paid', url: `${process.env.SITE_URL || 'http://localhost:5173'}/order/${req.params.code.toUpperCase()}` })).catch(() => {});
   if (!verify.ok) notifyStaff(msg.staffNew('สลิปออเดอร์', 'ร้านค้า', `${req.params.code.toUpperCase()} · ฿${o.total}\n${verify.note}`)).catch(() => {});
   res.json({ ok: true, autoApproved: verify.ok, note: verify.note, status: verify.ok ? 'paid' : 'pending' });

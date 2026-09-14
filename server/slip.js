@@ -3,12 +3,19 @@
 //   mock     : จำลองผลสำหรับทดสอบบนเครื่อง (ผ่านเสมอ, transRef = hash ของไฟล์)
 //   slipok   : https://slipok.com  (ฟรี 100 สลิป/เดือน)  ต้องมี SLIP_API_KEY + SLIP_BRANCH_ID
 //   easyslip : https://easyslip.com                         ต้องมี SLIP_API_KEY
+//   SLIP_AUTO_APPROVE=true  → ตรวจผ่านแล้วอนุมัติทันที · ไม่ตั้ง = ตรวจแล้วยังรอแอดมินกดยืนยัน (ค่าเริ่มต้น)
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { one } from './db.js';
 
 const provider = (process.env.SLIP_PROVIDER || 'none').toLowerCase();
 export const slipEnabled = provider !== 'none';
+// ตาข่ายชั้นที่สอง: แม้ตรวจผ่าน ก็ยังเก็บเป็น pending ให้แอดมินกดยืนยันเอง (ค่าเริ่มต้น = ปิด auto-approve)
+// เปิดเมื่อมั่นใจ SlipOK แล้ว: SLIP_AUTO_APPROVE=true
+export const slipAutoApprove = /^(1|true|yes)$/i.test(process.env.SLIP_AUTO_APPROVE || '');
+// credential ที่แต่ละ provider ต้องมี — ยังไม่ครบ = ไม่ยิง API ให้เสียเปล่า ส่งให้แอดมินตรวจเองพร้อมโน้ตชัด ๆ
+const REQUIRED = { slipok: ['SLIP_API_KEY', 'SLIP_BRANCH_ID'], easyslip: ['SLIP_API_KEY'], mock: [] };
+const missingCreds = () => (REQUIRED[provider] || []).filter(k => !process.env[k]);
 
 const receiverNames = (process.env.SLIP_RECEIVER_NAME || '').split('|').map(s => s.trim()).filter(Boolean);
 const MAX_AGE_DAYS = Number(process.env.SLIP_MAX_AGE_DAYS || 7);
@@ -73,9 +80,11 @@ const providers = { slipok, easyslip, mock };
  *   ok=false → เก็บเป็น pending พร้อม note บอกเหตุผลให้ทีมงาน
  */
 export async function verifySlip(filePath, { expectedAmount }) {
-  if (!slipEnabled) return { ok: false, note: 'ยังไม่เปิดตรวจสลิปอัตโนมัติ' };
+  if (!slipEnabled) return { ok: false, note: 'ยังไม่เปิดตรวจสลิปอัตโนมัติ · แอดมินตรวจเอง' };
   const fn = providers[provider];
   if (!fn) return { ok: false, note: `ไม่รู้จัก SLIP_PROVIDER=${provider}` };
+  const miss = missingCreds();
+  if (miss.length) return { ok: false, note: `รอตั้งค่า ${provider} (ยังไม่มี ${miss.join(', ')}) · แอดมินตรวจเอง` };
   let r;
   try { r = await fn(filePath, expectedAmount); }
   catch (e) { return { ok: false, note: `ตรวจสลิปไม่ผ่าน: ${e.message}` }; }
@@ -90,7 +99,9 @@ export async function verifySlip(filePath, { expectedAmount }) {
   if (receiverNames.length && !receiverNames.some(n => norm(r.receiverName).includes(norm(n)))) problems.push(`ชื่อผู้รับ "${r.receiverName || '?'}" ไม่ตรงบัญชีเรา`);
   if (r.date && (Date.now() - r.date.getTime()) > MAX_AGE_DAYS * 864e5) problems.push(`สลิปเก่ากว่า ${MAX_AGE_DAYS} วัน`);
 
-  return problems.length
-    ? { ok: false, transRef: r.transRef || null, amount: r.amount, note: problems.join(' · ') }
-    : { ok: true, transRef: r.transRef, amount: r.amount, note: `ตรวจผ่านอัตโนมัติ (${provider}) ผู้โอน ${r.senderName || '-'} → ${r.receiverName || '-'}` };
+  if (problems.length) return { ok: false, transRef: r.transRef || null, amount: r.amount, note: problems.join(' · ') };
+  const who = `ผู้โอน ${r.senderName || '-'} → ${r.receiverName || '-'}`;
+  // ตรวจผ่านแล้ว แต่ถ้ายังไม่เปิด auto-approve ให้เก็บ transRef ไว้ (กันสลิปซ้ำ) และรอแอดมินกดยืนยัน
+  if (!slipAutoApprove) return { ok: false, verified: true, transRef: r.transRef, amount: r.amount, note: `ตรวจผ่าน ${provider} แล้ว ${who} · รอแอดมินยืนยัน` };
+  return { ok: true, verified: true, transRef: r.transRef, amount: r.amount, note: `ตรวจผ่านอัตโนมัติ (${provider}) ${who}` };
 }

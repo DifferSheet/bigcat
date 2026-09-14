@@ -89,7 +89,7 @@ r.post('/events/:slug/bookings', upload.single('slip'), wrap(async (req, res) =>
     if (!seats.length) throw new HttpError(410, 'ที่นั่งที่เลือกหมดเวลาแล้ว กรุณาเลือกใหม่');
     const amount = seats.reduce((s, x) => s + x.price, 0);
     const bookingCode = code(8);
-    const ins = await q('INSERT INTO bookings SET ?', [{ code: bookingCode, event_id: ev.id, name, phone, email: email || null, seats: JSON.stringify(seats.map(s => s.label)), amount, slip_path: req.file ? `/uploads/${req.file.filename}` : null, trans_ref: verify.ok ? verify.transRef : null, verified_at: verify.ok ? new Date() : null, verify_note: verify.note, status: verify.ok ? 'paid' : 'pending' }]);
+    const ins = await q('INSERT INTO bookings SET ?', [{ code: bookingCode, event_id: ev.id, name, phone, email: email || null, seats: JSON.stringify(seats.map(s => s.label)), amount, slip_path: req.file ? `/uploads/${req.file.filename}` : null, trans_ref: verify.transRef || null, verified_at: verify.verified ? new Date() : null, verify_note: verify.note, status: verify.ok ? 'paid' : 'pending' }]);
     await q(`UPDATE seats SET status='booked', booking_id=?, hold_token=NULL, hold_expires_at=NULL WHERE id IN (?)`, [ins.insertId, seats.map(s => s.id)]);
     return { code: bookingCode, amount, seats: seats.map(s => s.label), status: verify.ok ? 'paid' : 'pending', autoApproved: verify.ok, note: verify.note };
   });
@@ -126,7 +126,7 @@ r.post('/events/:slug/donations', upload.single('slip'), wrap(async (req, res) =
     code: c, event_id: ev.id, category_id: category.id, donor_name: donor, dedication: clean(req.body.dedication, 160) || null,
     message: clean(req.body.message, 300) || null, anonymous: req.body.anonymous === '1' || req.body.anonymous === 'true' ? 1 : 0,
     amount, units, slip_path: req.file ? `/uploads/${req.file.filename}` : null,
-    trans_ref: verify.ok ? verify.transRef : null, verified_at: verify.ok ? new Date() : null, verify_note: verify.note, status: verify.ok ? 'approved' : 'pending',
+    trans_ref: verify.transRef || null, verified_at: verify.verified ? new Date() : null, verify_note: verify.note, status: verify.ok ? 'approved' : 'pending',
   }]);
   if (verify.ok) emit(ev.slug, 'donations', await donationSummary(ev.id));
   else notifyStaff(msg.staffNew('ยอดทำบุญ', ev.title, `${donor} · ฿${amount}${units ? ` (${units} ${category.unit_name})` : ''}\n${verify.note}`)).catch(() => {});
