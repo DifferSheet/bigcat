@@ -74,11 +74,11 @@ export default function SeatBooking({ data }) {
 
   if (done) return <Section eyebrow="BOOKED" title="จองสำเร็จ รอตรวจสอบการชำระเงิน">
     <Notice>ที่นั่ง {done.seats.join(', ')} ถูกจองในชื่อคุณแล้ว ยอดรวม {baht(done.amount)}</Notice>
-    <p>รหัสการจองของคุณคือ <strong className="code">{done.code}</strong> ทีมงานจะตรวจสอบสลิปภายใน 24 ชั่วโมง แล้วบัตรจะเปลี่ยนสถานะเป็น "ชำระแล้ว" เปิดดูบัตรได้ทุกเมื่อจากลิงก์ด้านล่าง</p>
+    <p>รหัสการจองของคุณคือ <strong className="code">{done.code}</strong> สลิปจะได้รับการตรวจสอบภายใน 24 ชั่วโมง แล้วบัตรจะเปลี่ยนสถานะเป็น "ชำระแล้ว" เปิดดูบัตรได้ทุกเมื่อจากลิงก์ด้านล่าง</p>
     <Link className="button dark" to={`/ticket/${done.code}`}>เปิดบัตรของฉัน <Icon name="arrow" /></Link>
   </Section>;
 
-  if (ev.status !== 'open') return <Section eyebrow="SEATS" title="ที่นั่ง"><Notice tone="muted">{ev.status === 'soldout' ? 'ที่นั่งเต็มแล้ว ติดตาม waitlist ได้ที่ช่องทางของ Bigcat' : ev.status === 'upcoming' ? 'ยังไม่เปิดจอง รอประกาศวันเปิดจองเร็วๆ นี้' : 'ปิดรับจองแล้ว'}</Notice></Section>;
+  if (ev.status !== 'open') return <Section eyebrow="SEATS" title="ที่นั่ง"><Notice tone="muted">{ev.status === 'soldout' ? 'ที่นั่งเต็มแล้ว ติดตาม waitlist ได้ที่ช่องทางของ BIGCAT' : ev.status === 'upcoming' ? 'ยังไม่เปิดจอง รอประกาศวันเปิดจองเร็วๆ นี้' : 'ปิดรับจองแล้ว'}</Notice></Section>;
 
   return <Section eyebrow="SEAT BOOKING" title="เลือกที่นั่ง" aside={<span className="ev-summary">เหลือ <strong>{stats.free}</strong> / {stats.total} ที่นั่ง · อัปเดตสด</span>}>
     <div className="seat-legend">

@@ -73,8 +73,6 @@
 .hm-footer { margin-top: 25px; gap: 23px; }
 .hm-footer-nav { gap: 18px; font-family: var(--font-body); font-size: 12px; }
 .hm-footer-hand { font-size: 21px; }
-.hm-social button { transition: transform .2s, background .2s; }
-.hm-social button:hover { transform: translateY(-3px); background: #f6d9dc; }
 .hm-modal-portrait { margin-inline: auto; width: 240px; max-width: 100%; aspect-ratio: 2/3; max-height: 360px; }
 .hm-modal-portrait img { object-fit: contain; }
 @keyframes cozy-drift {

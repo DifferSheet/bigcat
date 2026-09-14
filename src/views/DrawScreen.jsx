@@ -61,6 +61,6 @@ export default function DrawScreen({ slug }) {
     <ol className="draw-history">{Array.from({ length: rounds }, (_, i) => { const d = state?.draws?.find(x => x.round === i + 1); return <li key={i} className={d ? 'done' : ''}><span className="eyebrow">รอบ {i + 1}</span>{d ? <><strong>#{String(d.number).padStart(3, '0')}</strong><span>{d.nickname || d.name}</span></> : <span className="muted">—</span>}</li>; })}</ol>
 
     {isAdmin ? <div className="draw-controls"><button className="button dark" onClick={draw} disabled={!!rolling || done >= rounds}>สุ่มรอบที่ {Math.min(done + 1, rounds)} 🎲</button><button className="link-button" onClick={reset}>ล้างผล</button>{error && <span className="notice error">{error}</span>}</div>
-      : <p className="small-note">ทีมงานกดสุ่มได้จากหน้านี้หลังเข้าสู่ระบบที่ <Link to="/admin">/admin</Link> — หน้าจอนี้เปิดโชว์บนจอใหญ่ได้เลย</p>}
+      : <p className="small-note">แอดมินกดสุ่มได้จากหน้านี้หลังเข้าสู่ระบบที่ <Link to="/admin">/admin</Link> — หน้าจอนี้เปิดโชว์บนจอใหญ่ได้เลย</p>}
   </main>;
 }

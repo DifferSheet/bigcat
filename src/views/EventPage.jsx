@@ -51,7 +51,7 @@ export default function EventPage({ slug, initialData = null }) {
   return <>
     <SiteHeader live={live} />
     <main className="ev-page">
-      <nav className="crumbs" aria-label="breadcrumb"><Link to="/">หน้าแรก</Link><span>/</span><Link to="/events">กิจกรรม</Link><span>/</span><span>{ev.title}</span></nav>
+      <nav className="crumbs" aria-label="breadcrumb"><Link to="/">หน้าแรก</Link><span>/</span><Link to="/events">ตารางงาน</Link><span>/</span><span>{ev.title}</span></nav>
 
       <section className={`ev-hero tone-${ev.tone}`}>
         <div className="ev-hero-copy">
@@ -69,14 +69,14 @@ export default function EventPage({ slug, initialData = null }) {
             <CalendarButton event={ev} />
           </div>
         </div>
-        <div className="ev-hero-art"><img src={ev.cover || '/images/bigcat-hero.png'} alt="" /><span className={`date-badge ${ev.tone} big`}><strong>{d.day}</strong><span>{d.month}</span></span></div>
+        <div className="ev-hero-art"><img src={ev.cover || '/images/bigcat-hero.png'} alt={`ภาพปกงาน ${ev.title}`} /><span className={`date-badge ${ev.tone} big`}><strong>{d.day}</strong><span>{d.month}</span></span></div>
       </section>
 
       <div className="ev-columns">
         <div className="ev-main">
           <Section title="เกี่ยวกับงานนี้"><p className="ev-desc">{ev.description}</p></Section>
           <div id="module">{Module && <Module data={data} setData={setData} />}</div>
-          {ended && <Section eyebrow="RECAP" title="ขอบคุณที่มาเจอกัน"><p>งานนี้จบลงแล้ว ภาพบรรยากาศและสรุปยอดจะอัปเดตที่นี่ ติดตามงานถัดไปได้ที่หน้ากิจกรรม</p></Section>}
+          {ended && <Section eyebrow="RECAP" title="ขอบคุณที่มาเจอกัน"><p>งานนี้จบลงแล้ว ภาพบรรยากาศและสรุปยอดจะอัปเดตที่นี่ ติดตามงานถัดไปได้ที่หน้าตารางงาน</p></Section>}
         </div>
         <aside className="ev-side">
           {cfg.schedule?.length > 0 && <Section eyebrow="SCHEDULE" title="กำหนดการ"><ol className="schedule">{cfg.schedule.map(([time, title]) => <li key={time}><time>{time}</time><span>{title}</span></li>)}</ol></Section>}

@@ -32,6 +32,6 @@ export default async function Page({ params }) {
   return <>
     <EventPage slug={slug} initialData={data} />
     <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(eventSchema(data.event))} />
-    <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(breadcrumbSchema([['หน้าแรก', '/'], ['กิจกรรม', '/events'], [data.event.title, `/events/${slug}`]]))} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(breadcrumbSchema([['หน้าแรก', '/'], ['ตารางงาน', '/events'], [data.event.title, `/events/${slug}`]]))} />
   </>;
 }

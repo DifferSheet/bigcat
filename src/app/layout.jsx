@@ -18,9 +18,9 @@ const caveat = Caveat({ subsets: ['latin'], weight: ['500', '600'], variable: '-
 
 export const metadata = {
   metadataBase: new URL(SITE),
-  title: { default: 'BIGCAT — แก๊งแมวตัวโต ความสุขเต็มหัวใจ', template: '%s · BIGCAT' },
-  description: 'โลกใบเล็กของโนบิ บูตะ และชิบะ ติดตามกิจกรรม ร่วมทำบุญ จองที่นั่ง และช้อปของสะสมจากแก๊งแมวตัวโต',
-  keywords: ['BIGCAT', 'บิ๊กแคท', 'โนบิ', 'บูตะ', 'ชิบะ', 'แมวตัวโต', 'ของสะสม', 'art toy', 'กิจกรรมแฟนคลับ'],
+  title: { default: 'BIGCAT — Big cats. Lighter days.', template: '%s · BIGCAT' },
+  description: 'แก๊งแมวตัวโต โนบิ บูตะ ชิบะ — ร้องสด ทำบุญ และเจอกันได้จริงทุกเสาร์ ดูตารางงาน ลงทะเบียนงานฟรี และช้อปของสะสม BIGCAT',
+  keywords: ['BIGCAT', 'บิ๊กแคท', 'โนบิ', 'น้องโนบิ', 'nobisingasong', 'บูตะ', 'ชิบะ', 'แมวตัวโต', 'ด้อมบิ๊กแคท', 'ร้องสด', 'busking', 'ตลาดเลียบด่วนแดนเนรมิต', 'ของสะสม', 'art toy', 'กิจกรรมแฟนคลับ'],
   applicationName: 'BIGCAT',
   openGraph: { type: 'website', siteName: 'BIGCAT', locale: 'th_TH', url: SITE, images: [{ url: '/images/bigcat-hero.png', width: 1536, height: 1024 }] },
   twitter: { card: 'summary_large_image' },

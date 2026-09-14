@@ -367,3 +367,17 @@
 .brand-word { font-family: var(--font-display); font-weight: 700; font-size: 26px; letter-spacing: -.5px; line-height: 1; color: var(--ink); }
 .logo .brand-word { font-size: 26px; }
 .footer .brand-word { font-size: 24px; }
+
+/* ---------- โซเชียลท้ายหน้าอื่น (ใช้ .hm-social จาก home.css ไม่ได้ เพราะ home.css โหลดเฉพาะหน้าแรก) ---------- */
+.footer-social { margin-top: 22px; }
+.footer-social .hm-social { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; }
+.footer-social .hm-social-head { font-family: var(--font-display); font-size: 12px; letter-spacing: .06em; color: var(--muted); display: flex; flex-direction: column; margin-right: 6px; }
+.footer-social .hm-social-head small { font-family: var(--font-body); font-size: 11px; letter-spacing: 0; }
+.footer-social .hm-social-group { display: flex; align-items: center; gap: 8px; }
+.footer-social .hm-social-group > b { font-family: var(--font-display); font-size: 10px; letter-spacing: .1em; color: var(--ink); }
+.footer-social .hm-social-row { display: flex; gap: 6px; }
+.footer-social .hm-social-row a { width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; color: var(--ink); transition: transform .2s, background .2s; }
+.footer-social .hm-social-row a:hover { transform: translateY(-3px); background: var(--pink-tint); }
+.footer-social .hm-openchat { font-family: var(--font-display); font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: var(--r-pill); background: var(--ink); color: #fff; white-space: nowrap; }
+.footer-top p b { display: block; font-family: var(--font-display); font-size: 15px; color: var(--ink); }
+.openchat-link { align-self: flex-start; font-size: 13px; font-weight: 600; color: var(--line-green); text-decoration: underline; text-underline-offset: 4px; }

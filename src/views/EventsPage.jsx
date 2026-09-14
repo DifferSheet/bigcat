@@ -12,7 +12,8 @@ function Summary({ ev }) {
   const s = ev.summary || {};
   if (s.seats) return <span className="ev-summary">{s.seats.free > 0 ? <>เหลือ <strong>{s.seats.free}</strong> / {s.seats.total} ที่นั่ง</> : 'ที่นั่งเต็มแล้ว'}</span>;
   if (s.donation) return <span className="ev-summary"><span className="mini-bar"><i style={{ width: `${s.donation.percent}%` }} /></span>{baht(s.donation.total)} · {s.donation.percent}%</span>;
-  if (s.registrations) return <span className="ev-summary">ลงทะเบียนแล้ว <strong>{s.registrations.total}</strong> คน · เช็คอิน {s.registrations.checkedIn}</span>;
+  // เลขน้อย ๆ ดูเงียบ — ต่ำกว่า 10 บอกแค่ว่าเปิดแล้ว · เลขเช็คอินโชว์เฉพาะระหว่างงาน
+  if (s.registrations) return <span className="ev-summary">{s.registrations.total >= 10 ? <>ลงทะเบียนแล้ว <strong>{s.registrations.total}</strong> คน</> : 'เปิดลงทะเบียนแล้ว'}{ev.status === 'live' && s.registrations.checkedIn > 0 ? ` · เช็คอิน ${s.registrations.checkedIn}` : ''}</span>;
   return null;
 }
 
@@ -28,7 +29,7 @@ export default function EventsPage({ notFound = false, initialEvents = null }) {
   const Card = ({ ev }) => {
     const d = eventDate(ev);
     return <Link to={`/events/${ev.slug}`} className={`ev-card tone-${ev.tone}`}>
-      <div className="ev-card-cover"><img src={ev.cover || '/images/bigcat-hero.png'} alt="" loading="lazy" /><span className={`date-badge ${ev.tone}`}><strong>{d.day}</strong><span>{d.month}</span></span></div>
+      <div className="ev-card-cover"><img src={ev.cover || '/images/bigcat-hero.png'} alt={`ภาพปกงาน ${ev.title}`} loading="lazy" /><span className={`date-badge ${ev.tone}`}><strong>{d.day}</strong><span>{d.month}</span></span></div>
       <div className="ev-card-body">
         <div className="ev-card-meta"><span className="eyebrow">{typeLabel[ev.type]}</span><StatusPill status={ev.status} /></div>
         <h3>{ev.title}</h3>
@@ -44,15 +45,15 @@ export default function EventsPage({ notFound = false, initialEvents = null }) {
     <main className="ev-page">
       <div className="ev-hero-simple">
         <span className="eyebrow">{notFound ? 'PAGE NOT FOUND' : 'LET’S MAKE A DATE'}</span>
-        <h1>{notFound ? 'ไม่พบหน้าที่คุณต้องการ' : 'กิจกรรมของแก๊ง Bigcat'}</h1>
-        <p>{notFound ? 'แต่ยังมีกิจกรรมสนุกๆ รอคุณอยู่ตรงนี้' : 'จองที่นั่ง ร่วมทำบุญ หรือมาเจอกันริมถนน เลือกงานที่ใช่แล้วกดเข้าไปได้เลย'}</p>
+        <h1>{notFound ? 'ไม่พบหน้าที่คุณต้องการ' : 'ตารางงานของแก๊ง BIGCAT'}</h1>
+        <p>{notFound ? 'แต่ยังมีนัดสนุก ๆ รอคุณอยู่ตรงนี้' : 'จองที่นั่ง ร่วมทำบุญ หรือมาเจอกันริมถนน เลือกงานที่ใช่แล้วกดเข้าไปได้เลย'}</p>
         <div className="filter-tabs">{FILTERS.map(([id, label]) => <button key={id} className={filter === id ? 'active' : ''} aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>)}</div>
       </div>
       {error && <p className="notice error">โหลดรายการกิจกรรมไม่สำเร็จ: {error} — ตรวจสอบว่า API รันอยู่ (npm run dev)</p>}
       {!events && !error && <PageLoader />}
       {events && <>
         <div className="ev-grid">{upcoming.map(ev => <Card key={ev.slug} ev={ev} />)}</div>
-        {upcoming.length === 0 && <p className="small-note">ยังไม่มีกิจกรรมในหมวดนี้</p>}
+        {upcoming.length === 0 && <p className="small-note">ยังไม่มีนัดในหมวดนี้</p>}
         {past.length > 0 && <><h2 className="ev-subhead">ที่ผ่านมา</h2><div className="ev-grid">{past.map(ev => <Card key={ev.slug} ev={ev} />)}</div></>}
       </>}
     </main>
