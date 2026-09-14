@@ -11,7 +11,7 @@ import { baht } from '../lib/format.js';
 export function ProductCard({ p, onAdd }) {
   const simple = !p.variants.length;
   return <article className={`shop-card ${!p.available ? 'soldout' : ''}`}>
-    <Link to={`/shop/${p.slug}`} className="shop-card-img"><img src={p.image || '/images/bigcat-merch.png'} alt={p.name_th || p.name} loading="lazy" />{!p.available && <span className="shop-badge">หมดแล้ว</span>}{p.compare_price && p.available && <span className="shop-badge sale">-{Math.round((1 - p.price / p.compare_price) * 100)}%</span>}</Link>
+    <Link to={`/shop/${p.slug}`} className="shop-card-img"><img src={p.image || '/images/bigcat-merch.png'} alt={`${p.name_th || p.name} — ของแก๊ง BIGCAT`} loading="lazy" />{!p.available && <span className="shop-badge">หมดแล้ว</span>}{p.compare_price && p.available && <span className="shop-badge sale">-{Math.round((1 - p.price / p.compare_price) * 100)}%</span>}</Link>
     <div className="shop-card-body">
       <span className="eyebrow">{p.category}</span>
       <h3><Link to={`/shop/${p.slug}`}>{p.name}</Link></h3>
@@ -44,7 +44,7 @@ export default function ShopPage({ initialProducts = null }) {
       <div className="ev-hero-simple">
         <span className="eyebrow">THE LITTLE BIGCAT SHOP</span>
         <h1>Little things. Big love.</h1>
-        <p>ของสะสมจากแก๊ง Bigcat ส่งถึงบ้านหรือรับหน้างาน สต็อกอัปเดตสด</p>
+        <p>ของสะสมจากแก๊ง BIGCAT ส่งถึงบ้านหรือรับหน้างาน สต็อกอัปเดตสด</p>
         <div className="filter-tabs">{cats.map(c => <button key={c} className={filter === c ? 'active' : ''} aria-pressed={filter === c} onClick={() => setFilter(c)}>{c}</button>)}</div>
       </div>
       {!products ? <PageLoader /> : <div className="shop-grid">{list.map(p => <ProductCard key={p.id} p={p} onAdd={add} />)}</div>}

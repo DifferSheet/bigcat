@@ -14,6 +14,7 @@ export function Icon({ name, size = 20, ...props }) {
     youtube: <><rect x="2" y="5" width="20" height="14" rx="4" /><path d="m10 9 5 3-5 3Z" /></>,
     facebook: <path d="M14 22V12h4l1-4h-5V6c0-2 1-3 4-3V0h-3c-4 0-6 2-6 6v2H6v4h3v10" />,
     music: <><path d="M14 3v12a4 4 0 1 1-4-4M14 3c0 4 3 5 6 5" /></>,
+    x: <path d="M4 4l16 16M20 4 4 20" />,
     plus: <path d="M12 5v14M5 12h14" />,
     minus: <path d="M5 12h14" />,
     user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,

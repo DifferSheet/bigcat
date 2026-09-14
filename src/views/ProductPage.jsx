@@ -48,7 +48,7 @@ export default function ProductPage({ slug, initialProduct = null }) {
       <div className="product-layout">
         <div className="product-media">
           <div className="product-gallery">
-            <img src={gallery[shot] || '/images/bigcat-merch.png'} alt={`${p.name_th || p.name} รูปที่ ${shot + 1}`} />
+            <img src={gallery[shot] || '/images/bigcat-merch.png'} alt={`${p.name_th || p.name}${variant?.name ? ` — ${variant.name}` : ''} ของแก๊ง BIGCAT รูปที่ ${shot + 1}`} />
             {!p.available && <span className="shop-badge">หมดแล้ว</span>}
             {gallery.length > 1 && <>
               <button className="gal-nav prev" aria-label="รูปก่อนหน้า" onClick={() => setShot((shot + gallery.length - 1) % gallery.length)}>←</button>
@@ -66,7 +66,7 @@ export default function ProductPage({ slug, initialProduct = null }) {
           {p.variants.length > 0 && <div className="variant-pick">
             <span className="eyebrow">เลือกแบบ</span>
             <div className="chips">{p.variants.map(v => <button key={v.id} className={`chip ${v.image ? 'with-img' : ''} ${variantId === v.id ? 'active' : ''} ${v.stock <= 0 ? 'off' : ''}`} disabled={v.stock <= 0} aria-pressed={variantId === v.id} onClick={() => pickVariant(v)}>{v.image && <img src={v.image} alt="" loading="lazy" />}{v.name}{v.price_delta ? ` +${baht(v.price_delta)}` : ''}{v.stock <= 0 ? ' (หมด)' : ''}</button>)}</div>
-            {showChosen && <p className="variant-chosen">{variant.image && <img src={variant.image} alt="" />}<span>แบบที่เลือก: <strong>{variant.name}</strong>{variant.price_delta ? ` (+${baht(variant.price_delta)})` : ''}</span></p>}
+            {showChosen && <p className="variant-chosen">{variant.image && <img src={variant.image} alt={`แบบ ${variant.name}`} />}<span>แบบที่เลือก: <strong>{variant.name}</strong>{variant.price_delta ? ` (+${baht(variant.price_delta)})` : ''}</span></p>}
           </div>}
           <div className="unit-row">
             <span className="eyebrow">จำนวน</span>

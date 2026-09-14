@@ -7,6 +7,7 @@ import { siteConfig } from '../lib/api.js';
 import { useCart } from '../lib/cart.js';
 import { useUser } from '../lib/auth.js';
 import { CookieSettingsLink } from './CookieConsent.jsx';
+import { SocialLinks } from './Social.jsx';
 
 // ตะกร้า + ปุ่มเข้าสู่ระบบ/โปรไฟล์ — ใช้ร่วมกันทุก header (SiteHeader และหน้าแรก)
 // ปุ่มเข้าสู่ระบบแสดงเสมอเมื่อยังไม่ล็อกอิน (ไม่รอ /api/me) จะได้ไม่มีช่วงที่มุมขวาบนว่างเปล่า
@@ -23,10 +24,10 @@ export function UserNav({ iconSize = 23 }) {
 export function SiteHeader({ live }) {
   return <header className="header">
     <div className="nav-shell">
-      <Link to="/" className="logo" aria-label="Bigcat หน้าแรก"><Logo /></Link>
+      <Link to="/" className="logo" aria-label="BIGCAT หน้าแรก"><Logo /></Link>
       <nav className="nav-links" aria-label="เมนู">
         <Link to="/">หน้าแรก</Link>
-        <Link to="/events">กิจกรรม</Link>
+        <Link to="/events">ตารางงาน</Link>
         <Link to="/shop" className="shop-nav">SHOP <span>↗</span></Link>
         <Link to="/ticket/lookup">บัตรของฉัน</Link>
       </nav>
@@ -39,7 +40,7 @@ export function SiteHeader({ live }) {
 }
 
 export function SiteFooter() {
-  return <footer className="footer"><div className="footer-top"><Link to="/" className="logo"><Logo /></Link><p>แมวตัวโต แต่มีหัวใจเล็ก ๆ ที่รักคุณเสมอ ♡</p><Link to="/privacy" className="back-top">นโยบายความเป็นส่วนตัว</Link></div><div className="footer-bottom"><span>© {new Date().getFullYear()} BIGCAT. Made with a whole lot of love.</span><CookieSettingsLink className="footer-link" /></div></footer>;
+  return <footer className="footer"><div className="footer-top"><Link to="/" className="logo"><Logo /></Link><p><b>Big cats. Lighter days.</b><br />แมวตัวโต ที่ทำให้วันหนัก ๆ ของคุณเบาลง</p><Link to="/privacy" className="back-top">นโยบายความเป็นส่วนตัว</Link></div><div className="footer-social"><SocialLinks /></div><div className="footer-bottom"><span>© {new Date().getFullYear()} BIGCAT. Made with a whole lot of love.</span><CookieSettingsLink className="footer-link" /></div></footer>;
 }
 
 export function StatusPill({ status }) {

@@ -4,6 +4,7 @@ import { useUser, prefillFrom } from '../lib/auth.js';
 import { Link } from '../lib/nav.jsx';
 import { Section, Notice } from '../components/EventShell.jsx';
 import { PhoneInput } from '../components/forms.jsx';
+import { OPENCHAT } from '../components/Social.jsx';
 import { Icon } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 
@@ -58,11 +59,11 @@ export default function BuskingRegister({ data }) {
   const isWinner = mine?.luckyRound;
 
   return <>
-    <Section eyebrow="REGISTER" title="ลงทะเบียนมาเจอ" aside={<span className="ev-summary">ลงทะเบียน <strong>{registrations.total}</strong> · เช็คอินแล้ว <strong>{registrations.checkedIn}</strong></span>}>
+    <Section eyebrow="REGISTER" title="ลงทะเบียนมาเจอ" aside={<span className="ev-summary">{registrations.total >= 10 ? <>ลงทะเบียนแล้ว <strong>{registrations.total}</strong> คน</> : 'เปิดลงทะเบียนแล้ว'}{isLive && registrations.checkedIn > 0 ? <> · เช็คอินแล้ว <strong>{registrations.checkedIn}</strong></> : null}</span>}>
       {mine ? <div className="my-reg">
         <div className="reg-number"><span className="eyebrow">หมายเลขของคุณ</span><strong>#{String(mine.number).padStart(3, '0')}</strong><span>{mine.nickname || mine.name}</span></div>
         {isWinner
-          ? <Notice>🎉 คุณคือ Lucky Fan รอบที่ {isWinner}! ไปหาทีมงานเพื่อถ่ายรูปคู่กับโนบิได้เลย</Notice>
+          ? <Notice>🎉 คุณคือ Lucky Fan รอบที่ {isWinner}! มาข้างเวทีเพื่อถ่ายรูปคู่กับโนบิได้เลย</Notice>
           : mine.checked_in_at
             ? <Notice>เช็คอินแล้ว คุณอยู่ในกลุ่มลุ้น Lucky Fan ตอนท้ายงาน</Notice>
             : isLive
@@ -79,6 +80,7 @@ export default function BuskingRegister({ data }) {
             <label>เบอร์โทร (ถ้ามี)<PhoneInput id="rg-phone" value={form.phone} onChange={phone => setForm({ ...form, phone })} /></label>
             {error && <Notice tone="error">{error}</Notice>}
             <div className="form-actions"><button className="button dark" disabled={busy}>{busy ? 'กำลังลงทะเบียน…' : 'ลงทะเบียน'} <Icon name="arrow" /></button></div>
+            <a className="openchat-link" href={OPENCHAT} target="_blank" rel="noopener">เข้าด้อมบิ๊กแคทใน OpenChat →</a>
           </form>}
     </Section>
 
@@ -87,7 +89,7 @@ export default function BuskingRegister({ data }) {
         const d = draws.find(x => x.round === i + 1);
         return <div key={i} className={`draw-card ${d ? 'done' : ''}`}><span className="eyebrow">รอบที่ {i + 1}</span>{d ? <><strong>#{String(d.number).padStart(3, '0')}</strong><span>{d.nickname || d.name}</span>{d.social && <small>{d.social}</small>}</> : <span className="muted">รอสุ่มตอนท้ายงาน</span>}</div>;
       })}</div>
-      <p className="small-note">สุ่มจากผู้ที่เช็คอินหน้างานเท่านั้น ผลจะขึ้นบนหน้านี้ทันทีที่ทีมงานกดสุ่ม</p>
+      <p className="small-note">สุ่มจากผู้ที่เช็คอินหน้างานเท่านั้น ผลจะขึ้นบนหน้านี้ทันทีที่สุ่ม</p>
     </Section>
 
     {songsEnabled && <Section eyebrow="SETLIST" title="เพลงวันนี้ + ขอเพลง">

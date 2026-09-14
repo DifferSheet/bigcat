@@ -1,10 +1,11 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from '../lib/nav.jsx';
-import { Icon, Paw, Flower, Modal, Logo } from '../components/ui.jsx';
+import { Icon, Flower, Modal, Logo } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { cart } from '../lib/cart.js';
 import { UserNav } from '../components/EventShell.jsx';
+import { SOCIALS, SocialRow, SocialLinks } from '../components/Social.jsx';
 import { eventDate } from '../lib/format.js';
 import '@/home.css';
 import '../cozy.css';
@@ -12,22 +13,39 @@ import '../housewarming.css';
 import { useCozyMotion } from '../lib/cozy-motion.js';
 
 const HERO = '/images/cozy/hero.png';
+const POSTER_EVENT = '/events/nobi-busking-26sep-2026';   // โปสเตอร์ฮีโร่ชี้ไปงาน 26 ก.ย.
+const POSTER_ALT = 'โปสเตอร์ NobiBigcat ร้องสดทุกเพลง — ครั้งแรกในร่างใหม่ เสาร์ 26 ก.ย. 69 เวลา 19:00–21:00 น. ตลาดเลียบด่วนแดนเนรมิต BTS ห้าแยกลาดพร้าว ทางออก 4 เข้าฟรี';
 const MERCH = '/images/bigcat-merch.png';
 const MERCH_DISPLAY = '/images/bigcat-merch-pink-v4.webp';
 const characterImage = id => `/images/cozy/${id}-personality-v2.png`;
 const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
+// ตัวละคร — กติกาแบรนด์: tag อังกฤษนำ · ไทยตาม · บอกว่าทำอะไรจริง/เจอได้ที่ไหน · ห้ามคำต้องห้ามของแบรนด์ (ดูใบสั่งแก้ข้อความ)
 const members = [
-  { id: 'nobi', name: 'NOBI', thai: 'น้องโนบิ', tone: 'pink', icon: '♡', tag: 'Your kawaii idol', text: 'หวานคิคุ\nคาวาอิแบบไอดอล', detail: 'ไอดอลตัวน้อยของแก๊ง BigCat กับเดรสดอกไม้สีชมพู โบว์คู่ และท่ายกอุ้งมือข้างแก้มสุดคาวาอิ โนบิพร้อมส่งรอยยิ้มหวาน ๆ ให้ทุกวันของคุณสดใสขึ้น', likes: 'โบว์สีชมพู · โพสท่าคาวาอิ · ส่งยิ้มให้แฟนคลับ' },
-  { id: 'boota', name: 'BOOTA', thai: 'น้องบูตะ', tone: 'yellow', icon: '✦', tag: 'Straight face, playful soul', text: 'หน้านิ่งกวน ๆ\nแต่ขี้เล่นที่สุด', detail: 'ใต้แว่นกลมสีทองและสูทม่วงลายทาง คือแมวขี้เล่นที่ชอบแกล้งทำหน้านิ่ง บูตะขยับแว่นนิด เอียงตัวหน่อย แล้วปล่อยมุกแบบไม่หลุดยิ้มให้เพื่อน ๆ หัวเราะกัน', likes: 'แกล้งเพื่อนเบา ๆ · มุกหน้านิ่ง · แว่นกลมคู่ใจ' },
-  { id: 'shiba', name: 'SHIBA', thai: 'น้องชิบะ', tone: 'blue', icon: '✧', tag: 'A little pose, a lot of cool', text: 'หล่อเท่มีสไตล์\nแอบแอคนิด ๆ', detail: 'หนุ่มหล่อประจำแก๊งในแจ็กเก็ตทวีดฟ้าประดับมุกและกางเกงน้ำเงิน ชิบะชอบจัดปกเสื้อ ยืนเท่ ๆ แล้วส่งสายตามั่นใจให้กล้อง เห็นนิ่งแบบนี้ เรื่องโพสท่าไม่ยอมใครเลย', likes: 'สีฟ้า–น้ำเงิน · แต่งตัวเท่ · โพสท่าหน้ากล้อง' },
+  { id: 'nobi', name: 'NOBI', thai: 'น้องโนบิ', tone: 'pink', icon: '♡', tag: 'The little voice of the city', text: 'ร้องสดทุกเพลง\nซ้อมทุกวันตอนที่ไม่มีใครดู',
+    alt: 'น้องโนบิ ลูกแมวสีครีมในเดรสดอกไม้สีชมพู ยกอุ้งมือข้างแก้มยิ้มให้กล้อง',
+    detail: 'ลูกแมวตัวเล็กที่สุดของแก๊ง แต่เสียงดังที่สุด — โนร้องสดจริงทุกเพลง ไม่เคยลิปซิงค์ เกือบหนึ่งปีก่อนโนเริ่มร้องริมถนนเยาวราชโดยไม่มีใครหยุดฟัง วันนี้ทุกเสาร์มีมัม ๆ มายืนรอ และเสาร์ที่ 26 กันยานี้คือครั้งแรกในร่างใหม่ที่ตลาดเลียบด่วนแดนเนรมิต — โนยังเป็นโนคนเดิมนะคะ แต่ซ้อมมาให้ฟังเยอะกว่าเดิม',
+    likes: 'ร้องสดทุกเพลง · ซ้อมทุกวัน · เจอกันได้ฟรีทุกเสาร์', socials: 'nobi' },
+  { id: 'boota', name: 'BOOTA', thai: 'น้องบูตะ', tone: 'yellow', icon: '✦', tag: 'Straight face. Biggest heart.', text: 'หน้านิ่งที่สุดในแก๊ง\nแต่ใจใหญ่ที่สุดในแก๊ง',
+    alt: 'น้องบูตะ แมวดำแว่นกลมสีทอง สูทม่วงลายทาง ทำหน้านิ่ง',
+    detail: 'พี่ใหญ่แว่นกลมสีทองที่ไม่เคยหลุดยิ้ม แต่เป็นคนแต่งเพลงให้โนบิร้อง และเป็น «มหาบูตะ» ที่พามัมป๊าไปทำบุญทุกเข้าพรรษา มุกหน้านิ่งของบูตะทำให้ทั้งแก๊งหัวเราะโดยที่ตัวเองไม่ขยับคิ้วเลยสักนิด',
+    likes: 'แต่งเพลงให้โนบิ · พาไปทำบุญ · มุกหน้านิ่ง', socials: 'boota' },
+  { id: 'shiba', name: 'SHIBA', thai: 'น้องชิบะ', tone: 'blue', icon: '✧', tag: 'Quiet. Cool. Always in frame.', text: 'พูดน้อยที่สุด\nแต่รูปสวยทุกใบ',
+    alt: 'น้องชิบะ แมวหนุ่มในแจ็กเก็ตทวีดสีฟ้า ยืนจัดปกเสื้อ',
+    detail: 'หนุ่มสายเท่ในแจ็กเก็ตทวีดสีฟ้า ชิบะพูดน้อยกว่าทุกคนในแก๊ง แต่พอกล้องหันมาเมื่อไหร่ ปกเสื้อจัดเรียบร้อย สายตามั่นใจ และท่าโพสไม่เคยซ้ำ — ถ้าเจอชิบะยืนนิ่ง ๆ อยู่ข้างเวที นั่นคือเขากำลังเลือกมุมที่ดีที่สุดให้คุณถ่าย',
+    likes: 'โพสท่าหน้ากล้อง · สีฟ้า–น้ำเงิน · เท่แบบไม่พูด', socials: null },
 ];
+// อัลบั้ม — โครงตามใบสั่ง 15 ก.ย.: title อังกฤษ · caption ไทย (ที่ไหน/เมื่อไหร่/เกิดอะไร) · ใช้ภาพจริงจากงานเมื่อคัดจากคลัง footage แล้ว
+// ⚠️ ตอนนี้ยังใช้ภาพวาด diary-*.png คั่นไว้ก่อน — เมื่อได้ภาพจริง ≥ 3 ใบ ให้แทน image และลบภาพวาดออก
 const photos = [
-  { title: 'Good Days ♡', caption: 'โนบิกับดอกไม้ในวันสดใส', image: '/images/cozy/diary-nobi.png', tilt: -4 },
-  { title: 'Better Together ♡', caption: 'บูตะกับมุมอ่านหนังสือแสนอบอุ่น', image: '/images/cozy/diary-boota.png', tilt: 2 },
-  { title: 'Same Here ♡', caption: 'วันพักผ่อนของชิบะบนโซฟาตัวโปรด', image: '/images/cozy/diary-shiba.png', tilt: -2 },
+  { title: 'The first Saturday', caption: 'เยาวราช 5 ต.ค. 68 — เสาร์แรกที่โนเปิดหมวก ยังไม่มีใครหยุดฟัง', date: '2025-10-05', place: 'เยาวราช', image: '/images/cozy/diary-nobi.png', tilt: -4 },
+  { title: 'Someone stopped', caption: 'บรรทัดทอง 18 ก.ค. 69 — คนแปลกหน้าคนแรกที่หยุดฟังจนจบเพลง', date: '2026-07-18', place: 'บรรทัดทอง', image: '/images/cozy/diary-boota.png', tilt: 2 },
+  { title: 'Rain check? No.', caption: 'วันที่ฝนตกแล้วโนยังร้องต่อ', date: '', place: '', image: '/images/cozy/diary-shiba.png', tilt: -2 },
+  // รอภาพ: { title: 'Full house', caption: 'สามย่านมิตรทาวน์ 29 ส.ค. 69 — วันที่ลานเต็มครั้งแรก', date: '2026-08-29', place: 'สามย่านมิตรทาวน์' }
+  // รอภาพ: { title: "Boota's merit day", caption: 'บูตะพามัมป๊าทำบุญ', date: '2026-09-19', place: 'วัดวชิรธรรมสาธิต' }
+  // รอภาพ: { title: 'New chapter', caption: 'แดนเนรมิต 26 ก.ย. 69 — ครั้งแรกในร่างใหม่', date: '2026-09-26', place: 'ตลาดเลียบด่วนแดนเนรมิต' }
 ];
-const navItems = [['รู้จักแก๊ง', '#friends'], ['ตารางงาน', '#events'], ['กิจกรรม', '/events'], ['อัลบั้ม', '#moments']];
+const navItems = [['รู้จักแก๊ง', '#friends'], ['ตารางงาน', '/events'], ['อัลบั้ม', '#moments']];
 
 // เผยทีละส่วนเมื่อเลื่อนถึง — รันซ้ำเมื่อข้อมูลจาก API มาถึง เพื่อให้การ์ดที่เพิ่งเรนเดอร์ถูกสังเกตด้วย
 function useReveal(deps) {
@@ -48,9 +66,10 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState('');
   const [albumIndex, setAlbumIndex] = useState(0);
-  const [events, setEvents] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [eventState, setEventState] = useState('loading');
+  // เริ่มจากข้อมูลที่ server ดึงมาแล้ว (SSR เห็นงานทันที) แล้วค่อย refresh ฝั่ง client
+  const [events, setEvents] = useState(initialEvents);
+  const [products, setProducts] = useState(initialProducts);
+  const [eventState, setEventState] = useState(initialEvents.length ? 'ready' : 'loading');
   useCozyMotion();
   useReveal([events, products]);
   useEffect(() => {
@@ -65,7 +84,7 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
   return <div className="hm hm-party-shell">
     <a className="skip-link" href="#main">ข้ามไปเนื้อหา</a>
     <header className="hm-header">
-      <Link to="/" className="hm-logo" aria-label="Bigcat หน้าแรก"><Logo /></Link>
+      <Link to="/" className="hm-logo" aria-label="BIGCAT หน้าแรก"><Logo /></Link>
       <nav className={`hm-nav ${menu ? 'open' : ''}`} id="main-nav" aria-label="เมนูหลัก">
         {navItems.map(([label, href]) => href.startsWith('#') ? <a key={href} href={href} onClick={() => setMenu(false)}>{label}</a> : <Link key={href} to={href} onClick={() => setMenu(false)}>{label}</Link>)}
         <Link to="/shop" className="hm-nav-shop" onClick={() => setMenu(false)}>SHOP</Link>
@@ -78,20 +97,22 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
 
     <main id="main">
       {/* ---------- HERO ---------- */}
-      <section className="party-hero" aria-labelledby="hero-title">
-        <picture className="party-scene">
-          <source media="(max-width: 900px) and (orientation: portrait)" srcSet="/images/cozy/housewarming-fresh-mobile.png" />
-          <img src="/images/cozy/housewarming-fresh-desktop.png" alt="โนบิตายิ้มข้างหนึ่งและอ้าปากยิ้มกว้าง พร้อมบูตะและชิบะในชุดตาม character sheet ทั้งสามมีอุ้งมือสี่นิ้ว กำลังเต้นฉลองเปิดบ้านไม้โทนอุ่น" fetchPriority="high" width="1672" height="941" data-cozy-depth="0.04" />
-        </picture>
+      <section className="party-hero party-hero--poster" aria-labelledby="hero-title">
         <div className="party-light" aria-hidden="true" />
         <div className="party-sparkles" aria-hidden="true">{Array.from({ length: 12 }, (_, i) => <span key={i} style={{ '--x': `${8 + (i * 23) % 85}%`, '--y': `${12 + (i * 17) % 70}%` }} />)}</div>
         <div className="party-copy">
           <span className="party-eyebrow">OUR NEW HOME · YOUR HAPPY PLACE</span>
-          <h1 id="hero-title">ยินดีต้อนรับ<span>สู่บ้าน BigCat <i>♡</i></span></h1>
+          <h1 id="hero-title">ยินดีต้อนรับ<span>สู่บ้าน BIGCAT <i>♡</i></span></h1>
           <p>โนบิ บูตะ และชิบะ เตรียมความสุขไว้เต็มบ้าน<br />มาฉลองการเริ่มต้นใหม่ด้วยกันนะ</p>
           <a className="hm-btn" href="#friends">เข้าบ้านมารู้จักกัน <span>→</span></a>
           <span className="party-hand">Come on in,<br />you’re part of the family.</span>
         </div>
+        <Link to={POSTER_EVENT} className="party-poster" aria-label="เปิดหน้างาน NobiBigcat ร้องสดทุกเพลง 26 ก.ย.">
+          <picture>
+            <source type="image/webp" srcSet="/images/cozy/hero-26sep.webp" />
+            <img src="/images/cozy/hero-26sep.jpg" alt={POSTER_ALT} fetchPriority="high" width="1120" height="1400" />
+          </picture>
+        </Link>
         <a className="party-scroll" href="#friends"><span>เรื่องราวของบ้านเรา</span><span aria-hidden="true">↓</span></a>
       </section>
 
@@ -99,19 +120,19 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
       <section id="friends" className="hm-section">
         <SectionHead label="OUR CHARACTERS" note="THREE CATS · A BRIGHTER TOMORROW ♡" />
         <div className="hm-chars">{members.map((m, i) => <button key={m.id} className={`hm-char tone-${m.tone} reveal`} style={{ '--delay': `${i * 110}ms` }} onClick={() => setModal({ type: 'member', member: m })}>
-          <div className="hm-char-img"><img src={characterImage(m.id)} alt={m.thai} loading="lazy" width="1024" height="1536" /></div>
+          <div className="hm-char-img"><img src={characterImage(m.id)} alt={m.alt} loading="lazy" width="1024" height="1536" /></div>
           <div className="hm-char-text"><h3>{m.name}</h3><p>{m.text}</p><span className="hm-char-icon" aria-hidden="true">{m.icon}</span><span className="hm-more">VIEW MORE <b>→</b></span></div>
         </button>)}</div>
       </section>
 
       {/* ---------- EVENTS ---------- */}
       <section id="events" className="hm-section">
-        <SectionHead label="UPCOMING EVENTS" note="ดูกิจกรรมทั้งหมด →" to="/events" />
+        <SectionHead label="UPCOMING EVENTS" note="ดูตารางงานทั้งหมด →" to="/events" />
         <div className="hm-events">
-          <div className="hm-events-copy reveal"><h2>เจอกัน<br />เร็ว ๆ นี้ <i>♡</i></h2><p>มาพบกันในช่วงเวลา<br />พิเศษไปด้วยกัน</p></div>
-          {events.length === 0 && <div className="hm-event-empty" role="status"><Flower /><p>{eventState === 'loading' ? 'กำลังดูว่านัดหน้าเราเจอกันที่ไหน…' : eventState === 'error' ? 'ยังโหลดตารางงานไม่ได้ในขณะนี้' : 'รอนัดหมายครั้งถัดไปของพวกเรา'}</p><Link to="/events">{eventState === 'error' ? 'ลองดูตารางงานอีกครั้ง' : 'ไปหน้ากิจกรรม'} →</Link></div>}
+          <div className="hm-events-copy reveal"><h2>Where to<br />next? <i>♡</i></h2><p>นัดหน้าของพวกเรา —<br />เสาร์นี้อยู่ตรงนี้</p></div>
+          {events.length === 0 && <div className="hm-event-empty" role="status"><Flower /><p>{eventState === 'loading' ? 'กำลังดูว่านัดหน้าเราเจอกันที่ไหน…' : eventState === 'error' ? 'ยังโหลดตารางงานไม่ได้ในขณะนี้' : 'ยังไม่มีนัดใหม่ — ติดตามที่ TikTok ก่อนนะคะ'}</p>{eventState === 'ready' ? <a href={SOCIALS.nobi[0][2]} target="_blank" rel="noopener">TikTok น้องโนบิ →</a> : <Link to="/events">{eventState === 'error' ? 'ลองดูตารางงานอีกครั้ง' : 'ไปหน้าตารางงาน'} →</Link>}</div>}
           {events.map((ev, i) => { const d = eventDate(ev); return <Link key={ev.slug} to={`/events/${ev.slug}`} className="hm-event reveal" style={{ '--delay': `${i * 120}ms` }}>
-            <div className="hm-event-img"><img src={ev.cover || HERO} alt="" loading="lazy" /><span className="hm-date"><strong>{Number(d.day)}</strong>{TH_MONTHS[d.start.getMonth()]}</span></div>
+            <div className="hm-event-img"><img src={ev.cover || HERO} alt={`ภาพปกงาน ${ev.title}`} loading="lazy" /><span className="hm-date"><strong>{Number(d.day)}</strong>{TH_MONTHS[d.start.getMonth()]}</span></div>
             <div className="hm-event-body"><h3>{ev.title}</h3><p>{ev.subtitle || ev.description?.slice(0, 60)}</p><span className="hm-arrow" aria-hidden="true">→</span></div>
           </Link>; })}
         </div>
@@ -126,36 +147,35 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
             <p>ของเล็ก ๆ ที่เก็บความสุข<br />ไว้ได้เสมอ</p>
             <Link className="hm-btn light" to="/shop">SHOP NOW <span>→</span></Link>
           </div>
-          <div className="hm-merch-art hm-merch-art--studio"><img src={MERCH_DISPLAY} srcSet="/images/bigcat-merch-pink-v4-small.webp 840w, /images/bigcat-merch-pink-v4.webp 1672w" sizes="(max-width: 760px) 100vw, 67vw" width="1672" height="941" alt="สินค้า Bigcat บนพื้นชมพู: หมวก 4 สี ตุ๊กตาโนบิ บูตะ ชิบะ ยางรัดผม และเสื้อดำ Call Me My Boo" loading="lazy" decoding="async" /></div>
+          <div className="hm-merch-art hm-merch-art--studio"><img src={MERCH_DISPLAY} srcSet="/images/bigcat-merch-pink-v4-small.webp 840w, /images/bigcat-merch-pink-v4.webp 1672w" sizes="(max-width: 760px) 100vw, 67vw" width="1672" height="941" alt="ของสะสม BIGCAT: หมวกแก๊ป 4 สี ตุ๊กตาโนบิ บูตะ ชิบะ ยางรัดผม และเสื้อยืดดำ Call Me My Boo" loading="lazy" decoding="async" /></div>
           <Flower className="hm-flower hm-flower-3" />
         </div>
         {products.length > 0 && <div className="hm-products">{products.map((p, i) => <article key={p.id} className="hm-product reveal" style={{ '--delay': `${i * 90}ms` }}>
-          <Link to={`/shop/${p.slug}`} className="hm-product-img"><img src={p.image || MERCH} alt={p.name_th || p.name} loading="lazy" />{!p.available && <span className="hm-tag">หมดแล้ว</span>}</Link>
+          <Link to={`/shop/${p.slug}`} className="hm-product-img"><img src={p.image || MERCH} alt={`${p.name_th || p.name} — ของแก๊ง BIGCAT`} loading="lazy" />{!p.available && <span className="hm-tag">หมดแล้ว</span>}</Link>
           <div className="hm-product-info"><div><h3>{p.name}</h3><p>{p.name_th}</p></div><div className="hm-product-buy"><span>฿{p.price.toLocaleString()}</span><button className="icon-button product-add" disabled={!p.available} onClick={() => addToCart(p)} aria-label={`เพิ่ม ${p.name} ลงตะกร้า`}><Icon name={p.variants?.length ? 'arrow' : 'plus'} size={18} /></button></div></div>
         </article>)}</div>}
       </section>
 
       {/* ---------- ALBUM ---------- */}
       <section id="moments" className="hm-section">
-        <SectionHead label="PHOTO ALBUM" note="โมเมนต์ของพวกเรา" />
+        <SectionHead label="PHOTO ALBUM" note="OUR MOMENTS ♡" />
         <div className="hm-album">
-          <div className="hm-album-copy reveal"><h2>โมเมนต์<br />ของพวกเรา <i>♡</i></h2><p>ช่วงเวลาเล็ก ๆ ที่อยากเก็บไว้<br />กับทุกคน</p></div>
+          <div className="hm-album-copy reveal"><h2>Our<br />Moments <i>♡</i></h2><p>ช่วงเวลาเล็ก ๆ ที่อยากเก็บไว้<br />กับทุกคน</p></div>
           <div className="hm-polaroids">{photos.map((ph, i) => <button key={ph.title} className="hm-polaroid reveal" style={{ '--tilt': `${ph.tilt}deg`, '--delay': `${i * 120}ms` }} onClick={() => { setAlbumIndex(i); setModal({ type: 'album' }); }}><img src={ph.image} alt={ph.caption} loading="lazy" /><span>{ph.title}</span></button>)}</div>
-          <div className="hm-sticky reveal"><span>ขอบคุณ<br />ที่อยู่ด้วยกัน<br />เสมอ</span><Flower className="hm-sticky-flower" /></div>
+          <div className="hm-sticky reveal"><span>Thank you<br />for staying.</span><small>ขอบคุณที่อยู่ด้วยกันเสมอ</small><Flower className="hm-sticky-flower" /></div>
         </div>
       </section>
     </main>
 
     <footer className="hm-footer">
-      <div className="hm-footer-brand"><Logo /><small>Small Cats. A Brighter Tomorrow.</small></div>
+      <div className="hm-footer-brand"><Logo /><small>Big cats. Lighter days.</small><span className="hm-footer-tagline">แมวตัวโต ที่ทำให้วันหนัก ๆ ของคุณเบาลง</span></div>
       <nav className="hm-footer-nav" aria-label="เมนูท้ายเว็บ">{navItems.map(([label, href]) => href.startsWith('#') ? <a key={href} href={href}>{label}</a> : <Link key={href} to={href}>{label}</Link>)}<Link to="/shop">SHOP</Link><Link to="/privacy">ความเป็นส่วนตัว</Link></nav>
-      <div className="hm-social">{[['instagram', 'Instagram'], ['music', 'TikTok'], ['facebook', 'Facebook'], ['youtube', 'YouTube']].map(([icon, label]) => <button key={label} aria-label={label} onClick={() => setModal({ type: 'social', label })}><Icon name={icon} size={18} /></button>)}</div>
-      <span className="hm-hand hm-footer-hand">โลกนี้น่ารักขึ้น<br />เพราะมีพวกเรา</span>
+      <SocialLinks />
+      <span className="hm-hand hm-footer-hand">See you Saturday. <i>♡</i><small>แล้วเจอกันเสาร์หน้านะคะ</small></span>
     </footer>
 
     {toast && <div className="toast" role="status"><Icon name="check" />{toast} <Link to="/cart" className="toast-link">ดูตะกร้า →</Link></div>}
-    {modal?.type === 'member' && <Modal title={`${modal.member.name} / ${modal.member.thai}`} onClose={closeModal}><div className={`hm-modal-portrait tone-${modal.member.tone}`}><img src={characterImage(modal.member.id)} alt={modal.member.thai} /></div><span className="eyebrow">{modal.member.tag}</span><p>{modal.member.detail}</p><div className="detail-strip"><Icon name="heart" />{modal.member.likes}</div></Modal>}
+    {modal?.type === 'member' && <Modal title={`${modal.member.name} / ${modal.member.thai}`} onClose={closeModal}><div className={`hm-modal-portrait tone-${modal.member.tone}`}><img src={characterImage(modal.member.id)} alt={modal.member.alt} /></div><span className="eyebrow">{modal.member.tag}</span><p>{modal.member.detail}</p><div className="detail-strip"><Icon name="heart" />{modal.member.likes}</div>{modal.member.socials && <div className="member-social"><span className="hm-label">FOLLOW {modal.member.name}</span><SocialRow items={SOCIALS[modal.member.socials]} /></div>}</Modal>}
     {modal?.type === 'album' && <Modal title={photos[albumIndex].title} wide onClose={closeModal}><img className="album-full" src={photos[albumIndex].image} alt={photos[albumIndex].caption} /><div className="album-controls"><button className="icon-button" aria-label="ภาพก่อนหน้า" onClick={() => setAlbumIndex((albumIndex + photos.length - 1) % photos.length)}>←</button><p>{photos[albumIndex].caption}<small>{albumIndex + 1} / {photos.length}</small></p><button className="icon-button" aria-label="ภาพถัดไป" onClick={() => setAlbumIndex((albumIndex + 1) % photos.length)}>→</button></div></Modal>}
-    {modal?.type === 'social' && <Modal title={`BIGCAT on ${modal.label}`} onClose={closeModal}><div className="social-modal-paw"><Paw /></div><p>เตรียมพบกับเรื่องราวน่ารัก ๆ ของแก๊ง Bigcat บน {modal.label}</p><div className="detail-strip">จะเพิ่มลิงก์บัญชีทางการก่อนเปิดเว็บไซต์</div></Modal>}
   </div>;
 }

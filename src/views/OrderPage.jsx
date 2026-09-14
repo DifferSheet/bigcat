@@ -29,7 +29,7 @@ export default function OrderPage({ code }) {
 
   const uploadSlip = async (e) => {
     e.preventDefault(); if (!slip) return; setBusy(true); setMsg('');
-    try { const fd = new FormData(); fd.append('slip', slip); const r = await api(`/orders/${code}/slip`, { method: 'POST', body: fd }); setMsg(r.autoApproved ? 'ตรวจสลิปผ่านแล้ว ยืนยันการชำระเงินเรียบร้อย' : `รับสลิปแล้ว ทีมงานจะตรวจสอบ (${r.note})`); load(); }
+    try { const fd = new FormData(); fd.append('slip', slip); const r = await api(`/orders/${code}/slip`, { method: 'POST', body: fd }); setMsg(r.autoApproved ? 'ตรวจสลิปผ่านแล้ว ยืนยันการชำระเงินเรียบร้อย' : `รับสลิปแล้ว รอตรวจสอบ (${r.note})`); load(); }
     catch (err) { setMsg(err.message); } finally { setBusy(false); }
   };
 
@@ -41,7 +41,7 @@ export default function OrderPage({ code }) {
   return <>
     <SiteHeader />
     <main className="ev-page narrow">
-      {state?.fresh && <Notice tone={state.autoApproved ? 'info' : 'muted'}>{state.autoApproved ? 'สั่งซื้อสำเร็จและตรวจสลิปผ่านแล้ว ขอบคุณที่อุดหนุนแก๊ง Bigcat ♡' : 'รับคำสั่งซื้อแล้ว สต็อกถูกจองให้แล้ว รอตรวจสอบการชำระเงิน'}</Notice>}
+      {state?.fresh && <Notice tone={state.autoApproved ? 'info' : 'muted'}>{state.autoApproved ? 'สั่งซื้อสำเร็จและตรวจสลิปผ่านแล้ว ขอบคุณที่อุดหนุนแก๊ง BIGCAT ♡' : 'รับคำสั่งซื้อแล้ว สต็อกถูกจองให้แล้ว รอตรวจสอบการชำระเงิน'}</Notice>}
       <div className="ev-section-head"><div><span className="eyebrow">ORDER</span><h1>คำสั่งซื้อ <span className="code">{o.code}</span></h1></div><span className={`status-pill ${o.status === 'cancelled' ? 'full' : o.status === 'pending' ? 'muted' : 'open'}`}>{o.statusLabel}</span></div>
 
       {o.status !== 'cancelled' && <ol className="order-steps">{STEPS.map(([s, label], i) => <li key={s} className={i < idx ? 'done' : i === idx ? 'now' : ''}><span className="dot" /><span>{label}</span></li>)}</ol>}
@@ -55,7 +55,7 @@ export default function OrderPage({ code }) {
         <section className="order-box">
           <span className="eyebrow">จัดส่ง</span>
           <p><strong>{o.name}</strong><br />{o.phone}{o.email ? <><br />{o.email}</> : null}</p>
-          <p className="muted">{o.delivery === 'pickup' ? 'รับหน้างาน — แสดงรหัสคำสั่งซื้อนี้กับทีมงาน' : o.address}</p>
+          <p className="muted">{o.delivery === 'pickup' ? 'รับหน้างาน — แสดงรหัสคำสั่งซื้อนี้ที่จุดรับของ' : o.address}</p>
           {o.tracking_no && <div className="tracking"><span className="eyebrow">เลขพัสดุ</span><strong className="code">{o.tracking_no}</strong><span className="muted">{o.carrier}</span>{track && <a className="button ghost small" href={track} target="_blank" rel="noreferrer">ติดตามพัสดุ ↗</a>}</div>}
           {o.note && <p className="muted">หมายเหตุ: {o.note}</p>}
         </section>
@@ -63,7 +63,7 @@ export default function OrderPage({ code }) {
 
       {o.status === 'pending' && <section className="order-box">
         <span className="eyebrow">ชำระเงิน</span>
-        <p>{o.slip_path ? `แนบสลิปแล้ว รอทีมงานตรวจสอบ${o.verify_note ? ` (${o.verify_note})` : ''}` : 'ยังไม่ได้แนบสลิป โอนแล้วแนบได้ที่นี่'}</p>
+        <p>{o.slip_path ? `แนบสลิปแล้ว รอตรวจสอบ${o.verify_note ? ` (${o.verify_note})` : ''}` : 'ยังไม่ได้แนบสลิป โอนแล้วแนบได้ที่นี่'}</p>
         <form className="booking-form inline" onSubmit={uploadSlip}><FileDrop file={slip} onChange={setSlip} label={`สลิปโอนเงิน ${baht(o.total)}`} /><div className="form-actions"><button className="button dark small" disabled={!slip || busy}>ส่งสลิป</button></div></form>
         {msg && <Notice>{msg}</Notice>}
       </section>}

@@ -1,5 +1,5 @@
 // ตรวจสลิปอัตโนมัติ — เลือกผู้ให้บริการด้วย SLIP_PROVIDER ใน .env
-//   none     : ไม่ตรวจ ทุกรายการรอทีมงาน (ค่าเริ่มต้น)
+//   none     : ไม่ตรวจ ทุกรายการรอแอดมิน (ค่าเริ่มต้น)
 //   mock     : จำลองผลสำหรับทดสอบบนเครื่อง (ผ่านเสมอ, transRef = hash ของไฟล์)
 //   slipok   : https://slipok.com  (ฟรี 100 สลิป/เดือน)  ต้องมี SLIP_API_KEY + SLIP_BRANCH_ID
 //   easyslip : https://easyslip.com                         ต้องมี SLIP_API_KEY
@@ -77,7 +77,7 @@ const providers = { slipok, easyslip, mock };
  * ตรวจสลิปแล้วตัดสินว่าอนุมัติอัตโนมัติได้ไหม
  * @returns {{ ok: boolean, transRef?: string, note: string, amount?: number }}
  *   ok=true  → อนุมัติได้เลย
- *   ok=false → เก็บเป็น pending พร้อม note บอกเหตุผลให้ทีมงาน
+ *   ok=false → เก็บเป็น pending พร้อม note บอกเหตุผลให้แอดมิน
  */
 export async function verifySlip(filePath, { expectedAmount }) {
   if (!slipEnabled) return { ok: false, note: 'ยังไม่เปิดตรวจสลิปอัตโนมัติ · แอดมินตรวจเอง' };

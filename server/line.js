@@ -1,4 +1,4 @@
-// LINE Messaging API — แจ้งเตือนแฟนคลับและทีมงาน
+// LINE Messaging API — แจ้งเตือนแฟนคลับและแอดมิน
 // ต้องมี LINE Official Account + Messaging API channel: LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET, LINE_OA_ID (@xxxx)
 // วิธีผูกบัญชี: ผู้ใช้เพิ่มเพื่อน OA แล้วส่งรหัส 8 หลักที่ได้จากเว็บ → webhook จับคู่ line_user_id กับรายการนั้น
 import crypto from 'node:crypto';
@@ -8,7 +8,7 @@ const TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
 const SECRET = process.env.LINE_CHANNEL_SECRET || '';
 export const lineEnabled = !!TOKEN;
 export const lineOaId = process.env.LINE_OA_ID || '';
-export const staffTarget = process.env.LINE_STAFF_TARGET || ''; // userId หรือ groupId ของทีมงาน
+export const staffTarget = process.env.LINE_STAFF_TARGET || ''; // userId หรือ groupId ของแอดมิน
 
 async function call(path, body) {
   if (!lineEnabled) return false;
@@ -77,13 +77,13 @@ export async function handleWebhookEvent(ev) {
 /* ---------- ข้อความสำเร็จรูป ---------- */
 export const msg = {
   donationApproved: (d) => `🙏 อนุโมทนาบุญ\nยอด ฿${Number(d.amount).toLocaleString('th-TH')} หมวด "${d.category}" ของคุณได้รับการยืนยันแล้ว\nงาน: ${d.title}\nดูใบอนุโมทนา: ${d.url}`,
-  donationRejected: (d) => `รายการ ${d.code} ยังไม่ผ่านการตรวจสอบ กรุณาติดต่อทีมงานพร้อมสลิปอีกครั้งครับ`,
+  donationRejected: (d) => `รายการ ${d.code} ยังไม่ผ่านการตรวจสอบ ทักมาที่นี่พร้อมสลิปอีกครั้งได้เลยครับ`,
   bookingPaid: (b) => `🎫 ยืนยันการชำระเงินแล้ว\nที่นั่ง ${b.seats} งาน "${b.title}"\nเปิดบัตร (QR เข้างาน): ${b.url}`,
-  bookingRejected: (b) => `การจอง ${b.code} ไม่ผ่านการตรวจสอบ ที่นั่งถูกปล่อยคืนแล้ว กรุณาจองใหม่หรือติดต่อทีมงานครับ`,
-  luckyFan: (r) => `🎉 คุณคือ Lucky Fan รอบที่ ${r.round}!\nไปหาทีมงานเพื่อถ่ายรูปคู่กับโนบิได้เลย`,
+  bookingRejected: (b) => `การจอง ${b.code} ไม่ผ่านการตรวจสอบ ที่นั่งถูกปล่อยคืนแล้ว จองใหม่ได้เลย หรือทักมาที่นี่ครับ`,
+  luckyFan: (r) => `🎉 คุณคือ Lucky Fan รอบที่ ${r.round}!\nมาข้างเวทีเพื่อถ่ายรูปคู่กับโนบิได้เลย`,
   staffNew: (kind, ev, detail) => `🔔 ${kind}ใหม่ · ${ev}\n${detail}`,
   orderStatus: (o) => {
-    const line = { paid: '✅ ยืนยันการชำระเงินแล้ว กำลังเตรียมของให้', packing: '📦 กำลังแพ็กของ', shipped: `🚚 จัดส่งแล้ว${o.carrier ? ` ทาง ${o.carrier}` : ''}${o.tracking ? `\nเลขพัสดุ: ${o.tracking}` : ''}`, completed: '🎉 ส่งถึงแล้ว ขอบคุณที่อุดหนุนแก๊ง Bigcat', cancelled: '❌ คำสั่งซื้อถูกยกเลิก หากมีข้อสงสัยติดต่อทีมงานได้เลย', pending: '⏳ รอตรวจสอบการชำระเงิน' }[o.status] || o.status;
+    const line = { paid: '✅ ยืนยันการชำระเงินแล้ว กำลังเตรียมของให้', packing: '📦 กำลังแพ็กของ', shipped: `🚚 จัดส่งแล้ว${o.carrier ? ` ทาง ${o.carrier}` : ''}${o.tracking ? `\nเลขพัสดุ: ${o.tracking}` : ''}`, completed: '🎉 ส่งถึงแล้ว ขอบคุณที่อุดหนุนแก๊ง BIGCAT', cancelled: '❌ คำสั่งซื้อถูกยกเลิก หากมีข้อสงสัยทักมาที่นี่ได้เลย', pending: '⏳ รอตรวจสอบการชำระเงิน' }[o.status] || o.status;
     return `คำสั่งซื้อ ${o.code}\n${line}\nดูรายละเอียด: ${o.url}`;
   },
 };

@@ -132,7 +132,7 @@ export default function MeritGoals({ data }) {
       {done ? <Section eyebrow="THANK YOU" title="อนุโมทนาบุญ">
         {done.autoApproved
           ? <Notice>ตรวจสลิปผ่านแล้ว ยอด {baht(done.amount)} ขึ้นบนหน้านี้ทันที รหัส <strong className="code">{done.code}</strong></Notice>
-          : <Notice tone="muted">รับรายการแล้ว รหัส <strong className="code">{done.code}</strong> · {done.note?.startsWith('ตรวจสลิปไม่ผ่าน') || done.note?.includes('ไม่ตรง') || done.note?.includes('ซ้ำ') ? 'ระบบตรวจอัตโนมัติไม่ผ่าน ทีมงานจะตรวจให้เอง' : 'ทีมงานจะตรวจสอบสลิป'}ภายใน 24 ชั่วโมง</Notice>}
+          : <Notice tone="muted">รับรายการแล้ว รหัส <strong className="code">{done.code}</strong> · {done.note?.startsWith('ตรวจสลิปไม่ผ่าน') || done.note?.includes('ไม่ตรง') || done.note?.includes('ซ้ำ') ? 'ระบบตรวจอัตโนมัติไม่ผ่าน พี่ ๆ ที่ดูแลบูตะจะตรวจให้เอง' : 'พี่ ๆ ที่ดูแลบูตะจะตรวจสอบสลิป'}ภายใน 24 ชั่วโมง</Notice>}
         <LineNotify code={done.code} />
         <div className="form-actions"><Link className="button dark" to={`/ticket/${done.code}`}>ดูใบอนุโมทนา + บันทึกเป็นภาพ <Icon name="arrow" /></Link><button className="link-button" onClick={() => setDone(null)}>ทำบุญเพิ่ม</button></div>
       </Section>
@@ -182,7 +182,7 @@ export default function MeritGoals({ data }) {
         {cfg.report?.taxNote && <div className="trust-item"><span className="eyebrow">ลดหย่อนภาษี</span><p>{cfg.report.taxNote}</p></div>}
       </div>
       <div className="report-head"><h3>รายงานการใช้เงิน</h3><span className="muted">ยอดรับ {baht(total)} · ยอดใช้ที่มีหลักฐาน {baht(report.reduce((s, r) => s + Number(r.amount || 0), 0))}</span></div>
-      {report.length === 0 ? <p className="muted">ทีมงานจะอัปโหลดใบเสร็จ ใบอนุโมทนาจากวัด และภาพส่งมอบไว้ที่นี่หลังวันงาน</p>
+      {report.length === 0 ? <p className="muted">ใบเสร็จ ใบอนุโมทนาจากวัด และภาพส่งมอบจะอัปโหลดไว้ที่นี่หลังวันงาน</p>
         : <ul className="report-list">{report.map(r => <li key={r.id} className={`report-item ${r.kind}`}>{r.image_path && <a href={r.image_path} target="_blank" rel="noreferrer"><img src={r.image_path} alt={r.title} loading="lazy" /></a>}<div><span className="eyebrow">{{ receipt: 'ใบเสร็จ / ใบอนุโมทนา', photo: 'ภาพส่งมอบ', note: 'บันทึก' }[r.kind]}</span><strong>{r.title}</strong>{r.amount != null && <span className="report-amount">{baht(r.amount)}</span>}{r.body && <p>{r.body}</p>}</div></li>)}</ul>}
     </Section>
 

@@ -17,13 +17,13 @@ export default function SimpleRegister({ data }) {
   const [done, setDone] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  if (!capacity) return <Section eyebrow="INFO" title="รายละเอียดเพิ่มเติม"><Notice tone="muted">งานนี้เดินเข้ามาได้เลย ไม่ต้องลงทะเบียน ติดตามประกาศเพิ่มเติมได้ที่ช่องทางของ Bigcat</Notice></Section>;
+  if (!capacity) return <Section eyebrow="INFO" title="รายละเอียดเพิ่มเติม"><Notice tone="muted">งานนี้เดินเข้ามาได้เลย ไม่ต้องลงทะเบียน ติดตามประกาศเพิ่มเติมได้ที่ช่องทางของ BIGCAT</Notice></Section>;
   const taken = registrations?.total || 0;
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setError('');
     try { setDone(await api(`/events/${ev.slug}/registrations`, { method: 'POST', body: form })); } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
-  return <Section eyebrow="REGISTER" title="ลงทะเบียน" aside={<span className="ev-summary">รับ {capacity} ที่ · ลงทะเบียนแล้ว <strong>{taken}</strong></span>}>
+  return <Section eyebrow="REGISTER" title="ลงทะเบียน" aside={<span className="ev-summary">รับ {capacity} ที่{taken >= 10 ? <> · ลงทะเบียนแล้ว <strong>{taken}</strong></> : ' · เปิดลงทะเบียนแล้ว'}</span>}>
     {done ? <><Notice>ลงทะเบียนสำเร็จ หมายเลข #{String(done.number).padStart(3, '0')}</Notice><Link className="button dark" to={`/ticket/${done.code}`}>เปิดบัตร <Icon name="arrow" /></Link></>
       : ev.status === 'upcoming' ? <Notice tone="muted">ยังไม่เปิดลงทะเบียน</Notice>
         : taken >= capacity ? <Notice tone="muted">เต็มแล้ว</Notice>

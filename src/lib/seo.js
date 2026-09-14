@@ -14,15 +14,17 @@ export async function fetchJSON(path, { revalidate = 60 } = {}) {
 export const abs = (url) => (!url ? `${SITE}/images/bigcat-hero.png` : /^https?:/.test(url) ? url : `${SITE}${url}`);
 
 const BRAND = 'BIGCAT';
-export function meta({ title, description, path = '/', image, type = 'website', noindex = false, publishedTime }) {
+export function meta({ title, description, path = '/', image, type = 'website', noindex = false, publishedTime, absoluteTitle = false }) {
   const url = `${SITE}${path}`;
   const img = abs(image);
+  // og/twitter: ไม่ต่อ «· BIGCAT» ซ้ำถ้า title ขึ้นต้นด้วยแบรนด์อยู่แล้ว (หน้าแรก)
+  const social = title.startsWith(BRAND) ? title : `${title} · ${BRAND}`;
   return {
-    title, description,
+    title: absoluteTitle ? { absolute: title } : title, description,
     alternates: { canonical: url },
     robots: noindex ? { index: false, follow: false } : { index: true, follow: true },
-    openGraph: { title: `${title} · ${BRAND}`, description, url, siteName: BRAND, locale: 'th_TH', type, images: [{ url: img, width: 1200, height: 630, alt: title }], ...(publishedTime ? { publishedTime } : {}) },
-    twitter: { card: 'summary_large_image', title: `${title} · ${BRAND}`, description, images: [img] },
+    openGraph: { title: social, description, url, siteName: BRAND, locale: 'th_TH', type, images: [{ url: img, width: 1200, height: 630, alt: title }], ...(publishedTime ? { publishedTime } : {}) },
+    twitter: { card: 'summary_large_image', title: social, description, images: [img] },
   };
 }
 
@@ -42,6 +44,8 @@ export function eventSchema(ev) {
     location: { '@type': 'Place', name: ev.place || 'จะแจ้งให้ทราบ', address: ev.place || 'ประเทศไทย' },
     image: [abs(ev.cover)], url: `${SITE}/events/${ev.slug}`,
     organizer: { '@type': 'Organization', name: BRAND, url: SITE },
+    // งานเข้าฟรี (busking/ทำบุญ/pop-up/workshop) → Google โชว์ «ฟรี» ใน rich result · งานที่นั่งราคาอยู่ใน seatMap แต่ละโซน ไม่ใส่
+    ...(ev.type !== 'fanmeet' ? { isAccessibleForFree: true, offers: { '@type': 'Offer', price: 0, priceCurrency: 'THB', availability: 'https://schema.org/InStock', url: `${SITE}/events/${ev.slug}` } } : {}),
   };
 }
 
@@ -60,7 +64,7 @@ export function productSchema(p) {
 export const orgSchema = () => ({
   '@context': 'https://schema.org', '@type': 'Organization',
   name: BRAND, url: SITE, logo: `${SITE}/images/bigcat-logo-ink.png`,
-  description: 'แก๊งแมวตัวโต โนบิ บูตะ ชิบะ — กิจกรรม ของสะสม และเรื่องราวน่ารักในทุกวัน',
+  description: 'Big cats. Lighter days. — แก๊งแมวตัวโต โนบิ บูตะ ชิบะ ร้องสด ทำบุญ และเจอกันได้จริงทุกเสาร์',
 });
 
 export const breadcrumbSchema = (items) => ({

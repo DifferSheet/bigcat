@@ -19,7 +19,7 @@ function Login({ onDone }) {
     e.preventDefault(); setAdminKey(key);
     try { await api('/admin/ping', { admin: true }); onDone(); } catch (err) { setAdminKey(''); setError(err.message); }
   };
-  return <div className="ticket-lookup"><span className="eyebrow">STAFF ONLY</span><h1>เข้าสู่ระบบทีมงาน</h1><p>ใส่รหัสผู้ดูแล (ADMIN_KEY ในไฟล์ .env)</p>
+  return <div className="ticket-lookup"><span className="eyebrow">STAFF ONLY</span><h1>เข้าสู่ระบบแอดมิน</h1><p>ใส่รหัสผู้ดูแล (ADMIN_KEY ในไฟล์ .env)</p>
     <form onSubmit={submit}><input id="ad-key" type="password" value={key} onChange={e => setKey(e.target.value)} placeholder="รหัสผู้ดูแล" autoFocus /><button className="button dark">เข้าสู่ระบบ <Icon name="arrow" /></button></form>
     {error && <p className="notice error">{error}</p>}</div>;
 }
@@ -28,7 +28,7 @@ function Login({ onDone }) {
 function MeritTools({ ev, onMsg }) {
   const [stats, setStats] = useState(null);
   const [report, setReport] = useState([]);
-  const [thanks, setThanks] = useState('🙏 ขอบคุณที่ร่วมบุญกับแก๊ง Bigcat ยอดทั้งหมดถวายวัดเรียบร้อยแล้ว ดูรายงานได้ที่หน้ากิจกรรมนะครับ');
+  const [thanks, setThanks] = useState('🙏 ขอบคุณที่ร่วมบุญกับแก๊ง BIGCAT ยอดทั้งหมดถวายวัดเรียบร้อยแล้ว ดูรายงานได้ที่หน้ากิจกรรมนะครับ');
   const [item, setItem] = useState({ kind: 'receipt', title: '', amount: '', body: '' });
   const [file, setFile] = useState(null);
   const load = () => Promise.all([api(`/admin/events/${ev.slug}/donation-stats`, { admin: true }), api(`/events/${ev.slug}`)]).then(([st, d]) => { setStats(st); setReport(d.report || []); }).catch(e => onMsg(e.message));

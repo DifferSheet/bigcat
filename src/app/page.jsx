@@ -4,9 +4,10 @@ import { fetchJSON, meta, jsonLd, eventSchema } from '@/lib/seo.js';
 
 export const revalidate = 60;
 export const metadata = meta({
-  title: 'BIGCAT — แก๊งแมวตัวโต ความสุขเต็มหัวใจ',
-  description: 'โลกใบเล็กของโนบิ บูตะ และชิบะ ที่อยากทำให้ทุกวันของคุณน่ารักขึ้นอีกนิด ติดตามกิจกรรม ของสะสม และโมเมนต์ของพวกเรา',
-  path: '/', image: '/images/bigcat-hero.png',
+  title: 'BIGCAT — Big cats. Lighter days.', absoluteTitle: true,
+  description: 'แก๊งแมวตัวโต โนบิ บูตะ ชิบะ — ร้องสด ทำบุญ และเจอกันได้จริงทุกเสาร์ ดูตารางงาน ลงทะเบียนงานฟรี และช้อปของสะสม BIGCAT',
+  // og:image = โปสเตอร์ 26 ก.ย. จนกว่างานจะผ่าน แล้วสลับกลับ /images/bigcat-hero.png
+  path: '/', image: '/images/og-26sep.jpg',
 });
 
 export default async function Page() {

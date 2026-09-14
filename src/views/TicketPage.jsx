@@ -102,7 +102,7 @@ export default function TicketPage({ code }) {
         {kind === 'donation' && item.status === 'approved' && <><p className="blessing">ขออนุโมทนาบุญ ขอให้ความสุขเล็กๆ ที่คุณส่งให้ ย้อนกลับมาหาคุณเป็นความสุขก้อนใหญ่ ♡</p><CertificateButton item={item} /></>}
         {kind === 'donation' && item.status === 'pending' && <p className="muted">เมื่อยอดได้รับการยืนยัน จะสร้างใบอนุโมทนาเป็นภาพได้จากหน้านี้</p>}
         <LineNotify code={item.code} linked={!!item.lineLinked} />
-        {kind === 'booking' && item.status === 'pending' && <p className="muted">ทีมงานกำลังตรวจสอบสลิป เมื่อยืนยันแล้วสถานะจะเปลี่ยนเป็น "ชำระแล้ว" และ QR ใช้เข้างานได้</p>}
+        {kind === 'booking' && item.status === 'pending' && <p className="muted">กำลังตรวจสอบสลิป เมื่อยืนยันแล้วสถานะจะเปลี่ยนเป็น "ชำระแล้ว" และ QR ใช้เข้างานได้</p>}
         <div className="form-actions"><Link className="button ghost" to={`/events/${item.slug}`}>ไปหน้ากิจกรรม</Link><button className="button ghost" onClick={() => window.print()}>พิมพ์ / บันทึก</button></div>
       </div>
       <div className="ticket-stub">
