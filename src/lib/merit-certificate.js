@@ -79,7 +79,11 @@ function textBlock(ctx, value, { y, height, size = 36, min = 18, width = 840, fa
       gradient.addColorStop(0.48, '#fff0bb'); gradient.addColorStop(0.62, '#c88a22'); gradient.addColorStop(1, '#794609');
       ctx.shadowColor = '#6e410944'; ctx.shadowBlur = 3; ctx.shadowOffsetY = 3;
       ctx.strokeStyle = '#865215'; ctx.lineWidth = 1.2; ctx.strokeText(line, x(line), baseline);
-      ctx.shadowColor = 'transparent'; ctx.fillStyle = gradient;
+      ctx.shadowColor = 'transparent';
+      // บาง WebView (Android) วาด fill แบบ gradient บนตัวอักษรไม่ออก → ตัวหนังสือกลวงเหลือแต่ขอบ
+      // เลยลงสีทองทึบก่อนหนึ่งชั้น แล้วค่อยทับด้วย gradient (ถ้า gradient ทำงานจะทับสนิทพอดี)
+      ctx.fillStyle = '#c08a24'; ctx.fillText(line, x(line), baseline);
+      ctx.fillStyle = gradient;
     } else { ctx.fillStyle = color; }
     ctx.fillText(line, x(line), baseline);
     metrics.push(ctx.measureText(line).width);
