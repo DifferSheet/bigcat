@@ -22,3 +22,6 @@ tools/_originals/
 
 # Finder temp files (.!<pid>!<name>)
 .!*!*
+
+# โฟลเดอร์งานออกแบบ/พรอมต์ของ Codex (ไม่ใช่โค้ดเว็บ)
+output/
