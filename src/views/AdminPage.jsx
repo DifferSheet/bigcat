@@ -5,7 +5,9 @@ import { SiteHeader, SiteFooter, StatusPill, Notice } from '../components/EventS
 import { Icon, PageLoader } from '../components/ui.jsx';
 import { api, getAdminKey, setAdminKey } from '../lib/api.js';
 import { useMounted } from '../lib/useMounted.js';
-import { eventDate, typeLabel, baht } from '../lib/format.js';
+import { eventDate, typeLabel, baht, parseDate } from '../lib/format.js';
+
+const fmt = (d) => { const x = parseDate(d); return x ? x.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'; };
 import dynamic from 'next/dynamic';
 
 const ShopAdmin = dynamic(() => import('./ShopAdmin.jsx'), { ssr: false, loading: () => <PageLoader /> });
