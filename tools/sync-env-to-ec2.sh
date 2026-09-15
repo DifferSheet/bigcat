@@ -7,12 +7,17 @@ cd "$(dirname "$0")/.."
 HOST=${EC2_HOST:-ubuntu@ec2-18-141-63-220.ap-southeast-1.compute.amazonaws.com}
 KEY=${EC2_KEY:-$HOME/Documents/AWS/app-server-key.pem}
 KEYS=(LINE_CHANNEL_ACCESS_TOKEN LINE_CHANNEL_SECRET LINE_CHANNEL_ID LINE_OA_ID LINE_LOGIN_CHANNEL_ID LINE_LOGIN_CHANNEL_SECRET LINE_LOGIN_SAME_PROVIDER GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET)
+OPTIONAL=(SLIP_PROVIDER SLIP_API_KEY SLIP_RECEIVER_NAME SLIP_AUTO_APPROVE)   # ส่งเฉพาะที่มีค่าในเครื่อง
 
 lines=""
 for k in "${KEYS[@]}"; do
   v=$(grep -E "^${k}=" .env | head -1 | cut -d= -f2-)
   [ -n "$v" ] || { echo "!! $k ว่างใน .env เครื่องนี้"; exit 1; }
   lines+="${k}=${v}"$'\n'
+done
+for k in "${OPTIONAL[@]}"; do
+  v=$(grep -E "^${k}=" .env | head -1 | cut -d= -f2-)
+  [ -n "$v" ] && lines+="${k}=${v}"$'\n'
 done
 
 echo "→ อัปเดต .env บน EC2 (สำรองเป็น .env.bak-<เวลา>)"

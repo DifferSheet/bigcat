@@ -27,7 +27,7 @@ Production: `npm run build` แล้ว `npm start` (รัน `next start` + E
 - สลิปที่อัปโหลดเก็บใน `server/uploads/` (ไม่ commit)
 
 ### ตรวจสลิปอัตโนมัติ (`server/slip.js`)
-`.env` → `SLIP_PROVIDER=none|mock|slipok|easyslip` · `mock` ผ่านทุกสลิป (ทดสอบบนเครื่อง) · SlipOK ฟรี 100 สลิป/เดือน ต้องใส่ `SLIP_API_KEY` + `SLIP_BRANCH_ID` · EasySlip ใส่ `SLIP_API_KEY`
+`.env` → `SLIP_PROVIDER=none|mock|slipok|easyslip|thunder` · `mock` ผ่านทุกสลิป (ทดสอบบนเครื่อง) · Thunder (thunder.in.th, ใช้อยู่ตอนนี้) ใส่ `SLIP_API_KEY` อย่างเดียว + whitelist IP ของ EC2 ในแดชบอร์ด · SlipOK ฟรี 100 สลิป/เดือน ต้องใส่ `SLIP_API_KEY` + `SLIP_BRANCH_ID` · EasySlip ใส่ `SLIP_API_KEY`
 เงื่อนไขอนุมัติอัตโนมัติ: ยอดในสลิป ≥ ที่แจ้ง, ชื่อผู้รับตรง `SLIP_RECEIVER_NAME` (ถ้าตั้ง), เลขอ้างอิงไม่ซ้ำ, สลิปไม่เก่ากว่า `SLIP_MAX_AGE_DAYS` — ไม่ผ่านข้อใดจะเป็น `pending` พร้อม `verify_note` ให้ทีมงานดูใน `/admin`
 **ตาข่ายชั้นสอง (ค่าเริ่มต้น)**: `SLIP_AUTO_APPROVE` ไม่ตั้ง/`false` → ต่อให้ตรวจผ่าน รายการยังเป็น `pending` (บันทึก `trans_ref`+`verified_at` ไว้แล้ว กันสลิปซ้ำ) ให้แอดมินกดอนุมัติเองทุกใบ · มั่นใจแล้วค่อยตั้ง `SLIP_AUTO_APPROVE=true`
 ถ้า `SLIP_PROVIDER=slipok` แต่ยังไม่ใส่ key → ไม่ยิง API, ทุกรายการเป็น `pending` พร้อมโน้ต «รอตั้งค่า slipok» · สลิปที่ `trans_ref` ซ้ำของเดิมจะได้ 409 «สลิปใบนี้ถูกใช้ยืนยันไปแล้ว»

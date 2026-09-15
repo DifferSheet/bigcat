@@ -3,6 +3,7 @@
 //   mock     : จำลองผลสำหรับทดสอบบนเครื่อง (ผ่านเสมอ, transRef = hash ของไฟล์)
 //   slipok   : https://slipok.com  (ฟรี 100 สลิป/เดือน)  ต้องมี SLIP_API_KEY + SLIP_BRANCH_ID
 //   easyslip : https://easyslip.com                         ต้องมี SLIP_API_KEY
+//   thunder  : https://thunder.in.th  (v2, ตรวจสลิปซ้ำในตัว)   ต้องมี SLIP_API_KEY (Bearer) · ตั้ง IP whitelist ให้ EC2 ได้ในแดชบอร์ด
 //   SLIP_AUTO_APPROVE=true  → ตรวจผ่านแล้วอนุมัติทันที · ไม่ตั้ง = ตรวจแล้วยังรอแอดมินกดยืนยัน (ค่าเริ่มต้น)
 import fs from 'node:fs';
 import crypto from 'node:crypto';
@@ -14,7 +15,7 @@ export const slipEnabled = provider !== 'none';
 // เปิดเมื่อมั่นใจ SlipOK แล้ว: SLIP_AUTO_APPROVE=true
 export const slipAutoApprove = /^(1|true|yes)$/i.test(process.env.SLIP_AUTO_APPROVE || '');
 // credential ที่แต่ละ provider ต้องมี — ยังไม่ครบ = ไม่ยิง API ให้เสียเปล่า ส่งให้แอดมินตรวจเองพร้อมโน้ตชัด ๆ
-const REQUIRED = { slipok: ['SLIP_API_KEY', 'SLIP_BRANCH_ID'], easyslip: ['SLIP_API_KEY'], mock: [] };
+const REQUIRED = { slipok: ['SLIP_API_KEY', 'SLIP_BRANCH_ID'], easyslip: ['SLIP_API_KEY'], thunder: ['SLIP_API_KEY'], mock: [] };
 const missingCreds = () => (REQUIRED[provider] || []).filter(k => !process.env[k]);
 
 const receiverNames = (process.env.SLIP_RECEIVER_NAME || '').split('|').map(s => s.trim()).filter(Boolean);
@@ -59,6 +60,30 @@ async function easyslip(filePath) {
   };
 }
 
+// Thunder v2 — POST multipart {image, checkDuplicate, matchAmount} · https://document.thunder.in.th/en/v2/verify/bank/image
+async function thunder(filePath, expectedAmount) {
+  const form = new FormData();
+  form.append('image', new Blob([fs.readFileSync(filePath)]), 'slip.jpg');
+  form.append('checkDuplicate', 'true');
+  if (expectedAmount) form.append('matchAmount', String(expectedAmount));
+  const res = await fetch('https://api.thunder.in.th/v2/verify/bank', {
+    method: 'POST', headers: { Authorization: `Bearer ${process.env.SLIP_API_KEY}` }, body: form,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json.success) {
+    const code = json.error?.code || json.code || res.status;
+    const th = { SLIP_NOT_FOUND: 'ไม่พบ QR ในภาพ (ภาพไม่ชัด/ไม่ใช่สลิป)', SLIP_PENDING: 'สลิปกรุงเทพยังไม่ขึ้นระบบ ลองใหม่อีกครู่', IMAGE_SIZE_TOO_LARGE: 'ไฟล์ใหญ่เกิน 4MB', INVALID_IMAGE_FORMAT: 'ไฟล์ไม่ใช่รูปภาพ' }[code];
+    throw new Error(th || json.error?.message || json.message || `Thunder error ${res.status} (${code})`);
+  }
+  const d = json.data?.rawSlip || json.data || {};
+  const name = (a) => a?.account?.name?.th || a?.account?.name?.en || a?.account?.name || a?.name;
+  return {
+    transRef: d.transRef, amount: Number(d.amount?.amount ?? d.amount),
+    receiverName: name(d.receiver), senderName: name(d.sender),
+    date: d.date ? new Date(d.date) : null, duplicate: !!json.data?.isDuplicate, raw: d,
+  };
+}
+
 async function mock(filePath, expectedAmount) {
   const hash = crypto.createHash('sha1').update(fs.readFileSync(filePath)).digest('hex').slice(0, 20).toUpperCase();
   return { transRef: `MOCK${hash}`, amount: expectedAmount, receiverName: receiverNames[0] || 'บัญชีทดสอบ', senderName: 'ผู้ทดสอบ', date: new Date(), raw: { mock: true } };
@@ -71,7 +96,7 @@ function parseThaiDate(d, t) {
   return new Date(`${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T${t || '00:00:00'}+07:00`);
 }
 
-const providers = { slipok, easyslip, mock };
+const providers = { slipok, easyslip, thunder, mock };
 
 /**
  * ตรวจสลิปแล้วตัดสินว่าอนุมัติอัตโนมัติได้ไหม
@@ -94,6 +119,7 @@ export async function verifySlip(filePath, { expectedAmount }) {
   if (r.transRef) {
     const dup = await one('SELECT code FROM donations WHERE trans_ref=? UNION SELECT code FROM bookings WHERE trans_ref=?', [r.transRef, r.transRef]);
     if (dup) problems.push(`สลิปซ้ำกับรายการ ${dup.code}`);
+    else if (r.duplicate) problems.push('ผู้ให้บริการแจ้งว่าสลิปนี้เคยถูกตรวจแล้ว (ซ้ำ)');
   }
   if (expectedAmount && !(r.amount >= expectedAmount)) problems.push(`ยอดในสลิป ${r.amount} น้อยกว่าที่แจ้ง ${expectedAmount}`);
   if (receiverNames.length && !receiverNames.some(n => norm(r.receiverName).includes(norm(n)))) problems.push(`ชื่อผู้รับ "${r.receiverName || '?'}" ไม่ตรงบัญชีเรา`);
