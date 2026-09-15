@@ -257,6 +257,17 @@ r.post('/donations/:id/assign', wrap(async (req, res) => {
   res.json({ ok: true, count: r2.affectedRows, member: user ? { id: user.id, display_name: user.display_name } : null });
 }));
 
+// ผูกการลงทะเบียน (ไปวัด/บัสกิ้ง/เวิร์กช็อป) กับสมาชิก · userId=null = ปลด
+r.post('/registrations/:id/assign', wrap(async (req, res) => {
+  const reg = await one('SELECT id FROM registrations WHERE id=?', [Number(req.params.id)]);
+  if (!reg) throw new HttpError(404, 'ไม่พบรายการ');
+  const userId = req.body.userId ? Number(req.body.userId) : null;
+  const user = userId ? await one('SELECT id, display_name, line_user_id FROM users WHERE id=?', [userId]) : null;
+  if (userId && !user) throw new HttpError(404, 'ไม่พบสมาชิก');
+  await q('UPDATE registrations SET user_id=?, line_user_id=COALESCE(line_user_id, ?) WHERE id=?', [userId, user?.line_user_id || null, reg.id]);
+  res.json({ ok: true, member: user ? { id: user.id, display_name: user.display_name } : null });
+}));
+
 r.post('/donations/bulk', wrap(async (req, res) => {
   const status = { approve: 'approved', reject: 'rejected' }[req.body.action];
   if (!status) throw new HttpError(400, 'คำสั่งไม่ถูกต้อง');
@@ -326,7 +337,7 @@ r.delete('/report/:id', wrap(async (req, res) => {
 /* ---------- Busking ---------- */
 r.get('/events/:slug/registrations', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
-  res.json(await q('SELECT id, code, number, name, nickname, social, phone, kind, line_user_id IS NOT NULL AS lineLinked, checked_in_at, created_at FROM registrations WHERE event_id=? ORDER BY number', [ev.id]));
+  res.json(await q('SELECT r.id, r.code, r.number, r.name, r.nickname, r.social, r.phone, r.kind, r.line_user_id IS NOT NULL AS lineLinked, r.checked_in_at, r.created_at, r.user_id, u.display_name AS member_name FROM registrations r LEFT JOIN users u ON u.id=r.user_id WHERE r.event_id=? ORDER BY r.number', [ev.id]));
 }));
 
 // สุ่ม Lucky Fan จากคนที่เช็คอินแล้วและยังไม่เคยได้
