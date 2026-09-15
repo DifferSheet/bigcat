@@ -11,12 +11,12 @@ OPTIONAL=(SLIP_PROVIDER SLIP_API_KEY SLIP_RECEIVER_NAME SLIP_AUTO_APPROVE)   # �
 
 lines=""
 for k in "${KEYS[@]}"; do
-  v=$(grep -E "^${k}=" .env | head -1 | cut -d= -f2-)
+  v=$(grep -E "^${k}=" .env | head -1 | cut -d= -f2- || true)
   [ -n "$v" ] || { echo "!! $k ว่างใน .env เครื่องนี้"; exit 1; }
   lines+="${k}=${v}"$'\n'
 done
 for k in "${OPTIONAL[@]}"; do
-  v=$(grep -E "^${k}=" .env | head -1 | cut -d= -f2-)
+  v=$(grep -E "^${k}=" .env | head -1 | cut -d= -f2- || true)   # key ไม่มีในไฟล์ → grep คืน 1 → pipefail ต้องไม่ทำให้สคริปต์ตาย
   if [ -n "$v" ]; then lines+="${k}=${v}"$'\n'; fi   # (ห้ามใช้ [ ] && … เพราะ set -e จะหยุดเงียบ ๆ เมื่อค่าสุดท้ายว่าง)
 done
 
