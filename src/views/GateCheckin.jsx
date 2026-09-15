@@ -41,13 +41,14 @@ export default function GateCheckin({ slug }) {
     e?.preventDefault();
     const c = code.trim().toUpperCase();
     if (!c) return setError('ใส่รหัสบัตร 8 ตัว');
+    try { localStorage.setItem(`bigcat-reg-${slug}`, c); } catch { /* optional */ }   // จำรหัสไว้ — ถ้า QR หมดอายุแล้วต้องสแกนใหม่ ไม่ต้องพิมพ์ซ้ำ
     setBusy(true); setError('');
     const geo = await locate();
     try {
       const r = await api(`/registrations/${c}/checkin`, { method: 'POST', body: { gate: token, geo } });
       setDone(r);
       if (navigator.vibrate) navigator.vibrate(120);
-    } catch (err) { setError(err.message); } finally { setBusy(false); }
+    } catch (err) { setError(err.status === 410 ? 'QR หมดอายุแล้ว — สแกน QR หน้างานอีกครั้ง (รหัสบัตรจำไว้ให้แล้ว ไม่ต้องพิมพ์ใหม่)' : err.message); } finally { setBusy(false); }
   };
 
   const cfg = ev?.config || {};

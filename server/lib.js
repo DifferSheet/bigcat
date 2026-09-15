@@ -17,12 +17,13 @@ export const hhmm = (d) => {
 
 /* ---------- QR หน้างาน (gate) — โทเคนเปลี่ยนทุก GATE_TTL วินาที คำนวณจาก secret + ช่องเวลา (แบบ OTP) ----------
    จอ /events/:slug/gate (ต้องล็อกอินแอดมิน) โชว์ QR ที่มีโทเคนปัจจุบัน · แฟนสแกนแล้วส่งโทเคนมากับการเช็คอิน
-   รับโทเคนของช่องปัจจุบันและช่องก่อนหน้า (เผื่อสแกนตอนกำลังเปลี่ยน) → ถ่ายรูป QR ส่งต่อจะใช้ไม่ได้หลัง ~1.5 นาที */
+   รับโทเคนย้อนหลัง GATE_GRACE ช่อง → สแกนแล้วมีเวลากรอกอย่างน้อย 2 นาที (3 ช่อง × 45 วิ) · รูป QR ที่ส่งต่อใช้ไม่ได้หลัง ~2.5 นาที */
 export const GATE_TTL = 45;
 const GATE_SECRET = process.env.GATE_SECRET || process.env.ADMIN_KEY || 'bigcat-gate';
 const gateSlot = () => Math.floor(Date.now() / 1000 / GATE_TTL);
 export const gateToken = (slug, slot = gateSlot()) => crypto.createHmac('sha256', GATE_SECRET).update(`${slug}:${slot}`).digest('base64url').slice(0, 12);
-export const gateValid = (slug, token) => !!token && [gateSlot(), gateSlot() - 1].some(s => gateToken(slug, s) === String(token));
+const GATE_GRACE = 3;   // จำนวนช่องเวลาที่ยังรับ (ปัจจุบัน + ย้อนหลัง 2)
+export const gateValid = (slug, token) => !!token && Array.from({ length: GATE_GRACE }, (_, i) => gateSlot() - i).some(s => gateToken(slug, s) === String(token));
 export const gateExpiresIn = () => (gateSlot() + 1) * GATE_TTL - Math.floor(Date.now() / 1000);
 
 // หน้าต่างเวลาเช็คอิน (config.checkinWindow = { before, after } นาที รอบเวลาเริ่มงาน) — null = ไม่ได้ตั้ง
