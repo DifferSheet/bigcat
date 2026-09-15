@@ -21,11 +21,23 @@ const locate = () => new Promise(resolve => {
 export default function GateCheckin({ slug }) {
   const [token, setToken] = useState('');
   const [ev, setEv] = useState(null);
-  const [mine, setMine] = useState(null);     // [{ code, number, kind }]
-  const [code, setCode] = useState('');
+  const [mine, setMine] = useState(null);     // [{ code, number, kind }] บัตรที่หาเจอเอง
+  const [code, setCode] = useState('');       // รหัสที่พิมพ์ (กรณีหาไม่เจอ)
+  const [ticket, setTicket] = useState(null); // ข้อมูลบัตรเต็มจาก /registrations/:code → โชว์เป็นตั๋วให้ตรวจก่อนกด
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(null);     // { number, name, already }
+
+  // ดึงข้อมูลบัตรมาแสดงเป็นตั๋ว (ชื่อ · หมายเลข · งาน · รหัส) ให้ผู้ใช้เห็นก่อนว่ากำลังจะเช็คอินบัตรไหน
+  const showTicket = async (c) => {
+    setBusy(true); setError('');
+    try {
+      const t = await api(`/registrations/${c.trim().toUpperCase()}`);
+      if (t.slug !== slug) throw new Error('รหัสนี้เป็นบัตรของงานอื่น');
+      setTicket(t);
+      try { localStorage.setItem(`bigcat-reg-${slug}`, t.code); } catch { /* optional */ }   // จำไว้ — สแกนใหม่ไม่ต้องพิมพ์ซ้ำ
+    } catch (err) { setTicket(null); setError(err.message); } finally { setBusy(false); }
+  };
 
   useEffect(() => {
     setToken(new URLSearchParams(location.search).get('t') || '');
@@ -33,22 +45,21 @@ export default function GateCheckin({ slug }) {
       setEv(d.event);
       const list = d.mine?.length ? d.mine : (rememberedCode(slug) ? [{ code: rememberedCode(slug) }] : []);
       setMine(list);
-      if (list.length === 1) setCode(list[0].code);
+      if (list.length >= 1) showTicket(list[0].code);
     }).catch(e => setError(e.message));
-  }, [slug]);
+  }, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const checkin = async (e) => {
-    e?.preventDefault();
-    const c = code.trim().toUpperCase();
-    if (!c) return setError('ใส่รหัสบัตร 8 ตัว');
-    try { localStorage.setItem(`bigcat-reg-${slug}`, c); } catch { /* optional */ }   // จำรหัสไว้ — ถ้า QR หมดอายุแล้วต้องสแกนใหม่ ไม่ต้องพิมพ์ซ้ำ
+  const lookup = (e) => { e.preventDefault(); if (!code.trim()) return setError('ใส่รหัสบัตร 8 ตัว'); showTicket(code); };
+  const notMine = () => { setTicket(null); setMine([]); setCode(''); setError(''); try { localStorage.removeItem(`bigcat-reg-${slug}`); } catch { /* optional */ } };
+
+  const checkin = async () => {
     setBusy(true); setError('');
     const geo = await locate();
     try {
-      const r = await api(`/registrations/${c}/checkin`, { method: 'POST', body: { gate: token, geo } });
+      const r = await api(`/registrations/${ticket.code}/checkin`, { method: 'POST', body: { gate: token, geo } });
       setDone(r);
       if (navigator.vibrate) navigator.vibrate(120);
-    } catch (err) { setError(err.status === 410 ? 'QR หมดอายุแล้ว — สแกน QR หน้างานอีกครั้ง (รหัสบัตรจำไว้ให้แล้ว ไม่ต้องพิมพ์ใหม่)' : err.message); } finally { setBusy(false); }
+    } catch (err) { setError(err.status === 410 ? 'QR หมดอายุแล้ว — สแกน QR หน้างานอีกครั้ง (บัตรจำไว้ให้แล้ว ไม่ต้องพิมพ์ใหม่)' : err.message); } finally { setBusy(false); }
   };
 
   const cfg = ev?.config || {};
@@ -67,18 +78,37 @@ export default function GateCheckin({ slug }) {
       <Link className="button ghost" to={`/events/${slug}`}>ไปหน้างาน</Link>
     </div>;
     if (!token) return <Notice tone="error">ลิงก์นี้ไม่มีรหัสจาก QR หน้างาน — สแกน QR ที่จุดเช็คอินอีกครั้ง</Notice>;
-    return <form className="gate-form" onSubmit={checkin}>
+    const windowText = win && start ? <p className="muted">เช็คอินได้ {hhmm(start.getTime() - win.before * 60e3)}–{hhmm(start.getTime() + win.after * 60e3)} น.</p> : null;
+    // มีบัตรแล้ว → โชว์เป็นตั๋วให้ตรวจ แล้วกดเช็คอิน
+    if (ticket) return <div className="gate-form">
       <span className="eyebrow">CHECK-IN</span>
-      <h1>{ev.title}</h1>
-      {win && start && <p className="muted">เช็คอินได้ {hhmm(start.getTime() - win.before * 60e3)}–{hhmm(start.getTime() + win.after * 60e3)} น.</p>}
-      {mine.length > 1
-        ? <label>บัตรของคุณ<select value={code} onChange={e => setCode(e.target.value)}>{mine.map(m => <option key={m.code} value={m.code}>#{String(m.number).padStart(3, '0')} · {m.code}</option>)}</select></label>
-        : mine.length === 1
-          ? <p className="gate-code">รหัสบัตร <strong>{code}</strong> <button type="button" className="link-button" onClick={() => { setMine([]); setCode(''); }}>ไม่ใช่บัตรฉัน</button></p>
-          : <label>รหัสบัตร 8 ตัว <small>ดูได้ในหน้า <Tag>บัตรของฉัน</Tag> หรือข้อความ LINE</small><input value={code} onChange={e => setCode(e.target.value)} placeholder="เช่น A7K2P9XD" maxLength={12} autoCapitalize="characters" autoFocus /></label>}
-      <button className="button dark big" disabled={busy || !code.trim()}>{busy ? 'กำลังเช็คอิน…' : 'เช็คอิน'} <Icon name="check" /></button>
+      <h1>บัตรของคุณใช่ไหม</h1>
+      {windowText}
+      {mine.length > 1 && <label>บัตรของคุณ<select value={ticket.code} onChange={e => showTicket(e.target.value)}>{mine.map(m => <option key={m.code} value={m.code}>#{String(m.number).padStart(3, '0')} · {m.code}</option>)}</select></label>}
+      <article className={`mini-ticket tone-${ticket.tone || 'pink'}`}>
+        <div className="mini-ticket-main">
+          <span className="eyebrow">{ticket.title}</span>
+          <strong className="mini-ticket-name">{ticket.nickname || ticket.name}</strong>
+          {ticket.nickname && <span className="muted">{ticket.name}</span>}
+          <span className="mini-ticket-num">หมายเลข #{String(ticket.number).padStart(3, '0')}{ticket.checked_in_at ? ' · เช็คอินแล้ว ✓' : ''}</span>
+        </div>
+        <div className="mini-ticket-stub"><span className="eyebrow">รหัสบัตร</span><strong className="code">{ticket.code}</strong><Paw /></div>
+      </article>
+      {ticket.checked_in_at
+        ? <Notice>บัตรนี้เช็คอินไว้แล้ว ไม่ต้องกดซ้ำ</Notice>
+        : <button type="button" className="button dark big" onClick={checkin} disabled={busy}>{busy ? 'กำลังเช็คอิน…' : 'ใช่ เช็คอินเลย'} <Icon name="check" /></button>}
+      <button type="button" className="link-button" onClick={notMine}>ไม่ใช่บัตรฉัน — ใส่รหัสอื่น</button>
       {error && <Notice tone="error">{error}</Notice>}
       <p className="small-note">ระบบจะขอตำแหน่งของเครื่อง (ไม่ให้ก็เช็คอินได้) เพื่อช่วยทีมจัดงานดูภาพรวมหน้างาน</p>
+    </div>;
+    // ยังไม่รู้ว่าบัตรไหน → พิมพ์รหัส แล้วค่อยโชว์ตั๋วให้ตรวจ
+    return <form className="gate-form" onSubmit={lookup}>
+      <span className="eyebrow">CHECK-IN</span>
+      <h1>{ev.title}</h1>
+      {windowText}
+      <label>รหัสบัตร 8 ตัว <small>ดูได้ในหน้า <Tag>บัตรของฉัน</Tag> หรือข้อความ LINE</small><input value={code} onChange={e => setCode(e.target.value)} placeholder="เช่น A7K2P9XD" maxLength={12} autoCapitalize="characters" autoFocus /></label>
+      <button className="button dark big" disabled={busy || !code.trim()}>{busy ? 'กำลังหาบัตร…' : 'ค้นหาบัตร'} <Icon name="arrow" /></button>
+      {error && <Notice tone="error">{error}</Notice>}
     </form>;
   };
 

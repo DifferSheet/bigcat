@@ -251,8 +251,18 @@
 .gate-form label small { font-weight: 400; color: var(--muted); }
 .gate-form input, .gate-form select { width: 100%; padding: 14px; border-radius: var(--r-sm); border: 1px solid var(--line); background: #fff; font-size: 20px; text-align: center; letter-spacing: .12em; text-transform: uppercase; }
 .gate-form select { letter-spacing: 0; text-transform: none; font-size: 16px; }
-.gate-form .gate-code { font-size: 15px; color: var(--muted); }
-.gate-form .gate-code strong { letter-spacing: .12em; color: var(--ink); }
+.mini-ticket { display: grid; grid-template-columns: 1fr 120px; background: #fff; border: 1px solid var(--line); border-radius: 22px; overflow: hidden; text-align: left; }
+.mini-ticket-main { padding: 18px 20px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mini-ticket-main .eyebrow { font-size: 10px; color: var(--muted-3); white-space: normal; }
+.mini-ticket-name { font-family: var(--font-head); font-size: 24px; line-height: 1.25; }
+.mini-ticket-main .muted { font-size: 13px; }
+.mini-ticket-num { margin-top: 6px; font-weight: 600; font-size: 14px; }
+.mini-ticket-stub { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px 10px; border-left: 2px dashed var(--line); background: var(--pink-wash); text-align: center; }
+.mini-ticket.tone-yellow .mini-ticket-stub { background: var(--yellow-wash); }
+.mini-ticket.tone-sage .mini-ticket-stub { background: var(--sage-wash); }
+.mini-ticket-stub .eyebrow { font-size: 9px; }
+.mini-ticket-stub .code { font-family: var(--font-display); font-size: 17px; letter-spacing: .08em; }
+.mini-ticket-stub .paw-mark { width: 40px; height: auto; opacity: .9; }
 .gate-form .button.big { padding: 18px; font-size: 18px; }
 .gate-done { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 36px 24px; border-radius: 28px; background: var(--ink); color: #fff; width: 100%; max-width: 440px; }
 .gate-done svg { color: #7fd8a4; }
