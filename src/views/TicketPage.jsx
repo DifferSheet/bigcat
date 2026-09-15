@@ -41,7 +41,7 @@ async function drawCertificate(item) {
   const center = (text, y, font, color = '#33332f') => { x.font = font; x.fillStyle = color; x.textAlign = 'center'; x.fillText(text, W / 2, y); };
   center('ใบอนุโมทนาบัตร', 1000, `600 64px ${F.head}`);
   center(item.title, 1070, `400 36px ${F.body}`, '#8c7460');
-  center(item.anonymous ? 'ผู้ไม่ประสงค์ออกนาม' : item.donor_name, 1200, `500 72px ${F.head}`, '#df8190');
+  center(item.donor_name || 'ผู้ไม่ประสงค์ออกนาม', 1200, `500 72px ${F.head}`, '#df8190');
   if (item.dedication) center(item.dedication, 1265, `400 40px ${F.body}`, '#8c7460');
   // หลายหมวดในครั้งเดียว → «ข้าวสาร + น้ำดื่ม 2 ชุด · อาสนะ» · หมวดเดียวเหมือนเดิม
   const detail = item.items?.length ? item.items.map(i => `${i.category}${i.units ? ` ${i.units} ${i.unit_name}` : ''}`).join(' · ') : `${item.units ? `${item.units} ${item.unit_name} · ` : ''}${item.category}`;
@@ -126,7 +126,7 @@ export default function TicketPage({ code }) {
         <dl className="ticket-facts">
           {kind === 'booking' && <><div><dt>ชื่อ</dt><dd>{item.name}</dd></div><div><dt>ที่นั่ง</dt><dd>{item.seats.join(', ')}</dd></div><div><dt>ยอด</dt><dd>{baht(item.amount)}</dd></div></>}
           {kind === 'registration' && <><div><dt>ชื่อ</dt><dd>{item.nickname || item.name}</dd></div><div><dt>หมายเลข</dt><dd>#{String(item.number).padStart(3, '0')}</dd></div>{item.luckyRound && <div><dt>Lucky Fan</dt><dd>รอบที่ {item.luckyRound} 🎉</dd></div>}</>}
-          {kind === 'donation' && <><div><dt>ผู้ร่วมบุญ</dt><dd>{item.anonymous ? 'ผู้ไม่ประสงค์ออกนาม' : item.donor_name}</dd></div>{item.dedication && <div><dt>ในนาม / อุทิศให้</dt><dd>{item.dedication}</dd></div>}<div><dt>หมวด</dt><dd>{item.units ? `${item.units} ${item.unit_name} · ` : ''}{item.category}</dd></div><div><dt>จำนวน</dt><dd>{baht(item.amount)}</dd></div></>}
+          {kind === 'donation' && <><div><dt>ผู้ร่วมบุญ</dt><dd>{item.donor_name}{item.anonymous ? <small className="muted"> · ไม่แสดงชื่อบนกำแพง</small> : null}</dd></div>{item.dedication && <div><dt>ในนาม / อุทิศให้</dt><dd>{item.dedication}</dd></div>}<div><dt>หมวด</dt><dd>{item.units ? `${item.units} ${item.unit_name} · ` : ''}{item.category}</dd></div><div><dt>จำนวน</dt><dd>{baht(item.amount)}</dd></div></>}
         </dl>
         {kind === 'donation' && item.status === 'approved' && <><p className="blessing">ขออนุโมทนาบุญ ขอให้ความสุขเล็กๆ ที่คุณส่งให้ ย้อนกลับมาหาคุณเป็นความสุขก้อนใหญ่ ♡</p><CertificateButton item={item} /></>}
         {kind === 'donation' && item.status === 'pending' && <p className="muted">เมื่อยอดได้รับการยืนยัน จะสร้างใบอนุโมทนาเป็นภาพได้จากหน้านี้</p>}

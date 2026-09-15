@@ -268,6 +268,17 @@ r.post('/registrations/:id/assign', wrap(async (req, res) => {
   res.json({ ok: true, member: user ? { id: user.id, display_name: user.display_name } : null });
 }));
 
+// สลับ «ไม่แสดงชื่อบนกำแพง» ทั้งกลุ่ม (กรณีผู้ใช้ติ๊กพลาด)
+r.post('/donations/:id/anonymous', wrap(async (req, res) => {
+  const d = await one('SELECT id, code, group_code FROM donations WHERE id=?', [Number(req.params.id)]);
+  if (!d) throw new HttpError(404, 'ไม่พบรายการ');
+  const key = d.group_code || d.code; const on = req.body.anonymous ? 1 : 0;
+  await q('UPDATE donations SET anonymous=? WHERE code=? OR group_code=?', [on, key, key]);
+  const ev = await one('SELECT e.id, e.slug FROM donations dd JOIN events e ON e.id=dd.event_id WHERE dd.id=?', [d.id]);
+  emit(ev.slug, 'donations', await donationSummary(ev.id));
+  res.json({ ok: true, anonymous: on });
+}));
+
 r.post('/donations/bulk', wrap(async (req, res) => {
   const status = { approve: 'approved', reject: 'rejected' }[req.body.action];
   if (!status) throw new HttpError(400, 'คำสั่งไม่ถูกต้อง');

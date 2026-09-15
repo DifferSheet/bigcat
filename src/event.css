@@ -503,3 +503,4 @@
 .member-pick span { display: flex; flex-direction: column; font-size: 13px; }
 .member-link { color: var(--ok-text); }
 .link-button.small { font-size: 12px; padding: 2px 0; }
+.mini-tag.as-btn { cursor: pointer; border: 0; font: inherit; font-size: 10px; }
