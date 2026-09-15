@@ -78,7 +78,7 @@ jobs:
       - name: Data migration (idempotent — พาธภาพที่แปลงชนิดไฟล์)
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            'cd /var/www/bigcat && sudo -n -u deploy -H node server/migrate-images-15sep.js'
+            'cd /var/www/bigcat && node server/migrate-images-15sep.js'
 
       - name: Health check (เว็บกับ API ต้องตอบ 200 หลัง reload ไม่งั้น deploy นี้ถือว่าล้ม)
         run: |
