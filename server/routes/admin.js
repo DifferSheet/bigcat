@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { q, one } from '../db.js';
-import { wrap, HttpError, getEvent, seatsOf, donationSummary, registrationSummary, drawsOf, reportOf, emit } from '../lib.js';
+import { wrap, HttpError, getEvent, seatsOf, donationSummary, registrationSummary, drawsOf, reportOf, emit, gateToken, gateExpiresIn, GATE_TTL, checkinWindow } from '../lib.js';
 import { push, multicast, msg, lineEnabled } from '../line.js';
 import { upload } from './public.js';
 
@@ -207,7 +207,7 @@ r.post('/bookings/:id/:action', wrap(async (req, res) => {
 r.post('/registrations/:id/uncheckin', wrap(async (req, res) => {
   const reg = await one('SELECT r.id, r.event_id, e.slug FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.id=?', [Number(req.params.id)]);
   if (!reg) throw new HttpError(404, 'ไม่พบรายการ');
-  await q('UPDATE registrations SET checked_in_at=NULL WHERE id=?', [reg.id]);
+  await q('UPDATE registrations SET checked_in_at=NULL, checkin_via=NULL, checkin_lat=NULL, checkin_lng=NULL, checkin_acc=NULL WHERE id=?', [reg.id]);
   emit(reg.slug, 'registrations', await registrationSummary(reg.event_id));
   res.json({ ok: true });
 }));
@@ -238,7 +238,7 @@ r.post('/checkin/:code', wrap(async (req, res) => {
   }
   const reg = await one('SELECT r.id, r.name, r.number, r.checked_in_at, r.event_id, e.slug FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.code=?', [codeUp]);
   if (!reg) throw new HttpError(404, 'ไม่พบรหัสนี้');
-  if (!reg.checked_in_at) await q('UPDATE registrations SET checked_in_at=UTC_TIMESTAMP() WHERE id=?', [reg.id]);
+  if (!reg.checked_in_at) await q(`UPDATE registrations SET checked_in_at=UTC_TIMESTAMP(), checkin_via='staff' WHERE id=?`, [reg.id]);
   emit(reg.slug, 'registrations', await registrationSummary(reg.event_id));
   res.json({ kind: 'registration', name: reg.name, number: reg.number, already: !!reg.checked_in_at });
 }));
@@ -372,7 +372,7 @@ r.delete('/report/:id', wrap(async (req, res) => {
 /* ---------- Busking ---------- */
 r.get('/events/:slug/registrations', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
-  const rows = await q('SELECT r.id, r.code, r.number, r.name, r.nickname, r.social, r.phone, r.kind, r.line_user_id, r.line_user_id IS NOT NULL AS lineLinked, r.checked_in_at, r.created_at, r.user_id, u.display_name AS member_name FROM registrations r LEFT JOIN users u ON u.id=r.user_id WHERE r.event_id=? ORDER BY r.number', [ev.id]);
+  const rows = await q('SELECT r.id, r.code, r.number, r.name, r.nickname, r.social, r.phone, r.kind, r.line_user_id, r.line_user_id IS NOT NULL AS lineLinked, r.checked_in_at, r.checkin_via, r.checkin_lat, r.checkin_lng, r.checkin_acc, r.created_at, r.user_id, u.display_name AS member_name FROM registrations r LEFT JOIN users u ON u.id=r.user_id WHERE r.event_id=? ORDER BY r.number', [ev.id]);
   // ติดธง «ซ้ำ» ให้รายการที่มาทีหลัง เมื่อคนเดียวกันลงหลายครั้ง: บัญชีเดียวกัน / LINE เดียวกัน / เบอร์เดียวกัน / ชื่อ+ชื่อเล่นเดียวกัน (ตัดช่องว่าง ไม่สนตัวพิมพ์)
   const seen = new Map();
   const norm = (x) => String(x || '').replace(/\s+/g, '').toLowerCase();
@@ -383,6 +383,13 @@ r.get('/events/:slug/registrations', wrap(async (req, res) => {
     delete r.line_user_id;
   }
   res.json(rows);
+}));
+
+// โทเคนสำหรับจอ QR หน้างาน — จอเรียกซ้ำเมื่อใกล้หมดอายุ (ต้องล็อกอินแอดมิน ไม่งั้นเปิดจอจากบ้านได้)
+r.get('/events/:slug/gate', wrap(async (req, res) => {
+  const ev = await getEvent(req.params.slug);
+  const win = checkinWindow(ev);
+  res.json({ token: gateToken(ev.slug), ttl: GATE_TTL, expiresIn: gateExpiresIn(), mode: ev.config.checkinMode || 'self', window: win, title: ev.title, registrations: await registrationSummary(ev.id) });
 }));
 
 // ลบการลงทะเบียน (ซ้ำ/ลงเล่น) — lucky_draws ลบตาม (FK cascade)

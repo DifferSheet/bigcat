@@ -1,9 +1,37 @@
+import crypto from 'node:crypto';
 import { q, one, parseJSON } from './db.js';
 
 let io = null;
 export const setIO = (instance) => { io = instance; };
 export const room = (slug) => `event:${slug}`;
 export const emit = (slug, name, payload) => io?.to(room(slug)).emit(name, payload);
+
+// DATETIME ในฐานข้อมูลเป็นเวลาไทย (ไม่มี timezone) — แปลงเป็น Date โดยระบุ +07:00 เสมอ ไม่พึ่ง TZ ของเครื่องที่รัน
+export const bkk = (s) => new Date(String(s).replace(' ', 'T') + '+07:00');
+// เวลาแบบสั้นสำหรับข้อความ: วันนี้ → «18:30» · วันอื่น → «26 ก.ย. 18:30»
+export const hhmm = (d) => {
+  const day = (x) => x.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+  const t = d.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
+  return day(d) === day(new Date()) ? t : `${d.toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', day: 'numeric', month: 'short' })} ${t}`;
+};
+
+/* ---------- QR หน้างาน (gate) — โทเคนเปลี่ยนทุก GATE_TTL วินาที คำนวณจาก secret + ช่องเวลา (แบบ OTP) ----------
+   จอ /events/:slug/gate (ต้องล็อกอินแอดมิน) โชว์ QR ที่มีโทเคนปัจจุบัน · แฟนสแกนแล้วส่งโทเคนมากับการเช็คอิน
+   รับโทเคนของช่องปัจจุบันและช่องก่อนหน้า (เผื่อสแกนตอนกำลังเปลี่ยน) → ถ่ายรูป QR ส่งต่อจะใช้ไม่ได้หลัง ~1.5 นาที */
+export const GATE_TTL = 45;
+const GATE_SECRET = process.env.GATE_SECRET || process.env.ADMIN_KEY || 'bigcat-gate';
+const gateSlot = () => Math.floor(Date.now() / 1000 / GATE_TTL);
+export const gateToken = (slug, slot = gateSlot()) => crypto.createHmac('sha256', GATE_SECRET).update(`${slug}:${slot}`).digest('base64url').slice(0, 12);
+export const gateValid = (slug, token) => !!token && [gateSlot(), gateSlot() - 1].some(s => gateToken(slug, s) === String(token));
+export const gateExpiresIn = () => (gateSlot() + 1) * GATE_TTL - Math.floor(Date.now() / 1000);
+
+// หน้าต่างเวลาเช็คอิน (config.checkinWindow = { before, after } นาที รอบเวลาเริ่มงาน) — null = ไม่ได้ตั้ง
+export function checkinWindow(ev) {
+  const w = ev.config?.checkinWindow;
+  if (!w || (w.before == null && w.after == null)) return null;
+  const start = bkk(ev.starts_at);
+  return { opens: new Date(start.getTime() - (Number(w.before) || 0) * 60e3), closes: new Date(start.getTime() + (Number(w.after) || 0) * 60e3) };
+}
 
 export const code = (len = 8) => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

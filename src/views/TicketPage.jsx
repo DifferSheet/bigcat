@@ -52,7 +52,15 @@ function SelfCheckin({ item, onDone }) {
   const [error, setError] = useState('');
   if (item.checked_in_at) return null;
   if ((item.checkin_mode || 'self') === 'staff') return <p className="notice muted">ถึงหน้างานแล้วแสดง QR ด้านข้างให้พี่ ๆ ที่ดูแลสแกนเพื่อเช็คอิน</p>;
-  if (item.event_status !== 'live') return <p className="notice muted">ปุ่มเช็คอินจะเปิดเมื่อถึงเวลางาน — หรือแสดง QR ให้พี่ ๆ หน้างานสแกนก็ได้</p>;
+  if (item.checkin_mode === 'gate') return <p className="notice muted">ถึงหน้างานแล้วสแกน QR ที่จุดเช็คอินด้วยกล้องมือถือ แล้วกด «เช็คอิน» — หรือแสดง QR ด้านข้างให้พี่ ๆ สแกนก็ได้</p>;
+  // หน้าต่างเวลาเช็คอิน (ถ้าตั้ง) ตัดสินแทนสถานะ live
+  const win = typeof item.checkin_window === 'string' ? JSON.parse(item.checkin_window || 'null') : item.checkin_window;
+  const fmt = (ms) => new Date(ms).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
+  if (win && item.starts_at) {
+    const st = new Date(String(item.starts_at).replace(' ', 'T') + '+07:00').getTime(), opens = st - (win.before ?? 0) * 60e3, closes = st + (win.after ?? 0) * 60e3, now = Date.now();
+    if (now < opens) return <p className="notice muted">เช็คอินเปิดเวลา {fmt(opens)} น. (ถึง {fmt(closes)} น.) — หรือแสดง QR ให้พี่ ๆ หน้างานสแกนก็ได้</p>;
+    if (now > closes) return <p className="notice muted">ปิดเช็คอินแล้วเมื่อ {fmt(closes)} น. — ถ้ามีเหตุจำเป็น แสดง QR ให้พี่ ๆ หน้างานพิจารณา</p>;
+  } else if (item.event_status !== 'live') return <p className="notice muted">ปุ่มเช็คอินจะเปิดเมื่อถึงเวลางาน — หรือแสดง QR ให้พี่ ๆ หน้างานสแกนก็ได้</p>;
   const go = async () => {
     setBusy(true); setError('');
     try { await api(`/registrations/${item.code}/checkin`, { method: 'POST' }); onDone(); } catch (e) { setError(e.message); } finally { setBusy(false); }

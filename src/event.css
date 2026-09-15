@@ -234,6 +234,36 @@
 .draw-history strong { font-family: var(--font-display); font-size: 26px; color: var(--pink); }
 .draw-controls { display: flex; gap: 14px; align-items: center; margin-top: 24px; z-index: 1; flex-wrap: wrap; justify-content: center; }
 .draw-controls .button { margin: 0; }
+.gate-stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; z-index: 1; width: 100%; padding: 24px 0; }
+.gate-stage h1 { font-size: clamp(28px, 5vw, 48px); }
+.gate-qr { background: #fff; padding: 18px; border-radius: 28px; border: 1px solid var(--line); box-shadow: var(--shadow-pop); max-width: 100%; }
+.gate-qr canvas { display: block; width: min(520px, 78vw) !important; height: auto !important; }
+.gate-qr.dim { opacity: .25; filter: grayscale(1); }
+.gate-hint { font-size: 18px; color: var(--muted); }
+.gate-hint strong { font-family: var(--font-display); font-size: 24px; color: var(--pink); }
+.gate-hint.warn, .small-note.warn { color: var(--danger); }
+.gate-msg { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.gate-page { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 20px; }
+.gate-page .paw-mark { width: 60px; height: auto; opacity: .6; }
+.gate-form { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+.gate-form h1 { font-size: 26px; }
+.gate-form label { display: flex; flex-direction: column; gap: 6px; text-align: left; font-weight: 600; font-size: 14px; }
+.gate-form label small { font-weight: 400; color: var(--muted); }
+.gate-form input, .gate-form select { width: 100%; padding: 14px; border-radius: var(--r-sm); border: 1px solid var(--line); background: #fff; font-size: 20px; text-align: center; letter-spacing: .12em; text-transform: uppercase; }
+.gate-form select { letter-spacing: 0; text-transform: none; font-size: 16px; }
+.gate-form .gate-code { font-size: 15px; color: var(--muted); }
+.gate-form .gate-code strong { letter-spacing: .12em; color: var(--ink); }
+.gate-form .button.big { padding: 18px; font-size: 18px; }
+.gate-done { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 36px 24px; border-radius: 28px; background: var(--ink); color: #fff; width: 100%; max-width: 440px; }
+.gate-done svg { color: #7fd8a4; }
+.gate-done .eyebrow { color: #7fd8a4; margin-top: 10px; }
+.gate-done strong { font-family: var(--font-display); font-size: 96px; line-height: 1; }
+.gate-done h1 { font-size: 30px; }
+.gate-done p { color: #ffffffb3; }
+.gate-done .button { margin-top: 16px; color: #fff; border-color: #ffffff66; }
+.mini-tag.via { background: var(--sand-2); color: var(--muted); }
+.checkin-stats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+.checkin-stats strong { color: var(--ink); }
 
 /* ---------- Admin ---------- */
 .admin-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 18px; }
@@ -254,7 +284,10 @@
 .staff-checkin .button.light { margin: 0; background: var(--pink); color: #fff; padding: 12px 20px; }
 .staff-checkin .staff-link { color: #fff; opacity: .75; font-size: 13px; text-decoration: underline; }
 .mini-tag.dup { background: #fbe6e6; color: var(--danger); }
-.admin-table .table-note { caption-side: top; text-align: left; font-size: 13px; color: var(--danger); padding: 8px 12px; }
+.admin-table .table-note { caption-side: top; text-align: left; font-size: 13px; padding: 8px 12px; }
+.admin-table .table-note .dup-note { display: block; color: var(--danger); }
+.admin-table .table-note .checkin-stats { margin: 0 0 4px; }
+.admin-table a.mini-tag { text-decoration: none; }
 .link-button.danger { color: var(--danger); font-weight: 600; }
 .checkin-card { display: flex; flex-direction: column; gap: 8px; }
 .checkin-card .checkin-name { font-size: 30px; line-height: 1.2; font-family: var(--font-head); }

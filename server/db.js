@@ -46,6 +46,7 @@ export async function migrate() {
     "ALTER TABLE donations ADD COLUMN user_id INT NULL, ADD INDEX ix_don_user (user_id)",
     "ALTER TABLE registrations ADD COLUMN user_id INT NULL, ADD INDEX ix_reg_user (user_id)",
     "ALTER TABLE registrations ADD COLUMN kind VARCHAR(20) NOT NULL DEFAULT 'attend', ADD COLUMN line_user_id VARCHAR(64) NULL",
+    "ALTER TABLE registrations ADD COLUMN checkin_via VARCHAR(10) NULL, ADD COLUMN checkin_lat DECIMAL(9,6) NULL, ADD COLUMN checkin_lng DECIMAL(9,6) NULL, ADD COLUMN checkin_acc INT NULL",
   ];
   for (const sql of alters) {
     for (let attempt = 0; ; attempt++) {

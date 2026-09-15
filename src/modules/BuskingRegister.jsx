@@ -58,7 +58,10 @@ export default function BuskingRegister({ data }) {
 
   const selfOnly = (ev.config?.registerMode || 'anyone') === 'self';
   const isLive = ev.status === 'live';
-  const staffScan = (ev.config?.checkinMode || 'self') === 'staff';   // งานนี้ให้พี่ ๆ หน้างานสแกน QR เท่านั้น
+  const checkinMode = ev.config?.checkinMode || 'self';   // self กดเอง · gate สแกน QR หน้างาน · staff พี่ ๆ สแกนบัตร
+  const staffScan = checkinMode === 'staff';
+  const win = ev.config?.checkinWindow;
+  const winText = win ? (() => { const st = new Date(String(ev.starts_at).replace(' ', 'T') + '+07:00'); const f = (ms) => new Date(ms).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' }); return `${f(st - (win.before ?? 30) * 60e3)}–${f(st.getTime() + (win.after ?? 30) * 60e3)} น.`; })() : null;
   const isWinner = mine?.luckyRound;
 
   return <>
@@ -71,7 +74,9 @@ export default function BuskingRegister({ data }) {
             ? <Notice>เช็คอินแล้ว คุณอยู่ในกลุ่มลุ้น Lucky Fan ตอนท้ายงาน</Notice>
             : staffScan
               ? <Notice tone="muted">ถึงหน้างานแล้วเปิดบัตรลงทะเบียน แสดง QR ให้พี่ ๆ ที่ดูแลสแกนเพื่อเช็คอินรับสิทธิ์ลุ้น Lucky Fan</Notice>
-              : isLive
+              : checkinMode === 'gate'
+                ? <Notice tone="muted">ถึงหน้างานแล้ว <strong>สแกน QR ที่จุดเช็คอิน</strong> ด้วยกล้องมือถือ แล้วกด «เช็คอิน» เพื่อรับสิทธิ์ลุ้น Lucky Fan{winText ? <> · เช็คอินได้ {winText} เท่านั้น มาช้ากว่านั้นดูโชว์ได้แต่ไม่ได้สิทธิ์ลุ้นนะคะ</> : null}</Notice>
+                : isLive
                 ? <><p>มาถึงหน้างานแล้วใช่ไหม กดเช็คอินเพื่อรับสิทธิ์ลุ้น Lucky Fan</p><button className="button dark" onClick={checkin} disabled={busy}>ฉันมาถึงแล้ว <Icon name="check" /></button></>
                 : <Notice tone="muted">ปุ่มเช็คอินจะเปิดเมื่อถึงเวลางาน กลับมาที่หน้านี้อีกครั้งเมื่อมาถึง</Notice>}
         <div className="form-actions"><Link className="button ghost" to={`/ticket/${mine.code}`}>เปิดบัตรลงทะเบียน</Link>{!selfOnly && <button type="button" className="link-button" onClick={() => { try { localStorage.removeItem(myRegKey(ev.slug)); } catch { /* optional */ } setMine(null); }}>ลงทะเบียนเป็นคนอื่น</button>}</div>
@@ -80,7 +85,7 @@ export default function BuskingRegister({ data }) {
         : ev.status === 'ended' ? <Notice tone="muted">งานนี้จบแล้ว ขอบคุณทุกคนที่มาเจอกัน</Notice>
           : selfOnly && !user ? <LoginToRegister user={user} />
           : <form className="booking-form" onSubmit={register}>
-            <p className="muted">ฟรี ไม่จำกัดจำนวน ลงทะเบียนแล้วเช็คอินหน้างานเพื่อลุ้น Lucky Fan ถ่ายรูปคู่กับโนบิ ({rounds} รางวัล)</p>
+            <p className="muted">ฟรี ไม่จำกัดจำนวน ลงทะเบียนแล้ว{checkinMode === 'gate' ? 'สแกน QR ที่จุดเช็คอินหน้างาน' : 'เช็คอินหน้างาน'}เพื่อลุ้น Lucky Fan ถ่ายรูปคู่กับโนบิ ({rounds} รางวัล){winText ? ` · เช็คอินได้ ${winText}` : ''}</p>
             <label>ชื่อ<input id="rg-name" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>
             <div className="two"><label>ชื่อเล่น (ที่จะประกาศตอนสุ่ม)<input id="rg-nick" value={form.nickname} onChange={e => setForm({ ...form, nickname: e.target.value })} /></label><label>IG / TikTok<input id="rg-social" value={form.social} onChange={e => setForm({ ...form, social: e.target.value })} placeholder="@" /></label></div>
             <label>เบอร์โทร (ถ้ามี)<PhoneInput id="rg-phone" value={form.phone} onChange={phone => setForm({ ...form, phone })} /></label>

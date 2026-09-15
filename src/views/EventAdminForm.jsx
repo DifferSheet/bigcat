@@ -12,7 +12,7 @@ const TYPES = ['fanmeet', 'merit', 'busking', 'workshop', 'popup'];
 const STATUSES = [['upcoming', 'เร็ว ๆ นี้ (ยังไม่เปิด)'], ['open', 'เปิดรับ'], ['soldout', 'เต็ม'], ['live', 'กำลังจัด'], ['ended', 'จบแล้ว (ย้ายไปหมวดที่ผ่านมา)'], ['hidden', 'ซ่อน — ไม่แสดงบนเว็บเลย']];
 const TONES = [['pink', 'ชมพู'], ['yellow', 'เหลือง'], ['sage', 'เขียวอ่อน'], ['blue', 'ฟ้า']];
 // key ใน config ที่ฟอร์มมีช่องให้แล้ว — ที่เหลือไปอยู่ในกล่อง JSON ขั้นสูง
-const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs', 'gallery', 'milestones', 'report', 'seatMap', 'registerMode', 'checkinMode'];
+const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs', 'gallery', 'milestones', 'report', 'seatMap', 'registerMode', 'checkinMode', 'checkinWindow'];
 const Tag = ({ children }) => <span className="tag-label">{children}</span>;
 const REWARD_TYPES = [['text', 'ข้อความ'], ['image', 'ภาพลับ'], ['link', 'ลิงก์ (Live / คลิป)'], ['poll', 'โหวต']];
 const newMilestone = (percent = 25) => ({ percent, title: '', reward: { type: 'text', body: '' } });
@@ -34,6 +34,7 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
     donateUntil: toLocal(cfg.donateUntil), attendEnabled: cfg.attend?.enabled ?? false, attendNote: cfg.attend?.note || '',
     payAccount: cfg.payment?.accountName || '', payPromptpay: cfg.payment?.promptpay || '',
     registerMode: cfg.registerMode || 'anyone', checkinMode: cfg.checkinMode || 'self',
+    winBefore: cfg.checkinWindow?.before ?? '', winAfter: cfg.checkinWindow?.after ?? '',
     accountNote: cfg.report?.accountNote || '', excessPolicy: cfg.report?.excessPolicy || '', taxNote: cfg.report?.taxNote || '',
     seatRows: (cfg.seatMap?.rows || []).join(', '), seatCols: cfg.seatMap?.cols ?? 10, seatMax: cfg.seatMap?.maxPerBooking ?? 4, seatHold: cfg.seatMap?.holdMinutes ?? 10,
   });
@@ -55,7 +56,7 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
     try {
       const advanced = {};
       for (const { key, json } of other) { if (!key.trim()) continue; try { advanced[key.trim()] = json.trim() ? JSON.parse(json) : null; } catch { throw new Error(`บล็อก ${key} ไม่ใช่ JSON ที่ถูกต้อง`); } }
-      const config = { ...advanced, schedule: unlines(f.schedule), faq: unlines(f.faq), registerMode: f.registerMode, checkinMode: f.checkinMode };
+      const config = { ...advanced, schedule: unlines(f.schedule), faq: unlines(f.faq), registerMode: f.registerMode, checkinMode: f.checkinMode, checkinWindow: f.winBefore !== '' || f.winAfter !== '' ? { before: Number(f.winBefore) || 0, after: Number(f.winAfter) || 0 } : null };
       if (f.type === 'merit') config.report = { accountNote: f.accountNote, excessPolicy: f.excessPolicy, taxNote: f.taxNote };
       if (f.type === 'fanmeet') config.seatMap = { rows: f.seatRows.split(',').map(x => x.trim()).filter(Boolean), cols: Number(f.seatCols) || 0, maxPerBooking: Number(f.seatMax) || 1, holdMinutes: Number(f.seatHold) || 10, zones: Object.fromEntries(zones.filter(z => z.key.trim()).map(z => [z.key.trim(), { name: z.name, price: Number(z.price) || 0, perk: z.perk }])) };
       if (f.type === 'busking') { config.drawRounds = Number(f.drawRounds) || 0; config.setlist = unlines(f.setlist, '|', 1); config.songs = { enabled: !!f.songsEnabled }; }
@@ -72,11 +73,19 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
 
-  // วิธีเช็คอินหน้างาน — self: ผู้เข้าร่วมกดเองบนบัตรตอนงานเป็น «กำลังจัด» · staff: พี่ ๆ หน้างานสแกน QR บนบัตรจากมือถือที่ล็อกอิน /admin เท่านั้น
-  const checkinPick = <fieldset className="mode-pick"><legend>เช็คอินหน้างาน</legend>
-    <label className="check"><input type="radio" name="checkinMode" checked={f.checkinMode === 'self'} onChange={() => set('checkinMode', 'self')} /> <span><strong>กดเองได้</strong> <small>ปุ่ม «ฉันมาถึงแล้ว» บนบัตร/หน้างาน เปิดเมื่อสถานะงานเป็น กำลังจัด · พี่ ๆ สแกนให้ก็ได้</small></span></label>
-    <label className="check"><input type="radio" name="checkinMode" checked={f.checkinMode === 'staff'} onChange={() => set('checkinMode', 'staff')} /> <span><strong>ทีมงานสแกนเท่านั้น</strong> <small>ผู้เข้าร่วมแสดง QR บนบัตร พี่ ๆ สแกนด้วยมือถือที่ล็อกอินหน้าจัดการ · กันกดจากที่บ้านเพื่อรับสิทธิ์ (สุ่มรางวัล/ของที่ระลึก)</small></span></label>
-  </fieldset>;
+  // วิธีเช็คอินหน้างาน — self: ผู้เข้าร่วมกดเองบนบัตร · gate: สแกน QR ที่จุดเช็คอิน (โทเคนหมุน 45 วิ) · staff: พี่ ๆ สแกนบัตรเท่านั้น
+  // + หน้าต่างเวลา (นาทีก่อน/หลังเวลาเริ่ม) ใช้กับ self และ gate — เว้นว่างทั้งคู่ = ไม่จำกัดเวลา (self จะดูจากสถานะ «กำลังจัด» แทน)
+  const checkinPick = <>
+    <fieldset className="mode-pick"><legend>เช็คอินหน้างาน</legend>
+      <label className="check"><input type="radio" name="checkinMode" checked={f.checkinMode === 'gate'} onChange={() => set('checkinMode', 'gate')} /> <span><strong>สแกน QR หน้างาน</strong> <small>วางมือถือโชว์จอ QR ที่จุดเช็คอิน (ปุ่ม «จอ QR เช็คอิน» ในหน้าจัดการ) QR เปลี่ยนทุก 45 วิ — ถ่ายรูปส่งต่อใช้ไม่ได้ · ไม่ต้องมีคนยืนสแกน</small></span></label>
+      <label className="check"><input type="radio" name="checkinMode" checked={f.checkinMode === 'self'} onChange={() => set('checkinMode', 'self')} /> <span><strong>กดเองได้</strong> <small>ปุ่ม «ฉันมาถึงแล้ว» บนบัตร/หน้างาน — กดจากที่ไหนก็ได้ เหมาะกับงานที่ไม่มีสิทธิ์พิเศษ</small></span></label>
+      <label className="check"><input type="radio" name="checkinMode" checked={f.checkinMode === 'staff'} onChange={() => set('checkinMode', 'staff')} /> <span><strong>ทีมงานสแกนเท่านั้น</strong> <small>ผู้เข้าร่วมแสดง QR บนบัตร พี่ ๆ สแกนด้วยมือถือที่ล็อกอิน — แน่นที่สุดแต่ต้องมีคนยืนสแกน</small></span></label>
+    </fieldset>
+    {f.checkinMode !== 'staff' && <div className="two">
+      <label>เปิดเช็คอินก่อนเริ่มงาน (นาที) <small>เว้นว่าง = ไม่จำกัดเวลา</small><input type="number" min="0" value={f.winBefore} onChange={e => set('winBefore', e.target.value)} placeholder="30" /></label>
+      <label>ปิดเช็คอินหลังเริ่มงาน (นาที) <small>มาช้ากว่านี้เช็คอินเองไม่ได้ (พี่ ๆ สแกนให้ได้)</small><input type="number" min="0" value={f.winAfter} onChange={e => set('winAfter', e.target.value)} placeholder="30" /></label>
+    </div>}
+  </>;
   return <form className="booking-form event-form" onSubmit={submit}>
     <h2>{editing ? `แก้ไข: ${initial.title}` : 'เพิ่มกิจกรรมใหม่'}</h2>
     <div className="two">
