@@ -181,3 +181,23 @@ a.hm-note:hover { text-decoration: underline; text-underline-offset: 4px; }
 .hm-footer-tagline { font-size: 11px; color: #8d8174; }
 .hm-footer-hand small, .hm-sticky small { display: block; font-family: var(--font-body); font-size: 11px; color: #8d8174; margin-top: 4px; }
 .member-social { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+
+/* ---------- โมดัลตัวละครแบบ résumé หน้าเดียว ---------- */
+.resume { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; align-items: start; }
+.resume-side { display: flex; flex-direction: column; gap: 12px; }
+.resume .hm-modal-portrait { width: 100%; margin: 0; max-height: 300px; }
+.resume-facts { margin: 0; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 14px; background: #fff; border: 1px solid var(--line); }
+.resume-facts div { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; font-size: 13px; line-height: 1.5; }
+.resume-facts dt { font-family: var(--font-display); font-size: 11px; letter-spacing: .06em; color: #8d8174; padding-top: 2px; }
+.resume-facts dd { margin: 0; color: var(--brown); }
+.resume-main { display: flex; flex-direction: column; gap: 18px; }
+.resume-headline { font-family: var(--font-head); font-weight: 500; font-size: 20px; line-height: 1.45; color: var(--brown); }
+.resume-main section { display: flex; flex-direction: column; gap: 6px; }
+.resume-main .hm-label { font-size: 10px; letter-spacing: .18em; color: #a45e6c; }
+.resume-main p { font-size: 14px; line-height: 1.8; color: #5a4f48; }
+.resume-skills { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.resume-skills li { padding: 5px 12px; border-radius: 100px; background: #fff; border: 1px solid var(--line); font-size: 13px; color: var(--brown); }
+.resume.tone-pink .resume-skills li { background: #fdeef1; } .resume.tone-yellow .resume-skills li { background: #fbf1dc; } .resume.tone-blue .resume-skills li { background: #e9f2fc; }
+.resume-quote { margin: 4px 0 0; padding: 14px 18px; border-left: 3px solid var(--pink); background: #fff; border-radius: 0 14px 14px 0; font-family: var(--font-head); font-weight: 500; font-size: 19px; line-height: 1.5; color: var(--brown); }
+.resume-quote cite { display: block; margin-top: 6px; font-family: var(--font-body); font-style: normal; font-size: 12px; color: #8d8174; }
+@media (max-width: 700px) { .resume { grid-template-columns: 1fr; gap: 18px; } .resume .hm-modal-portrait { width: 200px; margin: 0 auto; } }

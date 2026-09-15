@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from '../lib/nav.jsx';
-import { Icon, Flower, Modal, Logo } from '../components/ui.jsx';
+import { Icon, Flower, Modal, Logo, Tagged } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { cart } from '../lib/cart.js';
 import { UserNav } from '../components/EventShell.jsx';
@@ -23,15 +23,36 @@ const members = [
   { id: 'nobi', name: 'NOBI', thai: 'น้องโนบิ', tone: 'pink', icon: '♡', tag: 'The little voice of the city', text: 'ร้องสดทุกเพลง\nซ้อมทุกวันตอนที่ไม่มีใครดู',
     alt: 'น้องโนบิ ลูกแมวสีครีมในเดรสดอกไม้สีชมพู ยกอุ้งมือข้างแก้มยิ้มให้กล้อง',
     detail: 'ลูกแมวตัวเล็กที่สุดของแก๊ง แต่เสียงดังที่สุด — โนร้องสดจริงทุกเพลง ไม่เคยลิปซิงค์ เกือบหนึ่งปีก่อนโนเริ่มร้องริมถนนเยาวราชโดยไม่มีใครหยุดฟัง วันนี้ทุกเสาร์มีมัม ๆ มายืนรอ และเสาร์ที่ 26 กันยานี้คือครั้งแรกในร่างใหม่ที่ตลาดเลียบด่วนแดนเนรมิต — โนยังเป็นโนคนเดิมนะคะ แต่ซ้อมมาให้ฟังเยอะกว่าเดิม',
-    likes: 'ร้องสดทุกเพลง · ซ้อมทุกวัน · เจอกันได้ฟรีทุกเสาร์', socials: 'nobi' },
+    likes: 'ร้องสดทุกเพลง · ซ้อมทุกวัน · เจอกันได้ฟรีทุกเสาร์', socials: 'nobi',
+    resume: {
+      headline: 'ลูกแมวน้อยมหัศจรรย์ที่มาพร้อมเสียงหวานจับใจ',
+      about: 'ความฝันของโนบิคือเป็นหัวจ่ายพลังงานความสุข เปลี่ยนวันร้าย ๆ ให้เป็นวันที่ดีด้วยเสียงของเธอ ตำนานเล่าว่าใครได้ยินจะถูกสะกดราวกับต้องมนต์ ทุกอย่างหยุดนิ่ง ณ เวลานั้น และเสียงนี้ช่วยเยียวยาหัวใจจากความเจ็บปวด เหนื่อยล้า และวันที่ไม่เป็นดั่งใจ ให้ความอบอุ่นและกำลังใจกลับมาทุกครั้งที่ได้ฟัง เสมือนถูกชุบชีวิตขึ้นใหม่',
+      facts: [['อายุ', '7 ปี'], ['นิสัย', 'หัวใจงดงาม สดใสร่าเริงทุกวัน'], ['เวลาว่าง', 'วาดรูป · ซ้อมเต้น · ฝึกร้องเพลง'], ['ของโปรด', 'ขนมปัง และผลไม้ทุกชนิด']],
+      skills: ['ร้องเพลง (ร้องสดทุกเพลง)', 'เต้น', 'วาดรูป', 'เยียวยาหัวใจด้วยเสียง'],
+      quote: 'เกิดมาเพื่อสร้างรอยยิ้มและพลังงานดี ๆ ให้ผู้คนบนโลก',
+    } },
   { id: 'boota', name: 'BOOTA', thai: 'น้องบูตะ', tone: 'yellow', icon: '✦', tag: 'Straight face. Biggest heart.', text: 'หน้านิ่งที่สุดในแก๊ง\nแต่ใจใหญ่ที่สุดในแก๊ง',
     alt: 'น้องบูตะ แมวดำแว่นกลมสีทอง สูทม่วงลายทาง ทำหน้านิ่ง',
     detail: 'พี่ใหญ่แว่นกลมสีทองที่ไม่เคยหลุดยิ้ม แต่เป็นคนแต่งเพลงให้โนบิร้อง และเป็น «มหาบูตะ» ที่พามัมป๊าไปทำบุญทุกเข้าพรรษา มุกหน้านิ่งของบูตะทำให้ทั้งแก๊งหัวเราะโดยที่ตัวเองไม่ขยับคิ้วเลยสักนิด',
-    likes: 'แต่งเพลงให้โนบิ · พาไปทำบุญ · มุกหน้านิ่ง', socials: 'boota' },
+    likes: 'แต่งเพลงให้โนบิ · พาไปทำบุญ · มุกหน้านิ่ง', socials: 'boota',
+    resume: {
+      headline: 'แมวสู้ชีวิตที่มาพร้อมความแข็งแกร่ง และเป็นนักสู้ตัวจริง',
+      about: 'บูตะทำทุกอย่างสุดหัวใจ จึงเป็นตัวแทนของความพยายามและการไม่ยอมแพ้ต่อโชคชะตา เขาเชื่อว่าไม่ว่าต้นทุนชีวิตจะเป็นแบบไหน ความพยายาม ความสามารถ และสติปัญญาจะพาเราฝ่าทุกอุปสรรคไปได้ ใครได้พบต่างเล่าว่าเขามีพลังวิเศษให้กำลังใจในการต่อสู้ชีวิต และอยู่บนโลกที่โหดร้ายนี้ได้แบบชิล ๆ โดยไม่หวั่นเกรงสิ่งใด',
+      facts: [['อายุ', '7 ปี'], ['นิสัย', 'หัวใจแข็งแกร่งเกินแมวและมนุษย์ทั่วไป'], ['มุมมอง', 'มองเรื่องโชคร้ายเป็นความตลกของชีวิต'], ['คำสัญญา', '«เราจะอยู่เพื่อกัน» — แพชชั่นของการมีชีวิตอยู่']],
+      skills: ['แต่งเพลงรัก', 'เพลงแร็ป', 'กลอน', 'เล่นตลก', 'อินฟลูเอนเซอร์', 'พิธีกร', 'นักพูดให้กำลังใจ'],
+      quote: 'เราจะอยู่เพื่อกัน',
+    } },
   { id: 'shiba', name: 'SHIBA', thai: 'น้องชิบะ', tone: 'blue', icon: '✧', tag: 'Quiet. Cool. Always in frame.', text: 'พูดน้อยที่สุด\nแต่รูปสวยทุกใบ',
     alt: 'น้องชิบะ แมวหนุ่มในแจ็กเก็ตทวีดสีฟ้า ยืนจัดปกเสื้อ',
     detail: 'หนุ่มสายเท่ในแจ็กเก็ตทวีดสีฟ้า ชิบะพูดน้อยกว่าทุกคนในแก๊ง แต่พอกล้องหันมาเมื่อไหร่ ปกเสื้อจัดเรียบร้อย สายตามั่นใจ และท่าโพสไม่เคยซ้ำ — ถ้าเจอชิบะยืนนิ่ง ๆ อยู่ข้างเวที นั่นคือเขากำลังเลือกมุมที่ดีที่สุดให้คุณถ่าย',
-    likes: 'โพสท่าหน้ากล้อง · สีฟ้า–น้ำเงิน · เท่แบบไม่พูด', socials: null },
+    likes: 'โพสท่าหน้ากล้อง · สีฟ้า–น้ำเงิน · เท่แบบไม่พูด', socials: null,
+    resume: {
+      headline: 'แมวหล่อ นิสัยดี และมีจิตใจงดงาม — ต้นแบบของ Good Boy',
+      about: 'ตาโต คิ้วเข้ม สีตัวเทาอ่อน จมูกชมพูหวานละมุน ชิบะฉลาดหลักแหลม สุภาพเรียบร้อย และอบอุ่นมาก ๆ คือความสดใสและความอุ่นใจของทุกคน แค่ปรากฏตัวก็ทำให้มนุษย์หลงรักได้ง่าย ๆ และเขายึดมั่นว่าจะไม่สร้างความเดือดร้อนใด ๆ ให้ผู้คนบนโลกโดยเด็ดขาด',
+      facts: [['อายุ', '7 ปี'], ['เพื่อนสนิท', 'บูตะ และโนบิ'], ['ชอบ', 'นอน · เต้น · ปลีกวิเวกในป่าหรือที่เงียบสงบ'], ['จุดเด่น', 'ตาโต คิ้วเข้ม จมูกชมพู']],
+      skills: ['เต้น', 'โพสท่าหน้ากล้อง', 'เป็น Good Boy ตัวอย่างของแมวทุกตัว'],
+      quote: 'จะไม่สร้างความเดือดร้อนให้ใครบนโลกนี้เด็ดขาด',
+    } },
 ];
 // อัลบั้ม — โครงตามใบสั่ง 15 ก.ย.: title อังกฤษ · caption ไทย (ที่ไหน/เมื่อไหร่/เกิดอะไร) · ใช้ภาพจริงจากงานเมื่อคัดจากคลัง footage แล้ว
 // ⚠️ ตอนนี้ยังใช้ภาพวาด diary-*.png คั่นไว้ก่อน — เมื่อได้ภาพจริง ≥ 3 ใบ ให้แทน image และลบภาพวาดออก
@@ -171,7 +192,23 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
     </footer>
 
     {toast && <div className="toast" role="status"><Icon name="check" />{toast} <Link to="/cart" className="toast-link">ดูตะกร้า →</Link></div>}
-    {modal?.type === 'member' && <Modal title={`${modal.member.name} / ${modal.member.thai}`} onClose={closeModal}><div className={`hm-modal-portrait tone-${modal.member.tone}`}><img src={characterImage(modal.member.id)} alt={modal.member.alt} /></div><span className="eyebrow">{modal.member.tag}</span><p>{modal.member.detail}</p><div className="detail-strip"><Icon name="heart" />{modal.member.likes}</div>{modal.member.socials && <div className="member-social"><span className="hm-label">FOLLOW {modal.member.name}</span><SocialRow items={SOCIALS[modal.member.socials]} /></div>}</Modal>}
+    {modal?.type === 'member' && (() => { const m = modal.member, r = m.resume; return <Modal title={`${m.name} / ${m.thai}`} wide onClose={closeModal}>
+      <div className={`resume tone-${m.tone}`}>
+        <aside className="resume-side">
+          <div className={`hm-modal-portrait tone-${m.tone}`}><img src={characterImage(m.id)} alt={m.alt} /></div>
+          <span className="eyebrow">{m.tag}</span>
+          <dl className="resume-facts">{r.facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd><Tagged text={v} /></dd></div>)}</dl>
+          {m.socials && <div className="member-social"><span className="hm-label">FOLLOW {m.name}</span><SocialRow items={SOCIALS[m.socials]} /></div>}
+        </aside>
+        <div className="resume-main">
+          <h3 className="resume-headline">{r.headline}</h3>
+          <section><span className="hm-label">ABOUT</span><p>{r.about}</p></section>
+          <section><span className="hm-label">SKILLS</span><ul className="resume-skills">{r.skills.map(x => <li key={x}>{x}</li>)}</ul></section>
+          <section><span className="hm-label">TODAY</span><p><Tagged text={m.detail} /></p></section>
+          <blockquote className="resume-quote">“{r.quote}”<cite>— {m.thai}</cite></blockquote>
+        </div>
+      </div>
+    </Modal>; })()}
     {modal?.type === 'album' && <Modal title={photos[albumIndex].title} wide onClose={closeModal}><img className="album-full" src={photos[albumIndex].image} alt={photos[albumIndex].caption} /><div className="album-controls"><button className="icon-button" aria-label="ภาพก่อนหน้า" onClick={() => setAlbumIndex((albumIndex + photos.length - 1) % photos.length)}>←</button><p>{photos[albumIndex].caption}<small>{albumIndex + 1} / {photos.length}</small></p><button className="icon-button" aria-label="ภาพถัดไป" onClick={() => setAlbumIndex((albumIndex + 1) % photos.length)}>→</button></div></Modal>}
   </div>;
 }
