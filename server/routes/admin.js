@@ -203,6 +203,15 @@ r.post('/bookings/:id/:action', wrap(async (req, res) => {
 }));
 
 // เช็คอินด้วยรหัสบัตร (สแกน QR หน้างาน)
+// ยกเลิกเช็คอิน (กดพลาด/เช็คอินก่อนวันงาน) — คืนสถานะให้ลงทะเบียนแล้วแต่ยังไม่มา
+r.post('/registrations/:id/uncheckin', wrap(async (req, res) => {
+  const reg = await one('SELECT r.id, r.event_id, e.slug FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.id=?', [Number(req.params.id)]);
+  if (!reg) throw new HttpError(404, 'ไม่พบรายการ');
+  await q('UPDATE registrations SET checked_in_at=NULL WHERE id=?', [reg.id]);
+  emit(reg.slug, 'registrations', await registrationSummary(reg.event_id));
+  res.json({ ok: true });
+}));
+
 r.post('/checkin/:code', wrap(async (req, res) => {
   const codeUp = req.params.code.toUpperCase();
   const b = await one('SELECT id, status, name, seats FROM bookings WHERE code=?', [codeUp]);
