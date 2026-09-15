@@ -2,7 +2,17 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from '../lib/nav.jsx';
 import { SiteHeader, SiteFooter, StatusPill, Notice } from '../components/EventShell.jsx';
-import { Icon, PageLoader } from '../components/ui.jsx';
+import { Icon, PageLoader, Modal } from '../components/ui.jsx';
+
+const PAGE = 20;
+// แบ่งหน้า (ฝั่ง client) — ใช้กับทุกตารางในหน้าจัดการ
+function Pager({ total, page, setPage }) {
+  const pages = Math.max(1, Math.ceil(total / PAGE));
+  if (pages <= 1) return null;
+  return <div className="pager"><button type="button" className="button ghost small" disabled={page <= 1} onClick={() => setPage(page - 1)}>‹ ก่อนหน้า</button><span>หน้า {page} / {pages} · {total} รายการ</span><button type="button" className="button ghost small" disabled={page >= pages} onClick={() => setPage(page + 1)}>ถัดไป ›</button></div>;
+}
+// รวมแถวทำบุญที่โอนครั้งเดียวหลายหมวด (group_code เดียวกัน) ให้เป็นรายการเดียว
+const groupDonations = (list) => { const m = new Map(); for (const d of list) { const k = d.group_code || d.code; if (!m.has(k)) m.set(k, { ...d, key: k, ids: [], items: [], amount: 0 }); const g = m.get(k); g.ids.push(d.id); g.items.push(d); g.amount += Number(d.amount); if (d.status === 'pending') g.status = 'pending'; } return [...m.values()]; };
 import { api, getAdminKey, setAdminKey } from '../lib/api.js';
 import { useMounted } from '../lib/useMounted.js';
 import { eventDate, typeLabel, baht, parseDate } from '../lib/format.js';
@@ -67,6 +77,17 @@ function Members() {
   </div>;
 }
 
+// เลือกสมาชิกเพื่อผูกรายการ (ค้นชื่อ/อีเมล/เบอร์)
+function MemberPicker({ title, onPick, onClose }) {
+  const [qs, setQs] = useState('');
+  const [list, setList] = useState(null);
+  useEffect(() => { const t = setTimeout(() => api(`/admin/members?q=${encodeURIComponent(qs)}`, { admin: true }).then(d => setList(d.members)).catch(() => setList([])), 200); return () => clearTimeout(t); }, [qs]);
+  return <Modal title={title} onClose={onClose}>
+    <input className="admin-search" autoFocus value={qs} onChange={e => setQs(e.target.value)} placeholder="พิมพ์ชื่อ / อีเมล / เบอร์ของสมาชิก" />
+    {!list ? <PageLoader /> : list.length === 0 ? <p className="muted small">ไม่พบสมาชิก</p> : <ul className="member-pick">{list.slice(0, 30).map(m => <li key={m.id}><button type="button" onClick={() => onPick(m)}>{m.avatar ? <img src={m.avatar} alt="" referrerPolicy="no-referrer" /> : <span className="thumb round placeholder">{m.display_name.slice(0, 1)}</span>}<span><strong>{m.display_name}</strong><small className="muted">{m.provider === 'line' ? 'LINE' : 'Google'}{m.email ? ` · ${m.email}` : ''}{m.phone ? ` · ${m.phone}` : ''}</small></span></button></li>)}</ul>}
+  </Modal>;
+}
+
 // เปลี่ยนรหัสผ่านแอดมิน + ออกจากระบบ
 function AdminAccount({ admin, onLogout }) {
   const [open, setOpen] = useState(false);
@@ -129,6 +150,7 @@ function MeritTools({ ev, onMsg }) {
 
 function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
   const [tab, setTab] = useState('pending');
+  const [view, setView] = useState('donations');   // งานทำบุญ: donations | registrations (ไปวัดด้วย)
   const [confirmDel, setConfirmDel] = useState(false);
   const remove = async () => { setMsg(''); try { await api(`/admin/events/${ev.slug}`, { method: 'DELETE', admin: true }); onDeleted(); } catch (e) { setMsg(e.message); setConfirmDel(false); } };
   const [rows, setRows] = useState(null);
@@ -136,10 +158,16 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
   const [msgTone, setMsgTone] = useState('error');
   const setMsg = (m, tone = 'error') => { setMsgRaw(m); setMsgTone(tone); };
   const [sel, setSel] = useState([]);
+  const [page, setPage] = useState(1);
+  const [slipView, setSlipView] = useState(null);
+  const [assignFor, setAssignFor] = useState(null);   // กลุ่มทำบุญที่กำลังผูกสมาชิก
+  const [search, setSearch] = useState('');
+  const assign = async (g, userId) => { setMsg(''); try { const r = await api(`/admin/donations/${g.ids[0]}/assign`, { method: 'POST', body: { userId }, admin: true }); setMsg(userId ? `ผูก ${g.key} กับ ${r.member.display_name} แล้ว — ขึ้นใน history ของสมาชิกทันที` : `ปลด ${g.key} ออกจากสมาชิกแล้ว`, 'ok'); setAssignFor(null); await load(); } catch (e) { setMsg(e.message); } };
+  useEffect(() => { setPage(1); }, [tab, view, ev.slug]);
   const load = async () => {
     setRows(null);
     if (ev.type === 'fanmeet') setRows({ bookings: await api(`/admin/events/${ev.slug}/bookings`, { admin: true }) });
-    else if (ev.type === 'merit') setRows({ donations: await api(`/admin/events/${ev.slug}/donations`, { admin: true }) });
+    else if (ev.type === 'merit') { const [donations, registrations] = await Promise.all([api(`/admin/events/${ev.slug}/donations`, { admin: true }), api(`/admin/events/${ev.slug}/registrations`, { admin: true })]); setRows({ donations, attend: registrations }); }
     else setRows({ registrations: await api(`/admin/events/${ev.slug}/registrations`, { admin: true }) });
   };
   useEffect(() => { load().catch(e => setMsg(e.message)); }, [ev.slug]);
@@ -148,6 +176,7 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
   const toggleSel = (id) => setSel(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
   const setStatus = async (status) => { setMsg(''); try { await api(`/admin/events/${ev.slug}`, { method: 'PATCH', body: { status }, admin: true }); refresh(); } catch (e) { setMsg(e.message); } };
   const show = (list, key) => tab === 'all' ? list : list.filter(x => key(x));
+  const paged = (list) => list.slice((page - 1) * PAGE, page * PAGE);
 
   return <div className="admin-event">
     <div className="admin-event-head">
@@ -160,13 +189,24 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
     </div>
     {msg && <Notice tone={msgTone === 'ok' ? 'info' : 'error'}>{msg}</Notice>}
     {ev.type === 'merit' && <MeritTools ev={ev} onMsg={setMsg} />}
-    <div className="tabs-row"><div className="filter-tabs"><button className={tab === 'pending' ? 'active' : ''} onClick={() => setTab('pending')}>รอตรวจ</button><button className={tab === 'all' ? 'active' : ''} onClick={() => setTab('all')}>ทั้งหมด</button></div>
+    {rows?.attend && <div className="view-switch"><button className={view === 'donations' ? 'active' : ''} onClick={() => setView('donations')}>ยอดร่วมบุญ ({rows.donations.length})</button><button className={view === 'registrations' ? 'active' : ''} onClick={() => setView('registrations')}>ไปวัดด้วย ({rows.attend.length})</button></div>}
+    {rows?.donations && view === 'donations' && <input className="admin-search" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="ค้นหารหัส / ชื่อผู้ร่วมบุญ / สมาชิก" style={{ marginBottom: 10 }} />}
+    <div className="tabs-row"><div className="filter-tabs"><button className={tab === 'pending' ? 'active' : ''} onClick={() => setTab('pending')}>{view === 'registrations' && rows?.attend ? 'ยังไม่เช็คอิน' : 'รอตรวจ'}</button><button className={tab === 'all' ? 'active' : ''} onClick={() => setTab('all')}>ทั้งหมด</button></div>
       {rows?.donations && sel.length > 0 && <div className="bulk-bar"><span>เลือก {sel.length} รายการ</span><button className="button dark small" onClick={() => bulk('approve')}>อนุมัติทั้งหมด</button><button className="link-button" onClick={() => bulk('reject')}>ปฏิเสธ</button></div>}</div>
     {!rows ? <PageLoader /> : <div className="table-wrap"><table className="admin-table">
-      {rows.bookings && <><thead><tr><th>รหัส</th><th>ชื่อ</th><th>ที่นั่ง</th><th>ยอด</th><th>สลิป</th><th>สถานะ</th><th></th></tr></thead><tbody>{show(rows.bookings, b => b.status === 'pending').map(b => <tr key={b.id}><td className="code">{b.code}</td><td>{b.name}<br /><small>{b.phone}</small></td><td>{b.seats.join(', ')}</td><td>{baht(b.amount)}</td><td>{b.slip_path ? <a href={b.slip_path} target="_blank" rel="noreferrer">ดูสลิป</a> : '—'}{b.verify_note && <><br /><small className={b.verified_at ? 'ok-text' : ''}>{b.verify_note}</small></>}</td><td>{b.status}{b.verified_at && <span className="mini-tag ok">auto</span>}</td><td className="actions">{b.status === 'pending' && <><button className="button dark small" onClick={() => act(`/admin/bookings/${b.id}/approve`)}>อนุมัติ</button><button className="link-button" onClick={() => act(`/admin/bookings/${b.id}/reject`)}>ปฏิเสธ</button></>}{b.status === 'paid' && <button className="button ghost small" onClick={() => act(`/admin/bookings/${b.id}/checkin`)}>เช็คอิน</button>}</td></tr>)}</tbody></>}
-      {rows.donations && (() => { const list = show(rows.donations, d => d.status === 'pending'); const pendingIds = list.filter(d => d.status === 'pending').map(d => d.id); return <><thead><tr><th><input type="checkbox" aria-label="เลือกทั้งหมด" checked={pendingIds.length > 0 && pendingIds.every(id => sel.includes(id))} onChange={e => setSel(e.target.checked ? pendingIds : [])} /></th><th>รหัส</th><th>ผู้ร่วมบุญ</th><th>หมวด</th><th>ยอด</th><th>สลิป / ผลตรวจ</th><th>สถานะ</th><th></th></tr></thead><tbody>{list.map(d => <tr key={d.id}><td>{d.status === 'pending' && <input type="checkbox" checked={sel.includes(d.id)} onChange={() => toggleSel(d.id)} aria-label={`เลือก ${d.code}`} />}</td><td className="code">{d.code}{d.line_user_id && <span className="mini-tag">LINE</span>}</td><td>{d.donor_name}{d.dedication && <><br /><small>{d.dedication}</small></>}{d.message && <><br /><small>“{d.message}”</small></>}</td><td>{d.units ? `${d.units} × ` : ''}{d.category}</td><td>{baht(d.amount)}</td><td>{d.slip_path ? <a href={d.slip_path} target="_blank" rel="noreferrer">ดูสลิป</a> : '—'}{d.verify_note && <><br /><small className={d.verified_at ? 'ok-text' : ''}>{d.verify_note}</small></>}</td><td>{d.status}{d.verified_at && <span className="mini-tag ok">auto</span>}</td><td className="actions">{d.status === 'pending' && <><button className="button dark small" onClick={() => act(`/admin/donations/${d.id}/approve`)}>อนุมัติ</button><button className="link-button" onClick={() => act(`/admin/donations/${d.id}/reject`)}>ปฏิเสธ</button></>}</td></tr>)}</tbody></>; })()}
-      {rows.registrations && <><thead><tr><th>#</th><th>ชื่อ</th><th>โซเชียล</th><th>รหัส</th><th>เช็คอิน</th><th></th></tr></thead><tbody>{show(rows.registrations, r => !r.checked_in_at).map(r => <tr key={r.id}><td>{String(r.number).padStart(3, '0')}</td><td>{r.nickname || r.name}<br /><small>{r.name}{r.phone ? ` · ${r.phone}` : ''}</small></td><td>{r.social || '—'}{r.kind && r.kind !== 'attend' && <small> · {r.kind}</small>}</td><td className="code">{r.code}{r.lineLinked ? <span className="mini-tag">LINE</span> : null}</td><td>{r.checked_in_at ? '✓' : '—'}</td><td className="actions">{!r.checked_in_at && <button className="button ghost small" onClick={() => act(`/admin/checkin/${r.code}`)}>เช็คอินให้</button>}</td></tr>)}</tbody></>}
+      {rows.bookings && <><thead><tr><th>รหัส</th><th>ชื่อ</th><th>ที่นั่ง</th><th>ยอด</th><th>สลิป</th><th>สถานะ</th><th></th></tr></thead><tbody>{paged(show(rows.bookings, b => b.status === 'pending')).map(b => <tr key={b.id}><td className="code">{b.code}</td><td>{b.name}<br /><small>{b.phone}</small></td><td>{b.seats.join(', ')}</td><td>{baht(b.amount)}</td><td>{b.slip_path ? <a href={b.slip_path} target="_blank" rel="noreferrer">ดูสลิป</a> : '—'}{b.verify_note && <><br /><small className={b.verified_at ? 'ok-text' : ''}>{b.verify_note}</small></>}</td><td>{b.status}{b.verified_at && <span className="mini-tag ok">auto</span>}</td><td className="actions">{b.status === 'pending' && <><button className="button dark small" onClick={() => act(`/admin/bookings/${b.id}/approve`)}>อนุมัติ</button><button className="link-button" onClick={() => act(`/admin/bookings/${b.id}/reject`)}>ปฏิเสธ</button></>}{b.status === 'paid' && <button className="button ghost small" onClick={() => act(`/admin/bookings/${b.id}/checkin`)}>เช็คอิน</button>}</td></tr>)}</tbody><tfoot><tr><td colSpan={7}><Pager total={show(rows.bookings, b => b.status === 'pending').length} page={page} setPage={setPage} /></td></tr></tfoot></>}
+      {rows.donations && view === 'donations' && (() => { const groups = show(groupDonations(rows.donations), g => g.status === 'pending').filter(g => !search || [g.key, g.donor_name, g.member_name, g.dedication, g.message].join(' ').toLowerCase().includes(search.toLowerCase())); const pendingIds = groups.filter(g => g.status === 'pending').map(g => g.ids[0]); return <><thead><tr><th><input type="checkbox" aria-label="เลือกทั้งหมด" checked={pendingIds.length > 0 && pendingIds.every(id => sel.includes(id))} onChange={e => setSel(e.target.checked ? pendingIds : [])} /></th><th>รหัส</th><th>ผู้ร่วมบุญ</th><th>รายการ</th><th>ยอดรวม</th><th>สลิป / ผลตรวจ</th><th>สถานะ</th><th></th></tr></thead><tbody>{paged(groups).map(g => <tr key={g.key}><td>{g.status === 'pending' && <input type="checkbox" checked={sel.includes(g.ids[0])} onChange={() => toggleSel(g.ids[0])} aria-label={`เลือก ${g.key}`} />}</td><td className="code">{g.key}{g.line_user_id && <span className="mini-tag">LINE</span>}<br /><small className="muted">{fmt(g.created_at)}</small></td><td>{g.donor_name}{g.dedication && <><br /><small>{g.dedication}</small></>}{g.message && <><br /><small>“{g.message}”</small></>}<br />{g.member_name ? <small className="member-link">👤 {g.member_name} <button type="button" className="link-button" onClick={() => assign(g, null)}>ปลด</button></small> : <button type="button" className="link-button small" onClick={() => setAssignFor(g)}>+ ผูกสมาชิก</button>}</td><td><ul className="don-items">{g.items.map(d => <li key={d.id}><span>{d.category}{d.units ? <small> · {d.units} {d.unit_name || 'หน่วย'}</small> : null}</span><b>{baht(d.amount)}</b></li>)}</ul>{g.items.length > 1 && <small className="muted">รวม {g.items.length} หมวด · โอนครั้งเดียว</small>}</td><td><strong>{baht(g.amount)}</strong></td><td>{g.slip_path ? <button type="button" className="slip-thumb" onClick={() => setSlipView(g)} aria-label={`ดูสลิป ${g.key}`}><img src={g.slip_path} alt="" loading="lazy" /><span>ดูสลิป</span></button> : '—'}{g.verify_note && <><br /><small className={g.verified_at ? 'ok-text' : ''}>{g.verify_note}</small></>}</td><td>{g.status}{g.verified_at && <span className="mini-tag ok">auto</span>}</td><td className="actions">{g.status === 'pending' && <><button className="button dark small" onClick={() => act(`/admin/donations/${g.ids[0]}/approve`)}>อนุมัติ</button><button className="link-button" onClick={() => act(`/admin/donations/${g.ids[0]}/reject`)}>ปฏิเสธ</button></>}</td></tr>)}</tbody><tfoot><tr><td colSpan={8}><Pager total={groups.length} page={page} setPage={setPage} /></td></tr></tfoot></>; })()}
+      {(rows.registrations || (rows.attend && view === 'registrations')) && (() => { const regs = rows.registrations || rows.attend; return <><thead><tr><th>#</th><th>ชื่อ</th><th>โซเชียล</th><th>รหัส</th><th>เช็คอิน</th><th></th></tr></thead><tbody>{paged(show(regs, r => !r.checked_in_at)).map(r => <tr key={r.id}><td>{String(r.number).padStart(3, '0')}</td><td>{r.nickname || r.name}<br /><small>{r.name}{r.phone ? ` · ${r.phone}` : ''}</small></td><td>{r.social || '—'}{r.kind && r.kind !== 'attend' && <small> · {r.kind}</small>}</td><td className="code">{r.code}{r.lineLinked ? <span className="mini-tag">LINE</span> : null}</td><td>{r.checked_in_at ? '✓' : '—'}</td><td className="actions">{!r.checked_in_at && <button className="button ghost small" onClick={() => act(`/admin/checkin/${r.code}`)}>เช็คอินให้</button>}</td></tr>)}</tbody><tfoot><tr><td colSpan={6}><Pager total={show(regs, r => !r.checked_in_at).length} page={page} setPage={setPage} /></td></tr></tfoot></>; })()}
     </table></div>}
+    {assignFor && <MemberPicker title={`ผูกรายการ ${assignFor.key} (${assignFor.donor_name}) กับสมาชิก`} onPick={m => assign(assignFor, m.id)} onClose={() => setAssignFor(null)} />}
+    {slipView && <Modal title={`สลิป ${slipView.key} · ${baht(slipView.amount)}`} wide onClose={() => setSlipView(null)}>
+      <img className="slip-full" src={slipView.slip_path} alt={`สลิปของ ${slipView.donor_name}`} />
+      <div className="detail-strip">{slipView.verify_note || 'ยังไม่ได้ตรวจอัตโนมัติ'}</div>
+      <div className="form-actions">
+        {slipView.status === 'pending' && <><button className="button dark small" onClick={() => { act(`/admin/donations/${slipView.ids[0]}/approve`); setSlipView(null); }}>อนุมัติ</button><button className="link-button" onClick={() => { act(`/admin/donations/${slipView.ids[0]}/reject`); setSlipView(null); }}>ปฏิเสธ</button></>}
+        <a className="link-button" href={slipView.slip_path} target="_blank" rel="noreferrer">เปิดไฟล์เต็ม ↗</a>
+      </div>
+    </Modal>}
   </div>;
 }
 

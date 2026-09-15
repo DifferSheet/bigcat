@@ -260,7 +260,10 @@
 .admin-table th { text-align: left; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); }
 .admin-table td { padding: 10px; border-bottom: 1px dashed var(--line); vertical-align: top; }
 .admin-table small { color: var(--muted); }
-.admin-table .actions { display: flex; gap: 8px; align-items: center; white-space: nowrap; }
+/* td ต้องคง display: table-cell ไม่งั้นเส้นคั่นแถวหาย — จัดปุ่มด้วยกล่องข้างใน */
+.admin-table .actions { white-space: nowrap; }
+.admin-table .actions > * { vertical-align: middle; }
+.admin-table .actions .button + .link-button, .admin-table .actions .link-button + .button { margin-left: 8px; }
 .admin-table .actions .button { margin: 0; }
 
 /* ---------- Responsive ---------- */
@@ -475,3 +478,19 @@
 .admin-table .thumb.round { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
 .admin-table .thumb.placeholder { display: inline-grid; place-items: center; background: var(--pink); color: #fff; font-weight: 700; }
 .admin-table.members td { vertical-align: middle; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 10px 0 4px; font-size: 13px; color: var(--muted); }
+.pager .button { margin: 0; }
+.don-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; min-width: 180px; }
+.don-items li { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.don-items li b { font-family: var(--font-display); font-weight: 600; }
+.admin-table .slip-thumb img { width: 48px; height: 64px; }
+.view-switch { display: flex; gap: 6px; margin-bottom: 10px; }
+.view-switch button { padding: 8px 14px; border-radius: var(--r-pill); background: var(--sand); font-size: 13px; font-weight: 600; }
+.view-switch button.active { background: var(--ink); color: #fff; }
+.member-pick { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow: auto; }
+.member-pick button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-sm); background: #fff; border: 1px solid var(--line); text-align: left; }
+.member-pick button:hover { border-color: var(--pink); background: var(--pink-wash); }
+.member-pick img, .member-pick .thumb { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.member-pick span { display: flex; flex-direction: column; font-size: 13px; }
+.member-link { color: var(--ok-text); }
+.link-button.small { font-size: 12px; padding: 2px 0; }

@@ -222,7 +222,7 @@ r.post('/checkin/:code', wrap(async (req, res) => {
 /* ---------- Donations ---------- */
 r.get('/events/:slug/donations', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
-  res.json(await q(`SELECT d.*, c.name AS category FROM donations d JOIN donation_categories c ON c.id=d.category_id WHERE d.event_id=? ORDER BY FIELD(d.status,'pending','approved','rejected'), d.created_at DESC`, [ev.id]));
+  res.json(await q(`SELECT d.*, c.name AS category, u.display_name AS member_name, u.avatar AS member_avatar FROM donations d JOIN donation_categories c ON c.id=d.category_id LEFT JOIN users u ON u.id=d.user_id WHERE d.event_id=? ORDER BY FIELD(d.status,'pending','approved','rejected'), d.created_at DESC`, [ev.id]));
 }));
 
 async function setDonationStatus(ids, status) {
@@ -244,6 +244,18 @@ async function setDonationStatus(ids, status) {
   }
   return rows;
 }
+
+// ผูกรายการทำบุญ (ทั้งกลุ่มที่โอนครั้งเดียว) เข้ากับสมาชิก — สำหรับคนที่ทำบุญก่อนแล้วค่อยสมัครทีหลัง · userId=null = ปลดออก
+r.post('/donations/:id/assign', wrap(async (req, res) => {
+  const d = await one('SELECT id, code, group_code FROM donations WHERE id=?', [Number(req.params.id)]);
+  if (!d) throw new HttpError(404, 'ไม่พบรายการ');
+  const userId = req.body.userId ? Number(req.body.userId) : null;
+  const user = userId ? await one('SELECT id, display_name, line_user_id FROM users WHERE id=?', [userId]) : null;
+  if (userId && !user) throw new HttpError(404, 'ไม่พบสมาชิก');
+  const key = d.group_code || d.code;
+  const r2 = await q('UPDATE donations SET user_id=?, line_user_id=COALESCE(line_user_id, ?) WHERE code=? OR group_code=?', [userId, user?.line_user_id || null, key, key]);
+  res.json({ ok: true, count: r2.affectedRows, member: user ? { id: user.id, display_name: user.display_name } : null });
+}));
 
 r.post('/donations/bulk', wrap(async (req, res) => {
   const status = { approve: 'approved', reject: 'rejected' }[req.body.action];
