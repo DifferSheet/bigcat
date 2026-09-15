@@ -1,9 +1,9 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from '../lib/nav.jsx';
-import QRCode from 'qrcode';
+import { drawQr } from '../lib/qr.js';
 import { SiteHeader, SiteFooter, LineNotify } from '../components/EventShell.jsx';
-import { Icon, Paw, PageLoader } from '../components/ui.jsx';
+import { Icon, Paw, PageLoader, Tag } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { eventDate, baht } from '../lib/format.js';
 import { drawMeritCertificate } from '../lib/merit-certificate.js';
@@ -14,7 +14,7 @@ const donationStatus = { pending: ['รอตรวจสอบ', 'muted'], appr
 // QR บนบัตรชี้ไปหน้าบัตรเอง /ticket/รหัส — แฟนสแกนเห็นบัตรตัวเอง · มือถือของพี่ ๆ ที่ล็อกอินแอดมินอยู่จะเห็นแถบ «ยืนยันเช็คอิน» ด้านบนบัตร (ไม่เปิดเผยพาธหน้าจัดการใน QR)
 function QR({ value }) {
   const ref = useRef(null);
-  useEffect(() => { if (ref.current) QRCode.toCanvas(ref.current, `${location.origin}/ticket/${value}`, { width: 180, margin: 1, color: { dark: '#33332f', light: '#ffffff' } }); }, [value]);
+  useEffect(() => { if (ref.current) drawQr(ref.current, `${location.origin}/ticket/${value}`, { size: 180 }); }, [value]);
   return <canvas ref={ref} className="qr" aria-label={`QR code ${value}`} />;
 }
 
@@ -52,7 +52,7 @@ function SelfCheckin({ item, onDone }) {
   const [error, setError] = useState('');
   if (item.checked_in_at) return null;
   if ((item.checkin_mode || 'self') === 'staff') return <p className="notice muted">ถึงหน้างานแล้วแสดง QR ด้านข้างให้พี่ ๆ ที่ดูแลสแกนเพื่อเช็คอิน</p>;
-  if (item.checkin_mode === 'gate') return <p className="notice muted">ถึงหน้างานแล้วสแกน QR ที่จุดเช็คอินด้วยกล้องมือถือ แล้วกด «เช็คอิน» — หรือแสดง QR ด้านข้างให้พี่ ๆ สแกนก็ได้</p>;
+  if (item.checkin_mode === 'gate') return <p className="notice muted">ถึงหน้างานแล้วสแกน QR ที่จุดเช็คอินด้วยกล้องมือถือ แล้วกด <Tag>เช็คอิน</Tag> — หรือแสดง QR ด้านข้างให้พี่ ๆ สแกนก็ได้</p>;
   // หน้าต่างเวลาเช็คอิน (ถ้าตั้ง) ตัดสินแทนสถานะ live
   const win = typeof item.checkin_window === 'string' ? JSON.parse(item.checkin_window || 'null') : item.checkin_window;
   const fmt = (ms) => new Date(ms).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
@@ -134,7 +134,7 @@ function CertificateButton({ item }) {
       {canShare && !isIOS && <button type="button" className="button ghost small" onClick={share}>แชร์</button>}
       {inLine && <a className="button ghost small" href={`${location.pathname}?openExternalBrowser=1`}>เปิดใน Safari / Chrome</a>}
     </div>
-    <p className="cert-hint">{inLine ? 'ถ้าบันทึกใน LINE ไม่ได้ กดค้างที่รูปแล้วเลือก «บันทึกรูปภาพ» หรือกด «เปิดใน Safari / Chrome» แล้วบันทึกจากที่นั่น' : 'ถ้าปุ่มไม่ทำงาน กดค้างที่รูปแล้วเลือก «บันทึกรูปภาพ» ได้เลย'}</p>
+    <p className="cert-hint">{inLine ? <>ถ้าบันทึกใน LINE ไม่ได้ กดค้างที่รูปแล้วเลือก <Tag>บันทึกรูปภาพ</Tag> หรือกด <Tag>เปิดใน Safari / Chrome</Tag> แล้วบันทึกจากที่นั่น</> : <>ถ้าปุ่มไม่ทำงาน กดค้างที่รูปแล้วเลือก <Tag>บันทึกรูปภาพ</Tag> ได้เลย</>}</p>
   </div>;
   return <><button className="button dark" onClick={make} disabled={busy}>{busy ? 'กำลังสร้างภาพ…' : 'สร้างใบอนุโมทนาเป็นภาพ (IG Story)'} <Icon name="heart" /></button>{error && <p className="notice error" role="alert">{error}</p>}</>;
 }

@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from '../lib/nav.jsx';
 import { SiteHeader, SiteFooter, Notice } from '../components/EventShell.jsx';
-import { Icon, Paw, PageLoader } from '../components/ui.jsx';
+import { Icon, Paw, PageLoader, Tag } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 
 const hhmm = (d) => new Date(d).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
@@ -75,7 +75,7 @@ export default function GateCheckin({ slug }) {
         ? <label>บัตรของคุณ<select value={code} onChange={e => setCode(e.target.value)}>{mine.map(m => <option key={m.code} value={m.code}>#{String(m.number).padStart(3, '0')} · {m.code}</option>)}</select></label>
         : mine.length === 1
           ? <p className="gate-code">รหัสบัตร <strong>{code}</strong> <button type="button" className="link-button" onClick={() => { setMine([]); setCode(''); }}>ไม่ใช่บัตรฉัน</button></p>
-          : <label>รหัสบัตร 8 ตัว <small>ดูได้ในหน้า «บัตรของฉัน» หรือข้อความ LINE</small><input value={code} onChange={e => setCode(e.target.value)} placeholder="เช่น A7K2P9XD" maxLength={12} autoCapitalize="characters" autoFocus /></label>}
+          : <label>รหัสบัตร 8 ตัว <small>ดูได้ในหน้า <Tag>บัตรของฉัน</Tag> หรือข้อความ LINE</small><input value={code} onChange={e => setCode(e.target.value)} placeholder="เช่น A7K2P9XD" maxLength={12} autoCapitalize="characters" autoFocus /></label>}
       <button className="button dark big" disabled={busy || !code.trim()}>{busy ? 'กำลังเช็คอิน…' : 'เช็คอิน'} <Icon name="check" /></button>
       {error && <Notice tone="error">{error}</Notice>}
       <p className="small-note">ระบบจะขอตำแหน่งของเครื่อง (ไม่ให้ก็เช็คอินได้) เพื่อช่วยทีมจัดงานดูภาพรวมหน้างาน</p>

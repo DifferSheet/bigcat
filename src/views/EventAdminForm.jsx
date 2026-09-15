@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import ImageStrip from '../components/ImageStrip.jsx';
 import { Notice } from '../components/EventShell.jsx';
-import { Icon } from '../components/ui.jsx';
+import { Icon, Tag } from '../components/ui.jsx';
 
 import { api } from '../lib/api.js';
 import { typeLabel } from '../lib/format.js';
@@ -13,7 +13,6 @@ const STATUSES = [['upcoming', 'เร็ว ๆ นี้ (ยังไม่�
 const TONES = [['pink', 'ชมพู'], ['yellow', 'เหลือง'], ['sage', 'เขียวอ่อน'], ['blue', 'ฟ้า']];
 // key ใน config ที่ฟอร์มมีช่องให้แล้ว — ที่เหลือไปอยู่ในกล่อง JSON ขั้นสูง
 const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs', 'gallery', 'milestones', 'report', 'seatMap', 'registerMode', 'checkinMode', 'checkinWindow'];
-const Tag = ({ children }) => <span className="tag-label">{children}</span>;
 const REWARD_TYPES = [['text', 'ข้อความ'], ['image', 'ภาพลับ'], ['link', 'ลิงก์ (Live / คลิป)'], ['poll', 'โหวต']];
 const newMilestone = (percent = 25) => ({ percent, title: '', reward: { type: 'text', body: '' } });
 
@@ -77,8 +76,8 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
   // + หน้าต่างเวลา (นาทีก่อน/หลังเวลาเริ่ม) ใช้กับ self และ gate — เว้นว่างทั้งคู่ = ไม่จำกัดเวลา (self จะดูจากสถานะ «กำลังจัด» แทน)
   const checkinPick = <>
     <fieldset className="mode-pick"><legend>เช็คอินหน้างาน</legend>
-      <label className="check"><input type="radio" name="checkinMode" checked={f.checkinMode === 'gate'} onChange={() => set('checkinMode', 'gate')} /> <span><strong>สแกน QR หน้างาน</strong> <small>วางมือถือโชว์จอ QR ที่จุดเช็คอิน (ปุ่ม «จอ QR เช็คอิน» ในหน้าจัดการ) QR เปลี่ยนทุก 45 วิ — ถ่ายรูปส่งต่อใช้ไม่ได้ · ไม่ต้องมีคนยืนสแกน</small></span></label>
-      <label className="check"><input type="radio" name="checkinMode" checked={f.checkinMode === 'self'} onChange={() => set('checkinMode', 'self')} /> <span><strong>กดเองได้</strong> <small>ปุ่ม «ฉันมาถึงแล้ว» บนบัตร/หน้างาน — กดจากที่ไหนก็ได้ เหมาะกับงานที่ไม่มีสิทธิ์พิเศษ</small></span></label>
+      <label className="check"><input type="radio" name="checkinMode" checked={f.checkinMode === 'gate'} onChange={() => set('checkinMode', 'gate')} /> <span><strong>สแกน QR หน้างาน</strong> <small>วางมือถือโชว์จอ QR ที่จุดเช็คอิน (ปุ่ม <Tag>จอ QR เช็คอิน</Tag> ในหน้าจัดการ) QR เปลี่ยนทุก 45 วิ — ถ่ายรูปส่งต่อใช้ไม่ได้ · ไม่ต้องมีคนยืนสแกน</small></span></label>
+      <label className="check"><input type="radio" name="checkinMode" checked={f.checkinMode === 'self'} onChange={() => set('checkinMode', 'self')} /> <span><strong>กดเองได้</strong> <small>ปุ่ม <Tag>ฉันมาถึงแล้ว</Tag> บนบัตร/หน้างาน — กดจากที่ไหนก็ได้ เหมาะกับงานที่ไม่มีสิทธิ์พิเศษ</small></span></label>
       <label className="check"><input type="radio" name="checkinMode" checked={f.checkinMode === 'staff'} onChange={() => set('checkinMode', 'staff')} /> <span><strong>ทีมงานสแกนเท่านั้น</strong> <small>ผู้เข้าร่วมแสดง QR บนบัตร พี่ ๆ สแกนด้วยมือถือที่ล็อกอิน — แน่นที่สุดแต่ต้องมีคนยืนสแกน</small></span></label>
     </fieldset>
     {f.checkinMode !== 'staff' && <div className="two">

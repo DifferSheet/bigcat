@@ -49,7 +49,10 @@ export function Modal({ title, children, onClose, wide = false }) {
 }
 
 
-// แปลงข้อความที่มี «คำ» ให้ «คำ» กลายเป็นป้าย tag (ใช้กับโน้ต/คำอธิบายที่มาจากฐานข้อมูล)
+// ป้ายชื่อปุ่ม/เมนู/ตัวเลือกในข้อความ JSX — ห้ามพิมพ์ « » ในหน้าเว็บตรง ๆ ให้ใช้ <Tag> แทน (ดู CLAUDE.md)
+export const Tag = ({ children }) => <span className="tag-label">{children}</span>;
+
+// ข้อความจากฐานข้อมูล/ไฟล์ข้อมูล (โน้ต · คำอธิบาย · ประวัติตัวละคร) ใช้ «คำ» เป็น markup → แสดงเป็นป้าย tag เหมือน <Tag>
 export function Tagged({ text }) {
   const parts = String(text || '').split(/«([^»]+)»/g);
   return <>{parts.map((p, i) => i % 2 ? <span key={i} className="tag-label">{p}</span> : p)}</>;

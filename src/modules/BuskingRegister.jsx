@@ -5,7 +5,7 @@ import { Link } from '../lib/nav.jsx';
 import { Section, Notice, LoginToRegister } from '../components/EventShell.jsx';
 import { PhoneInput } from '../components/forms.jsx';
 import { OPENCHAT } from '../components/Social.jsx';
-import { Icon } from '../components/ui.jsx';
+import { Icon, Tag } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 
 const myRegKey = (slug) => `bigcat-reg-${slug}`;
@@ -75,7 +75,7 @@ export default function BuskingRegister({ data }) {
             : staffScan
               ? <Notice tone="muted">ถึงหน้างานแล้วเปิดบัตรลงทะเบียน แสดง QR ให้พี่ ๆ ที่ดูแลสแกนเพื่อเช็คอินรับสิทธิ์ลุ้น Lucky Fan</Notice>
               : checkinMode === 'gate'
-                ? <Notice tone="muted">ถึงหน้างานแล้ว <strong>สแกน QR ที่จุดเช็คอิน</strong> ด้วยกล้องมือถือ แล้วกด «เช็คอิน» เพื่อรับสิทธิ์ลุ้น Lucky Fan{winText ? <> · เช็คอินได้ {winText} เท่านั้น มาช้ากว่านั้นดูโชว์ได้แต่ไม่ได้สิทธิ์ลุ้นนะคะ</> : null}</Notice>
+                ? <Notice tone="muted">ถึงหน้างานแล้ว <strong>สแกน QR ที่จุดเช็คอิน</strong> ด้วยกล้องมือถือ แล้วกด <Tag>เช็คอิน</Tag> เพื่อรับสิทธิ์ลุ้น Lucky Fan{winText ? <> · เช็คอินได้ {winText} เท่านั้น มาช้ากว่านั้นดูโชว์ได้แต่ไม่ได้สิทธิ์ลุ้นนะคะ</> : null}</Notice>
                 : isLive
                 ? <><p>มาถึงหน้างานแล้วใช่ไหม กดเช็คอินเพื่อรับสิทธิ์ลุ้น Lucky Fan</p><button className="button dark" onClick={checkin} disabled={busy}>ฉันมาถึงแล้ว <Icon name="check" /></button></>
                 : <Notice tone="muted">ปุ่มเช็คอินจะเปิดเมื่อถึงเวลางาน กลับมาที่หน้านี้อีกครั้งเมื่อมาถึง</Notice>}
