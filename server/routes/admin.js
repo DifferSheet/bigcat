@@ -3,14 +3,12 @@ import { q, one } from '../db.js';
 import { wrap, HttpError, getEvent, seatsOf, donationSummary, registrationSummary, drawsOf, reportOf, emit, gateToken, gateExpiresIn, GATE_TTL, checkinWindow } from '../lib.js';
 import { push, multicast, msg, lineEnabled } from '../line.js';
 import { upload } from './public.js';
-import { uploadMedia } from '../upload.js';
 
 const siteUrl = () => process.env.SITE_URL || 'http://localhost:5173';
 
 const r = Router();
 
 // เข้าสู่ระบบด้วยชื่อผู้ใช้/รหัสผ่าน (cookie) — ดู server/adminAuth.js · x-admin-key ยังใช้ได้กับสคริปต์
-import { syncStamps } from '../passport.js';
 import { requireAdmin, login, logout, me as adminMe, changePassword } from '../adminAuth.js';
 export { requireAdmin };
 r.post('/login', login);
@@ -20,26 +18,6 @@ r.use(requireAdmin);
 r.put('/password', changePassword);
 
 // สมาชิก (ผู้ที่เข้าสู่ระบบด้วย LINE/Google) + จำนวนรายการของแต่ละคน
-// passport: มอบสติกเกอร์ (ครบ 3 ดวง) — กดสลับได้
-r.post('/members/:id/sticker', wrap(async (req, res) => {
-  const u = await one('SELECT id, sticker_given_at FROM users WHERE id=?', [Number(req.params.id)]);
-  if (!u) throw new HttpError(404, 'ไม่พบสมาชิก');
-  await q('UPDATE users SET sticker_given_at=? WHERE id=?', [u.sticker_given_at ? null : new Date(), u.id]);
-  res.json({ ok: true, given: !u.sticker_given_at });
-}));
-
-// passport: เล่ม (season) — ชื่อ + ช่วงวัน งานที่อยู่ในช่วงจะถูกจัดเข้าเล่มนั้น
-r.get('/seasons', wrap(async (_req, res) => res.json(await q('SELECT * FROM seasons ORDER BY starts_on'))));
-r.post('/seasons', wrap(async (req, res) => {
-  const b = req.body || {};
-  const name = String(b.name || '').trim().slice(0, 80), starts_on = String(b.starts_on || '').slice(0, 10), ends_on = String(b.ends_on || '').slice(0, 10);
-  if (!name || !/^\d{4}-\d{2}-\d{2}$/.test(starts_on) || !/^\d{4}-\d{2}-\d{2}$/.test(ends_on)) throw new HttpError(400, 'ใส่ชื่อเล่มและช่วงวันให้ครบ');
-  if (b.id) await q('UPDATE seasons SET name=?, starts_on=?, ends_on=? WHERE id=?', [name, starts_on, ends_on, Number(b.id)]);
-  else await q('INSERT INTO seasons SET ?', [{ name, starts_on, ends_on }]);
-  res.json(await q('SELECT * FROM seasons ORDER BY starts_on'));
-}));
-r.delete('/seasons/:id', wrap(async (req, res) => { await q('DELETE FROM seasons WHERE id=?', [Number(req.params.id)]); res.json(await q('SELECT * FROM seasons ORDER BY starts_on')); }));
-
 r.get('/members', wrap(async (req, res) => {
   const qs = String(req.query.q || '').trim();
   const where = qs ? 'WHERE u.display_name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?' : '';
@@ -47,9 +25,7 @@ r.get('/members', wrap(async (req, res) => {
   const rows = await q(`SELECT u.id, u.provider, u.display_name, u.avatar, u.email, u.phone, u.address, u.created_at, u.last_login_at, u.line_user_id IS NOT NULL AS lineLinked,
       (SELECT COUNT(*) FROM orders o WHERE o.user_id=u.id) AS orders, (SELECT COALESCE(SUM(o.total),0) FROM orders o WHERE o.user_id=u.id AND o.status IN ('paid','packing','shipped','completed')) AS spent,
       (SELECT COUNT(*) FROM bookings b WHERE b.user_id=u.id) AS bookings, (SELECT COUNT(*) FROM donations d WHERE d.user_id=u.id AND d.status='approved') AS donations,
-      (SELECT COALESCE(SUM(d.amount),0) FROM donations d WHERE d.user_id=u.id AND d.status='approved') AS donated, (SELECT COUNT(*) FROM registrations r WHERE r.user_id=u.id) AS registrations,
-      (SELECT COUNT(*) FROM stamps s WHERE s.user_id=u.id) AS stamps, u.first_checkin_at, u.sticker_given_at, u.invited_by, (SELECT display_name FROM users i WHERE i.id=u.invited_by) AS invited_by_name,
-      (SELECT COUNT(*) FROM users f WHERE f.invited_by=u.id AND f.first_checkin_at IS NOT NULL) AS friends
+      (SELECT COALESCE(SUM(d.amount),0) FROM donations d WHERE d.user_id=u.id AND d.status='approved') AS donated, (SELECT COUNT(*) FROM registrations r WHERE r.user_id=u.id) AS registrations
     FROM users u ${where} ORDER BY u.created_at DESC LIMIT 500`, params);
   const [stats] = await q(`SELECT COUNT(*) AS total, SUM(provider='line') AS line, SUM(provider='google') AS google, SUM(line_user_id IS NOT NULL) AS linked, SUM(created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)) AS week FROM users`);
   res.json({ members: rows, stats });
@@ -140,14 +116,7 @@ r.get('/events/:slug/full', wrap(async (req, res) => {
   res.json({ ...ev, config, categories, counts: { bookings, donations, registrations } });
 }));
 
-const eventUploads = uploadMedia.fields([{ name: 'cover', maxCount: 1 }, { name: 'gallery', maxCount: 10 }, { name: 'stamp', maxCount: 1 }, { name: 'unlock', maxCount: 1 }]);
-// passport: ลายแสตมป์ของงาน (ภาพ) + เนื้อหาปลดล็อก (ภาพ/เสียง/ข้อความ) — ไฟล์ใหม่ทับของเดิม · ฟอร์มส่ง stamp:null เพื่อลบ
-const applyPassportFiles = (cfg, files) => {
-  if (files?.stamp?.[0]) cfg.stamp = { image: `/uploads/${files.stamp[0].filename}` };
-  if (files?.unlock?.[0]) cfg.unlock = { ...(cfg.unlock || {}), type: files.unlock[0].mimetype.startsWith('audio/') ? 'audio' : 'image', src: `/uploads/${files.unlock[0].filename}` };
-  if (cfg.unlock && !cfg.unlock.src && !cfg.unlock.text) delete cfg.unlock;
-  if (cfg.stamp === null) delete cfg.stamp;
-};
+const eventUploads = upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'gallery', maxCount: 10 }]);
 // แกลเลอรี = รูปเดิมที่ยังเก็บไว้ (payload.gallery) + ไฟล์ใหม่ที่อัปโหลด
 // ฟอร์มส่งลำดับภาพทั้งหมด (ปก = ภาพแรก): ค่าเป็น path เดิม หรือ 'file:<ลำดับไฟล์ใน gallery>' สำหรับไฟล์ใหม่
 const resolveImages = (p, files) => {
@@ -161,7 +130,6 @@ r.post('/events', eventUploads, wrap(async (req, res) => {
   const p = typeof req.body.payload === 'string' ? JSON.parse(req.body.payload) : req.body;
   const cfg = parseConfig(p.config); const imgs = resolveImages(p, req.files);
   if (imgs) { p.cover = imgs[0] || null; cfg.gallery = imgs.slice(1); } else cfg.gallery = mergeGallery(p, req.files);
-  applyPassportFiles(cfg, req.files);
   p.config = cfg;
   const row = eventRow(p, imgs ? null : req.files?.cover?.[0]);
   row.slug = slugify(p.slug || p.title, row.type, row.starts_at);
@@ -178,7 +146,6 @@ r.put('/events/:slug', eventUploads, wrap(async (req, res) => {
   const p = typeof req.body.payload === 'string' ? JSON.parse(req.body.payload) : req.body;
   const cfg = parseConfig(p.config); const imgs = resolveImages(p, req.files);
   if (imgs) { p.cover = imgs[0] || null; cfg.gallery = imgs.slice(1); } else cfg.gallery = mergeGallery(p, req.files);
-  applyPassportFiles(cfg, req.files);
   p.config = cfg;
   const row = eventRow(p, imgs ? null : req.files?.cover?.[0], cur);
   await q('UPDATE events SET ? WHERE id=?', [row, cur.id]);
@@ -238,11 +205,10 @@ r.post('/bookings/:id/:action', wrap(async (req, res) => {
 // เช็คอินด้วยรหัสบัตร (สแกน QR หน้างาน)
 // ยกเลิกเช็คอิน (กดพลาด/เช็คอินก่อนวันงาน) — คืนสถานะให้ลงทะเบียนแล้วแต่ยังไม่มา
 r.post('/registrations/:id/uncheckin', wrap(async (req, res) => {
-  const reg = await one('SELECT r.id, r.event_id, r.user_id, e.slug FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.id=?', [Number(req.params.id)]);
+  const reg = await one('SELECT r.id, r.event_id, e.slug FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.id=?', [Number(req.params.id)]);
   if (!reg) throw new HttpError(404, 'ไม่พบรายการ');
   await q('UPDATE registrations SET checked_in_at=NULL, checkin_via=NULL, checkin_lat=NULL, checkin_lng=NULL, checkin_acc=NULL WHERE id=?', [reg.id]);
   emit(reg.slug, 'registrations', await registrationSummary(reg.event_id));
-  if (reg.user_id) syncStamps(reg.user_id).catch(() => {});
   res.json({ ok: true });
 }));
 
@@ -270,11 +236,10 @@ r.post('/checkin/:code', wrap(async (req, res) => {
     await q(`UPDATE bookings SET status='checked_in' WHERE id=?`, [b.id]);
     return res.json({ kind: 'booking', name: b.name, seats: typeof b.seats === 'string' ? JSON.parse(b.seats) : b.seats });
   }
-  const reg = await one('SELECT r.id, r.name, r.number, r.checked_in_at, r.event_id, r.user_id, e.slug FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.code=?', [codeUp]);
+  const reg = await one('SELECT r.id, r.name, r.number, r.checked_in_at, r.event_id, e.slug FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.code=?', [codeUp]);
   if (!reg) throw new HttpError(404, 'ไม่พบรหัสนี้');
   if (!reg.checked_in_at) await q(`UPDATE registrations SET checked_in_at=UTC_TIMESTAMP(), checkin_via='staff' WHERE id=?`, [reg.id]);
   emit(reg.slug, 'registrations', await registrationSummary(reg.event_id));
-  if (reg.user_id) syncStamps(reg.user_id).catch(() => {});
   res.json({ kind: 'registration', name: reg.name, number: reg.number, already: !!reg.checked_in_at });
 }));
 
@@ -293,7 +258,6 @@ async function setDonationStatus(ids, status) {
   if (!rows.length) return [];
   await q('UPDATE donations SET status=? WHERE id IN (?)', [status, rows.map(r => r.id)]);
   for (const slug of new Set(rows.map(r => r.slug))) emit(slug, 'donations', await donationSummary(rows.find(r => r.slug === slug).event_id));
-  for (const u of await q('SELECT DISTINCT user_id FROM donations WHERE id IN (?) AND user_id IS NOT NULL', [rows.map(r => r.id)])) syncStamps(u.user_id).catch(() => {});   // แสตมป์ร่วมบุญ
   const notified = new Set();
   for (const d of rows) {
     if (!d.line_user_id) continue;
@@ -408,8 +372,7 @@ r.delete('/report/:id', wrap(async (req, res) => {
 /* ---------- Busking ---------- */
 r.get('/events/:slug/registrations', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
-  const rows = await q(`SELECT r.id, r.code, r.number, r.name, r.nickname, r.social, r.phone, r.kind, r.line_user_id, r.line_user_id IS NOT NULL AS lineLinked, r.checked_in_at, r.checkin_via, r.checkin_lat, r.checkin_lng, r.checkin_acc, r.created_at, r.user_id, u.display_name AS member_name,
-      (u.first_checkin_at IS NULL OR (SELECT MIN(x.checked_in_at) FROM registrations x WHERE x.user_id=u.id AND x.checked_in_at IS NOT NULL) >= COALESCE(r.checked_in_at, UTC_TIMESTAMP())) AS first_time, (SELECT display_name FROM users i WHERE i.id=u.invited_by) AS invited_by_name FROM registrations r LEFT JOIN users u ON u.id=r.user_id WHERE r.event_id=? ORDER BY r.number`, [ev.id]);
+  const rows = await q('SELECT r.id, r.code, r.number, r.name, r.nickname, r.social, r.phone, r.kind, r.line_user_id, r.line_user_id IS NOT NULL AS lineLinked, r.checked_in_at, r.checkin_via, r.checkin_lat, r.checkin_lng, r.checkin_acc, r.created_at, r.user_id, u.display_name AS member_name FROM registrations r LEFT JOIN users u ON u.id=r.user_id WHERE r.event_id=? ORDER BY r.number', [ev.id]);
   // ติดธง «ซ้ำ» ให้รายการที่มาทีหลัง เมื่อคนเดียวกันลงหลายครั้ง: บัญชีเดียวกัน / LINE เดียวกัน / เบอร์เดียวกัน / ชื่อ+ชื่อเล่นเดียวกัน (ตัดช่องว่าง ไม่สนตัวพิมพ์)
   const seen = new Map();
   const norm = (x) => String(x || '').replace(/\s+/g, '').toLowerCase();
@@ -449,9 +412,8 @@ r.post('/events/:slug/draw', wrap(async (req, res) => {
   const pick = pool[Math.floor(Math.random() * pool.length)];
   const round = done.length + 1;
   await q('INSERT INTO lucky_draws SET ?', [{ event_id: ev.id, round, registration_id: pick.id }]);
-  const winner = await one('SELECT line_user_id, user_id FROM registrations WHERE id=?', [pick.id]);
+  const winner = await one('SELECT line_user_id FROM registrations WHERE id=?', [pick.id]);
   if (winner?.line_user_id) push(winner.line_user_id, msg.luckyFan({ round })).catch(() => {});
-  if (winner?.user_id) syncStamps(winner.user_id).catch(() => {});
   const draws = await drawsOf(ev.id);
   emit(ev.slug, 'draw', { rounds, draws, latest: draws[draws.length - 1] });
   res.json({ rounds, draws, latest: draws[draws.length - 1] });

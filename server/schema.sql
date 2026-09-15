@@ -273,22 +273,3 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_session_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-
--- Passport: แสตมป์ที่สมาชิกสะสมจากการมางาน/ร่วมบุญ/ถูกสุ่ม — เพิ่ม 16 ก.ย. 2026 (ดู server/passport.js)
-CREATE TABLE IF NOT EXISTS stamps (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  event_id INT NOT NULL DEFAULT 0,            -- 0 = แสตมป์ที่ไม่ผูกงาน (พามาเจอ)
-  kind VARCHAR(16) NOT NULL,                  -- checkin · merit · lucky · tier · dayone · first · friend
-  meta JSON NULL,
-  earned_at DATETIME NOT NULL,
-  UNIQUE KEY uq_stamp (user_id, event_id, kind),
-  INDEX ix_stamp_event (event_id)
-);
-CREATE TABLE IF NOT EXISTS seasons (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(80) NOT NULL,
-  starts_on DATE NOT NULL,
-  ends_on DATE NOT NULL,
-  cover VARCHAR(300) NULL
-);

@@ -12,7 +12,7 @@ const TYPES = ['fanmeet', 'merit', 'busking', 'workshop', 'popup'];
 const STATUSES = [['upcoming', 'เร็ว ๆ นี้ (ยังไม่เปิด)'], ['open', 'เปิดรับ'], ['soldout', 'เต็ม'], ['live', 'กำลังจัด'], ['ended', 'จบแล้ว (ย้ายไปหมวดที่ผ่านมา)'], ['hidden', 'ซ่อน — ไม่แสดงบนเว็บเลย']];
 const TONES = [['pink', 'ชมพู'], ['yellow', 'เหลือง'], ['sage', 'เขียวอ่อน'], ['blue', 'ฟ้า']];
 // key ใน config ที่ฟอร์มมีช่องให้แล้ว — ที่เหลือไปอยู่ในกล่อง JSON ขั้นสูง
-const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs', 'gallery', 'milestones', 'report', 'seatMap', 'registerMode', 'checkinMode', 'checkinWindow', 'stamp', 'unlock', 'dayOne'];
+const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs', 'gallery', 'milestones', 'report', 'seatMap', 'registerMode', 'checkinMode', 'checkinWindow'];
 const REWARD_TYPES = [['text', 'ข้อความ'], ['image', 'ภาพลับ'], ['link', 'ลิงก์ (Live / คลิป)'], ['poll', 'โหวต']];
 const newMilestone = (percent = 25) => ({ percent, title: '', reward: { type: 'text', body: '' } });
 
@@ -34,7 +34,6 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
     payAccount: cfg.payment?.accountName || '', payPromptpay: cfg.payment?.promptpay || '',
     registerMode: cfg.registerMode || 'anyone', checkinMode: cfg.checkinMode || 'self',
     winBefore: cfg.checkinWindow?.before ?? '', winAfter: cfg.checkinWindow?.after ?? '',
-    dayOne: !!cfg.dayOne, unlockType: cfg.unlock?.type || 'text', unlockText: cfg.unlock?.text || '', unlockCaption: cfg.unlock?.caption || '',
     accountNote: cfg.report?.accountNote || '', excessPolicy: cfg.report?.excessPolicy || '', taxNote: cfg.report?.taxNote || '',
     seatRows: (cfg.seatMap?.rows || []).join(', '), seatCols: cfg.seatMap?.cols ?? 10, seatMax: cfg.seatMap?.maxPerBooking ?? 4, seatHold: cfg.seatMap?.holdMinutes ?? 10,
   });
@@ -45,10 +44,6 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
   const [cats, setCats] = useState(initial?.categories?.length ? initial.categories : [{ name: '', description: '', goal: '', unit_name: '', unit_price: '' }]);
   // ภาพทั้งหมดเรียงลำดับ — ภาพแรก = ปก · รายการเป็น path เดิม (string) หรือ File ใหม่
   const [images, setImages] = useState([initial?.cover, ...(cfg.gallery || [])].filter(Boolean));
-  // passport: ลายแสตมป์ + เนื้อหาปลดล็อก — เก็บ path เดิม หรือ File ใหม่ · null = ลบ
-  const [stamp, setStamp] = useState(cfg.stamp?.image || null);
-  const [unlockFile, setUnlockFile] = useState(null);
-  const unlockSrc = cfg.unlock?.src || null;
   const [milestones, setMilestones] = useState(cfg.milestones || []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -67,16 +62,11 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
       if (f.type === 'workshop' || f.type === 'popup') config.capacity = f.capacity === '' ? undefined : Number(f.capacity);
       if (f.type === 'merit') { config.donateUntil = f.donateUntil ? f.donateUntil.replace('T', ' ') + ':00' : undefined; config.attend = { enabled: !!f.attendEnabled, note: f.attendNote }; }
       if (f.type === 'merit' || f.type === 'fanmeet') config.payment = { ...(cfg.payment || {}), accountName: f.payAccount, promptpay: f.payPromptpay };
-      config.dayOne = !!f.dayOne || undefined;
-      config.stamp = stamp instanceof File ? (cfg.stamp || {}) : stamp ? { image: stamp } : null;
-      config.unlock = f.unlockType === 'text' ? (f.unlockText.trim() ? { type: 'text', text: f.unlockText.trim(), caption: f.unlockCaption } : undefined) : { ...(cfg.unlock?.type !== 'text' ? cfg.unlock : {}), type: f.unlockType, caption: f.unlockCaption, text: undefined };
       if (f.type === 'merit') config.milestones = milestones.filter(m => m.title).map(m => ({ ...m, percent: Number(m.percent) || 0 })).sort((a, b) => a.percent - b.percent);
       // ภาพ: path เดิมส่งเป็น string · ไฟล์ใหม่ส่งเป็น 'file:<i>' + แนบไฟล์ตามลำดับ
       const fd = new FormData(); const files = images.filter(x => x instanceof File);
       const payload = { ...f, config, images: images.map(x => x instanceof File ? `file:${files.indexOf(x)}` : x), categories: f.type === 'merit' ? cats.filter(c => c.name) : undefined };
       fd.append('payload', JSON.stringify(payload)); files.forEach(file => fd.append('gallery', file));
-      if (stamp instanceof File) fd.append('stamp', stamp);
-      if (unlockFile) fd.append('unlock', unlockFile);
       const r = await api(editing ? `/admin/events/${initial.slug}` : '/admin/events', { method: editing ? 'PUT' : 'POST', body: fd, admin: true });
       onSaved(r.slug);
     } catch (err) { setError(err.message); } finally { setBusy(false); }
@@ -175,21 +165,6 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
       <div className="cat-edit"><div className="ev-section-head"><span className="eyebrow">โซน / ราคา <small>— key = ตัวอักษรแถว หรือ default สำหรับแถวที่เหลือ</small></span><button type="button" className="link-button" onClick={() => setZones([...zones, { key: '', name: '', price: 0, perk: '' }])}>+ เพิ่มโซน</button></div>
         {zones.map((z, i) => { const setZ = (k, v) => setZones(zs => zs.map((x, j) => j === i ? { ...x, [k]: v } : x)); return <div key={i} className="zone-row"><input placeholder="A / default" value={z.key} onChange={e => setZ('key', e.target.value)} /><input placeholder="ชื่อโซน" value={z.name} onChange={e => setZ('name', e.target.value)} /><input type="number" min="0" placeholder="ราคา" value={z.price} onChange={e => setZ('price', e.target.value)} /><input placeholder="สิทธิพิเศษ" value={z.perk} onChange={e => setZ('perk', e.target.value)} /><button type="button" className="link-button" onClick={() => setZones(zones.filter((_, j) => j !== i))}>ลบ</button></div>; })}
       </div></>}
-
-    <h2>Passport</h2>
-    <p className="muted small">แสตมป์ที่สมาชิกได้เมื่อมางานนี้ (เช็คอิน/ร่วมบุญ) — 1 งาน 1 ลาย ไม่ออกซ้ำ · ถ้าไม่อัปโหลด ระบบวาดจากภาพปกให้</p>
-    <div className="two">
-      <label>ลายแสตมป์ <small>PNG โปร่งใส สี่เหลี่ยมจัตุรัส ≥ 600px</small>
-        <span className="stamp-pick">{stamp && <img src={stamp instanceof File ? URL.createObjectURL(stamp) : stamp} alt="" />}<input type="file" accept="image/*" onChange={e => { setStamp(e.target.files?.[0] || stamp); e.target.value = ''; }} />{stamp && <button type="button" className="link-button" onClick={() => setStamp(null)}>ใช้ภาพปกแทน</button>}</span></label>
-      <label className="check" style={{ alignSelf: 'end' }}><input type="checkbox" checked={!!f.dayOne} onChange={e => set('dayOne', e.target.checked)} /> <span><strong>งานเปิดตัว passport</strong> <small>คนที่มางานนี้ได้แสตมป์ Day One เพิ่ม (ติ๊กงานเดียว)</small></span></label>
-    </div>
-    <fieldset className="mode-pick"><legend>เนื้อหาปลดล็อก <small>— เห็นได้เฉพาะคนที่มีแสตมป์งานนี้ (ภาพหลังเวที · เสียงจากน้อง ๆ · โน้ตสั้น ๆ)</small></legend>
-      {['text', 'image', 'audio'].map(t => <label key={t} className="check"><input type="radio" name="unlockType" checked={f.unlockType === t} onChange={() => set('unlockType', t)} /> <span><strong>{{ text: 'ข้อความ', image: 'ภาพ', audio: 'เสียง' }[t]}</strong></span></label>)}
-    </fieldset>
-    {f.unlockType === 'text'
-      ? <label>ข้อความจากน้อง ๆ<textarea rows={3} value={f.unlockText} onChange={e => set('unlockText', e.target.value)} placeholder="เช่น คืนนี้โนร้องเพลงสุดท้ายทั้งน้ำตา ขอบคุณที่อยู่จนจบนะ" /></label>
-      : <label>ไฟล์{f.unlockType === 'audio' ? 'เสียง (mp3/m4a)' : 'ภาพ'} {unlockSrc && !unlockFile && <small>มีไฟล์เดิมอยู่ — เลือกใหม่เพื่อแทนที่</small>}<input type="file" accept={f.unlockType === 'audio' ? 'audio/*' : 'image/*'} onChange={e => { setUnlockFile(e.target.files?.[0] || null); }} /></label>}
-    <label>คำบรรยายใต้เนื้อหา<input value={f.unlockCaption} onChange={e => set('unlockCaption', e.target.value)} placeholder="เช่น หลังเวที 26 ก.ย. — ถ่ายโดยบูตะ" /></label>
 
     <details className="adv" open={other.length > 0}><summary>ตั้งค่าอื่น ๆ <small>({other.length} รายการ — สำหรับค่าที่ฟอร์มยังไม่มีช่องให้)</small></summary>
       <div className="json-blocks">

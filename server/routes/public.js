@@ -5,8 +5,6 @@ import { wrap, HttpError, code, getEvent, shapeEvent, eventDetail, seatsOf, dona
 import { verifySlip, slipEnabled } from '../slip.js';
 import { ownerFields, authProviders } from '../auth.js';
 import { lineEnabled, lineOaId, notifyStaff, push, msg } from '../line.js';
-import { syncStamps, attachInvite } from '../passport.js';
-import { parseCookies, setCookie } from '../auth.js';
 
 import { upload } from '../upload.js';
 export { upload };   // (ย้ายไป server/upload.js — คง re-export ให้ route อื่นที่ import จากที่นี่)
@@ -149,7 +147,7 @@ r.post('/events/:slug/donations', upload.single('slip'), wrap(async (req, res) =
     await q('INSERT INTO donations SET ?', [{ ...common, code: i === 0 ? groupCode : code(8), category_id: l.category.id, amount: l.amount, units: l.units, trans_ref: i === 0 ? (verify.transRef || null) : null }]);
   }
   const detail = lines.map(l => `${l.category.name}${l.units ? ` ${l.units} ${l.category.unit_name}` : ''} ฿${l.amount}`).join(' · ');
-  if (verify.ok) { emit(ev.slug, 'donations', await donationSummary(ev.id)); if (req.user) syncStamps(req.user.id).catch(() => {}); }
+  if (verify.ok) emit(ev.slug, 'donations', await donationSummary(ev.id));
   else notifyStaff(msg.staffNew('ยอดทำบุญ', ev.title, `${donor} · ฿${amount}\n${detail}\n${verify.note}`)).catch(() => {});
   res.json({ code: groupCode, status: verify.ok ? 'approved' : 'pending', autoApproved: verify.ok, note: verify.note, amount, items: lines.map(l => ({ category: l.category.name, units: l.units, amount: l.amount })) });
 }));
@@ -188,7 +186,6 @@ r.post('/events/:slug/registrations', wrap(async (req, res) => {
     const dup = await one('SELECT code, number FROM registrations WHERE event_id=? AND user_id=? AND kind=?', [ev.id, req.user.id, clean(req.body.kind, 20) || 'attend']);
     if (dup) return res.json({ ...dup, existing: true });
   }
-  if (req.user) await attachInvite(req, res, { parseCookies, setCookie }).catch(() => {});   // มาจากลิงก์ชวนเพื่อน → จำคนชวน
   const reg = await tx(async ({ q, one }) => {
     const n = await one('SELECT COALESCE(MAX(number),0)+1 AS next FROM registrations WHERE event_id=? FOR UPDATE', [ev.id]);
     const c = code(8);
@@ -230,8 +227,6 @@ r.post('/registrations/:code/checkin', wrap(async (req, res) => {
     const num = (v, max) => (Number.isFinite(Number(v)) && Math.abs(Number(v)) <= max ? Number(v) : null);
     await q('UPDATE registrations SET checked_in_at=UTC_TIMESTAMP(), checkin_via=?, checkin_lat=?, checkin_lng=?, checkin_acc=? WHERE id=?', [mode, num(g.lat, 90), num(g.lng, 180), g.acc != null ? Math.min(Math.round(Number(g.acc)) || 0, 99999) : null, reg.id]);
     emit(ev.slug, 'registrations', await registrationSummary(reg.event_id));
-    const owner = await one('SELECT user_id FROM registrations WHERE id=?', [reg.id]);
-    if (owner?.user_id) syncStamps(owner.user_id).catch(() => {});   // แสตมป์ passport
   }
   res.json({ ok: true, already, number: reg.number, name: reg.nickname || reg.name });
 }));

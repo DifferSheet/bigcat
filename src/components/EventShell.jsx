@@ -22,7 +22,7 @@ export function UserNav({ iconSize = 23 }) {
 }
 
 // แถบบน — โครงเดียวกันทุกหน้า (หน้าแรกส่ง links ของตัวเองมา) · มือถือมีปุ่มเมนู ≡ เปิดรายการลง
-const DEFAULT_NAV = [['หน้าแรก', '/'], ['ตารางงาน', '/events'], ['บัตรของฉัน', '/ticket/lookup'], ['Passport', '/passport']];
+const DEFAULT_NAV = [['หน้าแรก', '/'], ['ตารางงาน', '/events'], ['บัตรของฉัน', '/ticket/lookup']];
 export function SiteHeader({ live, links = DEFAULT_NAV, className = '' }) {
   const [menu, setMenu] = useState(false);
   useEffect(() => { if (!menu) return; const close = e => { if (e.key === 'Escape') setMenu(false); }; addEventListener('keydown', close); return () => removeEventListener('keydown', close); }, [menu]);

@@ -11,13 +11,3 @@ export const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => cb(null, /^image\//.test(file.mimetype)),
 });
-
-// ฟอร์มงาน: ภาพ + เสียง (เนื้อหาปลดล็อกใน passport อาจเป็นเสียงจากน้อง ๆ) — จำกัด 15 MB
-export const uploadMedia = multer({
-  storage: multer.diskStorage({
-    destination: path.join(process.cwd(), 'server', 'uploads'),
-    filename: (_req, file, cb) => cb(null, `${Date.now()}-${code(6)}${path.extname(file.originalname || '').toLowerCase() || '.bin'}`),
-  }),
-  limits: { fileSize: 15 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => cb(null, /^(image|audio)\//.test(file.mimetype)),
-});

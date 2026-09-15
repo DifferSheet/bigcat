@@ -272,14 +272,6 @@
 .gate-done p { color: #ffffffb3; }
 .gate-done .button { margin-top: 16px; color: #fff; border-color: #ffffff66; }
 .mini-tag.via { background: var(--sand-2); color: var(--muted); }
-.seasons { margin-bottom: 14px; }
-.season-row { display: flex; gap: 12px; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
-.season-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
-.season-form input { padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); font-size: 14px; }
-.season-form .button { margin: 0; }
-.stamp-pick { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.stamp-pick img { width: 64px; height: 64px; object-fit: contain; border-radius: 50%; background: #fff; border: 1px solid var(--line); }
-.stamp-pick input { flex: 1; min-width: 180px; }
 .checkin-stats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 0 0 10px; }
 .checkin-stats strong { color: var(--ink); }
 
