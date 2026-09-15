@@ -449,3 +449,19 @@
 .mode-pick legend { font-size: 13px; font-weight: 600; padding: 0 6px; }
 .mode-pick .check span { display: flex; flex-direction: column; gap: 1px; } .mode-pick .check small { font-weight: 400; color: var(--muted); }
 .login-gate a { color: var(--pink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+/* ทำบุญหลายหมวด */
+.cat-card { cursor: default; }
+.cat-pick { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.cat-pick input { width: 18px; height: 18px; accent-color: var(--ink); margin: 0; }
+.cat-input { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 13px; }
+.stepper.small button { width: 34px; height: 34px; font-size: 18px; }
+.stepper.small input { width: 52px !important; padding: 6px 0 !important; font-size: 14px; }
+.cat-input .amount-row input { width: 110px !important; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); font: inherit; font-size: 13px; }
+.cat-add { align-self: flex-start; margin-top: 8px; padding: 7px 12px; border-radius: var(--r-pill); background: var(--sand); font-size: 12px; font-weight: 600; }
+.cat-add:hover { background: var(--pink-tint); }
+.donate-summary { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: var(--r-md); background: var(--paper); border: 1px solid var(--line); }
+.donate-summary ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.donate-summary li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; font-size: 14px; }
+.donate-summary li strong { font-family: var(--font-display); }
+.donate-total { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px dashed var(--line); padding-top: 10px; font-size: 14px; }
+.donate-total strong { font-family: var(--font-display); font-size: 24px; }

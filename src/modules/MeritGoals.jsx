@@ -56,7 +56,9 @@ export default function MeritGoals({ data }) {
   const { categories = [], wall = [], total = 0, goal = 0, percent = 0, donors = 0 } = donations || {};
   const cfg = ev.config;
   const milestones = (cfg.milestones || []).map(normMilestone);
-  const [form, setForm] = useState({ categoryId: categories[0]?.id || '', units: 1, amount: 300, name: '', dedication: '', message: '', anonymous: false });
+  const [form, setForm] = useState({ name: '', dedication: '', message: '', anonymous: false });
+  // หมวดที่เลือก: { [categoryId]: { units } | { amount } } — เลือกได้หลายหมวด โอนครั้งเดียว
+  const [picked, setPicked] = useState({});
   const [slip, setSlip] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -71,16 +73,19 @@ export default function MeritGoals({ data }) {
   const deadline = cfg.donateUntil ? parseDate(cfg.donateUntil) : null;
   const closed = deadline ? deadline < new Date() : false;
   const open = ['open', 'live'].includes(ev.status) && !closed;
-  const cat = categories.find(c => String(c.id) === String(form.categoryId));
-  const amount = cat?.unit_price ? Number(form.units || 0) * cat.unit_price : Number(form.amount || 0);
-
-  useEffect(() => { if (!cat && categories[0]) setForm(f => ({ ...f, categoryId: categories[0].id })); }, [categories]);
+  const lineAmount = (c) => { const p = picked[c.id]; if (!p) return 0; return c.unit_price ? Number(p.units || 0) * c.unit_price : Number(p.amount || 0); };
+  const items = categories.filter(c => picked[c.id]);
+  const amount = items.reduce((s, c) => s + lineAmount(c), 0);
+  const toggle = (c) => setPicked(pk => { const next = { ...pk }; if (next[c.id]) delete next[c.id]; else next[c.id] = c.unit_price ? { units: 1 } : { amount: 300 }; return next; });
+  const setPick = (c, patch) => setPicked(pk => ({ ...pk, [c.id]: { ...pk[c.id], ...patch } }));
 
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setError('');
     try {
+      if (!items.length) throw new Error('กรุณาเลือกหมวดที่ต้องการทำบุญอย่างน้อย 1 หมวด');
       const fd = new FormData();
-      Object.entries({ ...form, amount }).forEach(([k, v]) => fd.append(k, v));
+      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+      fd.append('items', JSON.stringify(items.map(c => ({ categoryId: c.id, units: picked[c.id].units, amount: picked[c.id].amount }))));
       if (!slip) throw new Error('กรุณาแนบสลิปโอนเงิน');
       fd.append('slip', slip);
       setDone(await api(`/events/${ev.slug}/donations`, { method: 'POST', body: fd }));
@@ -116,17 +121,24 @@ export default function MeritGoals({ data }) {
 
     {/* ---------- หมวด (หน่วยของจริง) ---------- */}
     <Section eyebrow="CATEGORIES" title="ทำบุญตามหมวด">
+      <p className="muted small">เลือกได้หลายหมวด แล้วโอนรวมครั้งเดียวในฟอร์มด้านล่าง</p>
       <div className="cat-grid">{categories.map(c => {
         const pct = c.goal ? Math.min(100, Math.round(c.raised / c.goal * 100)) : 0;
-        return <button key={c.id} className={`cat-card ${String(form.categoryId) === String(c.id) ? 'active' : ''}`} onClick={() => { setForm({ ...form, categoryId: c.id }); document.getElementById('donate-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
-          <span className="eyebrow">{c.donors} คนร่วมบุญ</span><h3>{c.name}</h3><p>{c.description}</p>
+        const on = !!picked[c.id];
+        return <div key={c.id} className={`cat-card ${on ? 'active' : ''}`}>
+          <label className="cat-pick"><input type="checkbox" checked={on} onChange={() => toggle(c)} aria-label={`เลือกหมวด ${c.name}`} /><span className="eyebrow">{c.donors} คนร่วมบุญ</span></label>
+          <h3>{c.name}</h3><p>{c.description}</p>
           {c.goal > 0 && <div className="mini-bar"><i style={{ width: `${pct}%` }} /></div>}
           {c.unit_price
             ? <span className="cat-figures"><strong>{c.unitsDone}/{c.unitsGoal} {c.unit_name}</strong> · {c.unit_name}ละ {baht(c.unit_price)} · {pct}%</span>
             : c.goal > 0
               ? <span className="cat-figures"><strong>{baht(c.raised)}</strong> / {baht(c.goal)} · {pct}%</span>
               : <span className="cat-figures"><strong>{baht(c.raised)}</strong> · ตามศรัทธา</span>}
-        </button>;
+          {on && (c.unit_price
+            ? <div className="cat-input"><div className="stepper small"><button type="button" onClick={() => setPick(c, { units: Math.max(1, Number(picked[c.id].units) - 1) })} aria-label="ลด">−</button><input type="number" min="1" value={picked[c.id].units} onChange={e => setPick(c, { units: e.target.value })} aria-label={`จำนวน${c.unit_name}`} /><button type="button" onClick={() => setPick(c, { units: Number(picked[c.id].units) + 1 })} aria-label="เพิ่ม">+</button></div><span>{c.unit_name} = <strong>{baht(lineAmount(c))}</strong></span></div>
+            : <div className="cat-input"><div className="amount-row">{PRESETS.map(a => <button type="button" key={a} className={`chip ${Number(picked[c.id].amount) === a ? 'active' : ''}`} onClick={() => setPick(c, { amount: a })}>{baht(a)}</button>)}<input type="number" min="1" value={picked[c.id].amount} onChange={e => setPick(c, { amount: e.target.value })} aria-label="ยอดเงิน" placeholder="ระบุเอง" /></div></div>)}
+          {!on && open && <button type="button" className="cat-add" onClick={() => toggle(c)}>+ ร่วมบุญหมวดนี้</button>}
+        </div>;
       })}</div>
     </Section>
 
@@ -141,14 +153,12 @@ export default function MeritGoals({ data }) {
       </Section>
         : <Section eyebrow="DONATE" title="ร่วมทำบุญ">
           {!open ? <Notice tone="muted">{closed ? 'ปิดรับยอดออนไลน์แล้ว ขอบคุณทุกคนที่ร่วมบุญ พบกันที่วัด!' : 'ปิดรับยอดแล้ว ขอบคุณทุกคนที่ร่วมบุญ'}</Notice> : <form className="booking-form" onSubmit={submit}>
-            <label>หมวดที่ต้องการ<select id="dn-cat" value={form.categoryId} onChange={e => setForm({ ...form, categoryId: e.target.value })}>{categories.map(c => <option key={c.id} value={c.id}>{c.name}{c.unit_price ? ` (${c.unit_name}ละ ${baht(c.unit_price)})` : ''}</option>)}</select></label>
-            {cat?.unit_price
-              ? <div className="unit-row">
-                <span className="eyebrow">จำนวน{cat.unit_name}</span>
-                <div className="stepper"><button type="button" onClick={() => setForm({ ...form, units: Math.max(1, Number(form.units) - 1) })} aria-label="ลด">−</button><input id="dn-units" type="number" min="1" value={form.units} onChange={e => setForm({ ...form, units: e.target.value })} aria-label={`จำนวน${cat.unit_name}`} /><button type="button" onClick={() => setForm({ ...form, units: Number(form.units) + 1 })} aria-label="เพิ่ม">+</button></div>
-                <span className="unit-total">{form.units} {cat.unit_name} × {baht(cat.unit_price)} = <strong>{baht(amount)}</strong></span>
-              </div>
-              : <div className="amount-row">{PRESETS.map(a => <button type="button" key={a} className={`chip ${Number(form.amount) === a ? 'active' : ''}`} onClick={() => setForm({ ...form, amount: a })}>{baht(a)}</button>)}<input id="dn-amount" type="number" min="1" required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} aria-label="จำนวนเงิน" /></div>}
+            {items.length === 0
+              ? <Notice tone="muted">ยังไม่ได้เลือกหมวด — เลือกจากการ์ด <span className="tag-label">ทำบุญตามหมวด</span> ด้านบนได้หลายหมวด</Notice>
+              : <div className="donate-summary"><span className="eyebrow">รายการที่เลือก</span>
+                <ul>{items.map(c => <li key={c.id}><span>{c.name}{picked[c.id].units ? ` · ${picked[c.id].units} ${c.unit_name}` : ''}</span><strong>{baht(lineAmount(c))}</strong><button type="button" className="link-button" onClick={() => toggle(c)} aria-label={`เอา ${c.name} ออก`}>เอาออก</button></li>)}</ul>
+                <div className="donate-total"><span>ยอดโอนรวม</span><strong>{baht(amount)}</strong></div>
+              </div>}
             <div className="two">
               <label>ชื่อที่จะแสดง<input id="dn-name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="ชื่อ / นามแฝง" /></label>
               <label>ทำบุญในนาม / อุทิศให้ (ถ้ามี)<input id="dn-ded" value={form.dedication} onChange={e => setForm({ ...form, dedication: e.target.value })} placeholder="เช่น ในนามน้องส้ม, อุทิศให้น้องมะลิ" maxLength={160} /></label>

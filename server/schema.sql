@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS donations (
   verify_note VARCHAR(300) NULL,
   line_user_id VARCHAR(64) NULL,
   thanked_at DATETIME NULL,
+  group_code VARCHAR(16) NULL,
   status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_don_ref (trans_ref),

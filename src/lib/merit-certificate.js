@@ -82,9 +82,19 @@ function dateLabel(value) {
   return new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Bangkok' }).format(parsed);
 }
 
+export function certificateTierForAmount(value) {
+  const amount = Number(value);
+  if (!['number', 'string'].includes(typeof value) || String(value).trim() === '' || !Number.isFinite(amount) || amount < 0) {
+    throw new Error('ไม่พบยอดเงินที่ถูกต้อง กรุณาติดต่อทีมงาน');
+  }
+  return amount < 100 ? 1 : amount < 500 ? 2 : amount < 1000 ? 3 : 4;
+}
+
 export async function drawMeritCertificate(item, { onLayout } = {}) {
+  const tier = certificateTierForAmount(item.amount);
+  const amount = Number(item.amount);
   const [background, logo] = await Promise.all([
-    loadImage('/images/certificates/cream-gold-v1.webp'),
+    loadImage(tier === 1 ? '/images/certificates/cream-gold-v1.webp' : `/images/certificates/cream-gold-tier-${tier}-v1.webp`),
     loadImage('/images/bigcat-logo-ink.png'),
     loadFonts(),
   ]);
@@ -103,9 +113,8 @@ export async function drawMeritCertificate(item, { onLayout } = {}) {
   draw(item.anonymous ? 'ผู้ไม่ประสงค์ออกนาม' : item.donor_name, { y: 538, height: 126, size: 78, min: 24, family: HEAD, color: '#603b13' });
   draw(item.dedication ? `ในนาม / อุทิศให้ ${item.dedication}` : '', { y: 667, height: 47, size: 25, min: 16, maxLines: 1 });
   draw(item.title, { y: 741, height: 84, size: 34, min: 20 });
-  draw([item.units ? `${item.units} ${item.unit_name || ''}` : '', item.category].filter(Boolean).join(' · '), { y: 826, height: 51, size: 26, min: 16, maxLines: 1 });
-  const amount = Number(item.amount);
-  if (!Number.isFinite(amount) || amount < 0) throw new Error('ไม่พบยอดเงินที่ถูกต้อง กรุณาติดต่อทีมงาน');
+  const detail = item.items?.length ? item.items.map(i => `${i.category}${i.units ? ` ${i.units} ${i.unit_name || ''}` : ''}`).join(' · ') : [item.units ? `${item.units} ${item.unit_name || ''}` : '', item.category].filter(Boolean).join(' · ');
+  draw(detail, { y: 826, height: 51, size: 26, min: 16, maxLines: 1 });
   draw(`จำนวน ${amount.toLocaleString('th-TH', { maximumFractionDigits: 2 })} บาท`, { y: 875, height: 101, size: 63, min: 30, family: HEAD, gold: true, maxLines: 1 });
   draw(dateLabel(item.starts_at), { y: 969, height: 42, size: 27, maxLines: 1 });
   draw('ขอให้ความสุขที่คุณแบ่งปัน\nย้อนกลับมาเป็นความสุขก้อนใหญ่ ♡', { y: 1614, height: 133, size: 36, min: 26, width: 790 });

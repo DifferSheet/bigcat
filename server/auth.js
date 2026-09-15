@@ -10,6 +10,7 @@ import express from 'express';
 import { q, one } from './db.js';
 import { HttpError, wrap } from './lib.js';
 import { requirePhone } from './validate.js';
+import { upload } from './upload.js';
 
 const SITE = (process.env.SITE_URL || 'http://localhost:3100').replace(/\/$/, '');
 const COOKIE = 'bigcat_sid';
@@ -143,13 +144,21 @@ me.put('/', requireUser, wrap(async (req, res) => {
   res.json({ user: publicUser(await one('SELECT * FROM users WHERE id=?', [req.user.id])) });
 }));
 // ประวัติของฉัน — ทุกอย่างที่ทำตอนล็อกอินอยู่ (รายการที่ทำก่อนสมัครไม่ขึ้นที่นี่ ใช้ «บัตรของฉัน» ค้นด้วยรหัสได้เหมือนเดิม)
+// เปลี่ยนรูปประจำตัว (อัปโหลดเอง แทนรูปจาก LINE/Google)
+me.put('/avatar', requireUser, upload.single('avatar'), wrap(async (req, res) => {
+  if (!req.file) throw new HttpError(400, 'กรุณาเลือกรูป');
+  await q('UPDATE users SET avatar=? WHERE id=?', [`/uploads/${req.file.filename}`, req.user.id]);
+  res.json({ user: publicUser(await one('SELECT * FROM users WHERE id=?', [req.user.id])) });
+}));
+
 me.get('/activity', requireUser, wrap(async (req, res) => {
   const uid = req.user.id;
   const [orders, bookings, donations, registrations] = await Promise.all([
-    q('SELECT code, status, total, delivery, created_at FROM orders WHERE user_id=? ORDER BY created_at DESC LIMIT 50', [uid]),
-    q('SELECT b.code, b.status, b.seats, b.amount, b.created_at, e.title, e.slug, e.starts_at FROM bookings b JOIN events e ON e.id=b.event_id WHERE b.user_id=? ORDER BY b.created_at DESC LIMIT 50', [uid]),
-    q('SELECT d.code, d.status, d.amount, d.created_at, e.title, e.slug, c.name AS category FROM donations d JOIN events e ON e.id=d.event_id JOIN donation_categories c ON c.id=d.category_id WHERE d.user_id=? ORDER BY d.created_at DESC LIMIT 50', [uid]),
-    q('SELECT r.code, r.number, r.kind, r.checked_in_at, r.created_at, e.title, e.slug, e.starts_at FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.user_id=? ORDER BY r.created_at DESC LIMIT 50', [uid]),
+    q('SELECT o.code, o.status, o.total, o.delivery, o.created_at, (SELECT i.image FROM order_items i WHERE i.order_id=o.id ORDER BY i.id LIMIT 1) AS image, (SELECT COUNT(*) FROM order_items i WHERE i.order_id=o.id) AS itemCount FROM orders o WHERE o.user_id=? ORDER BY o.created_at DESC LIMIT 50', [uid]),
+    q('SELECT b.code, b.status, b.seats, b.amount, b.created_at, e.title, e.slug, e.starts_at, e.cover FROM bookings b JOIN events e ON e.id=b.event_id WHERE b.user_id=? ORDER BY b.created_at DESC LIMIT 50', [uid]),
+    // ทำบุญหลายหมวดครั้งเดียว → รวมเป็นรายการเดียวต่อกลุ่ม
+    q('SELECT COALESCE(d.group_code, d.code) AS code, MIN(d.status) AS status, SUM(d.amount) AS amount, MIN(d.created_at) AS created_at, e.title, e.slug, e.cover, GROUP_CONCAT(c.name ORDER BY d.id SEPARATOR " · ") AS category FROM donations d JOIN events e ON e.id=d.event_id JOIN donation_categories c ON c.id=d.category_id WHERE d.user_id=? GROUP BY COALESCE(d.group_code, d.code), e.title, e.slug, e.cover ORDER BY created_at DESC LIMIT 50', [uid]),
+    q('SELECT r.code, r.number, r.kind, r.checked_in_at, r.created_at, e.title, e.slug, e.starts_at, e.cover FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.user_id=? ORDER BY r.created_at DESC LIMIT 50', [uid]),
   ]);
   res.json({ orders, bookings: bookings.map(b => ({ ...b, seats: typeof b.seats === 'string' ? JSON.parse(b.seats) : b.seats })), donations, registrations });
 }));

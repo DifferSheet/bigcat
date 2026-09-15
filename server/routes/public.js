@@ -1,21 +1,13 @@
 import { Router } from 'express';
-import multer from 'multer';
 import { requirePhone } from '../validate.js';
-import path from 'node:path';
 import { q, one, tx } from '../db.js';
 import { wrap, HttpError, code, getEvent, shapeEvent, eventDetail, seatsOf, donationSummary, registrationSummary, drawsOf, songsOf, pollSummary, emit } from '../lib.js';
 import { verifySlip, slipEnabled } from '../slip.js';
 import { ownerFields, authProviders } from '../auth.js';
 import { lineEnabled, lineOaId, notifyStaff, push, msg } from '../line.js';
 
-export const upload = multer({
-  storage: multer.diskStorage({
-    destination: path.join(process.cwd(), 'server', 'uploads'),
-    filename: (_req, file, cb) => cb(null, `${Date.now()}-${code(6)}${path.extname(file.originalname || '').toLowerCase() || '.jpg'}`),
-  }),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => cb(null, /^image\//.test(file.mimetype)),
-});
+import { upload } from '../upload.js';
+export { upload };   // (ย้ายไป server/upload.js — คง re-export ให้ route อื่นที่ import จากที่นี่)
 
 const r = Router();
 const clean = (v, max = 200) => String(v ?? '').trim().slice(0, max);
@@ -123,25 +115,41 @@ r.post('/events/:slug/donations', upload.single('slip'), wrap(async (req, res) =
   if (!['open', 'live'].includes(ev.status)) throw new HttpError(400, 'กิจกรรมนี้ปิดรับแล้ว');
   // ปิดรับยอดออนไลน์ตามกำหนด (config.donateUntil) แยกจากวันงาน
   if (ev.config.donateUntil && new Date(String(ev.config.donateUntil).replace(' ', 'T')) < new Date()) throw new HttpError(400, 'ปิดรับยอดออนไลน์แล้ว');
-  const category = await one('SELECT id, unit_price, unit_name FROM donation_categories WHERE id=? AND event_id=?', [Number(req.body.categoryId), ev.id]);
-  if (!category) throw new HttpError(400, 'กรุณาเลือกหมวดที่ต้องการทำบุญ');
-  // หมวดที่มีหน่วยของจริง: ส่ง units มาแล้วคำนวณยอดจากราคาต่อหน่วย
-  const units = category.unit_price && req.body.units ? Math.max(1, Math.round(Number(req.body.units))) : null;
-  const amount = units ? units * category.unit_price : Math.round(Number(req.body.amount));
-  if (!(amount >= 1)) throw new HttpError(400, 'กรุณาระบุจำนวนเงิน');
+  // รายการที่เลือก: items = [{categoryId, units?, amount?}] (JSON) หรือแบบเดิม categoryId+units/amount รายการเดียว
+  let items = [];
+  try { items = req.body.items ? JSON.parse(req.body.items) : [{ categoryId: req.body.categoryId, units: req.body.units, amount: req.body.amount }]; } catch { throw new HttpError(400, 'รายการไม่ถูกต้อง'); }
+  if (!Array.isArray(items) || !items.length) throw new HttpError(400, 'กรุณาเลือกหมวดที่ต้องการทำบุญ');
+  const cats = await q('SELECT id, name, unit_price, unit_name FROM donation_categories WHERE event_id=?', [ev.id]);
+  const lines = [];
+  for (const it of items) {
+    const category = cats.find(c => c.id === Number(it.categoryId));
+    if (!category) throw new HttpError(400, 'กรุณาเลือกหมวดที่ต้องการทำบุญ');
+    if (lines.some(l => l.category.id === category.id)) continue;   // กันหมวดซ้ำ
+    // หมวดที่มีหน่วยของจริง: ส่ง units มาแล้วคำนวณยอดจากราคาต่อหน่วย
+    const units = category.unit_price && it.units ? Math.max(1, Math.round(Number(it.units))) : null;
+    const amount = units ? units * category.unit_price : Math.round(Number(it.amount));
+    if (!(amount >= 1)) throw new HttpError(400, `กรุณาระบุจำนวนเงินของหมวด ${category.name}`);
+    lines.push({ category, units, amount });
+  }
+  const amount = lines.reduce((s, l) => s + l.amount, 0);
   const donor = clean(req.body.name, 120) || 'ผู้ไม่ประสงค์ออกนาม';
   if (!req.file) throw new HttpError(400, 'กรุณาแนบสลิปโอนเงิน');
-  const verify = await verifySlip(req.file.path, { expectedAmount: amount });
-  const c = code(8);
-  await q('INSERT INTO donations SET ?', [{
-    code: c, event_id: ev.id, category_id: category.id, donor_name: donor, dedication: clean(req.body.dedication, 160) || null,
+  const verify = await verifySlip(req.file.path, { expectedAmount: amount });   // ตรวจครั้งเดียวกับยอดรวม
+  const groupCode = code(8);
+  const common = {
+    event_id: ev.id, donor_name: donor, dedication: clean(req.body.dedication, 160) || null,
     message: clean(req.body.message, 300) || null, anonymous: req.body.anonymous === '1' || req.body.anonymous === 'true' ? 1 : 0,
-    amount, units, slip_path: req.file ? `/uploads/${req.file.filename}` : null,
-    trans_ref: verify.transRef || null, verified_at: verify.verified ? new Date() : null, verify_note: verify.note, status: verify.ok ? 'approved' : 'pending', ...ownerFields(req),
-  }]);
+    slip_path: `/uploads/${req.file.filename}`, verified_at: verify.verified ? new Date() : null, verify_note: verify.note,
+    status: verify.ok ? 'approved' : 'pending', group_code: groupCode, ...ownerFields(req),
+  };
+  // trans_ref เก็บที่แถวแรกแถวเดียว (unique) — ใช้กันสลิปซ้ำ
+  for (const [i, l] of lines.entries()) {
+    await q('INSERT INTO donations SET ?', [{ ...common, code: i === 0 ? groupCode : code(8), category_id: l.category.id, amount: l.amount, units: l.units, trans_ref: i === 0 ? (verify.transRef || null) : null }]);
+  }
+  const detail = lines.map(l => `${l.category.name}${l.units ? ` ${l.units} ${l.category.unit_name}` : ''} ฿${l.amount}`).join(' · ');
   if (verify.ok) emit(ev.slug, 'donations', await donationSummary(ev.id));
-  else notifyStaff(msg.staffNew('ยอดทำบุญ', ev.title, `${donor} · ฿${amount}${units ? ` (${units} ${category.unit_name})` : ''}\n${verify.note}`)).catch(() => {});
-  res.json({ code: c, status: verify.ok ? 'approved' : 'pending', autoApproved: verify.ok, note: verify.note, amount });
+  else notifyStaff(msg.staffNew('ยอดทำบุญ', ev.title, `${donor} · ฿${amount}\n${detail}\n${verify.note}`)).catch(() => {});
+  res.json({ code: groupCode, status: verify.ok ? 'approved' : 'pending', autoApproved: verify.ok, note: verify.note, amount, items: lines.map(l => ({ category: l.category.name, units: l.units, amount: l.amount })) });
 }));
 
 // โหวตใน milestone (1 เสียง/เบราว์เซอร์ ต่อ poll)
@@ -156,9 +164,14 @@ r.post('/events/:slug/polls/:key/vote', wrap(async (req, res) => {
 }));
 
 r.get('/donations/:code', wrap(async (req, res) => {
-  const d = await one(`SELECT d.code, d.donor_name, d.dedication, d.message, d.anonymous, d.amount, d.units, d.status, d.verified_at, d.line_user_id IS NOT NULL AS lineLinked, d.created_at, c.name AS category, c.unit_name, e.title, e.slug, e.cover, e.starts_at, e.place, e.tone FROM donations d JOIN donation_categories c ON c.id=d.category_id JOIN events e ON e.id=d.event_id WHERE d.code=?`, [req.params.code.toUpperCase()]);
-  if (!d) throw new HttpError(404, 'ไม่พบรายการนี้');
-  res.json(d);
+  const codeUp = req.params.code.toUpperCase();
+  // แถวหลัก + แถวอื่นในกลุ่มเดียวกัน (ทำบุญหลายหมวดครั้งเดียว) → ตอบเป็นรายการเดียวพร้อม items และยอดรวม
+  const rows = await q(`SELECT d.code, d.group_code, d.donor_name, d.dedication, d.message, d.anonymous, d.amount, d.units, d.status, d.verified_at, d.line_user_id IS NOT NULL AS lineLinked, d.created_at, c.name AS category, c.unit_name, e.title, e.slug, e.cover, e.starts_at, e.place, e.tone
+    FROM donations d JOIN donation_categories c ON c.id=d.category_id JOIN events e ON e.id=d.event_id WHERE d.code=? OR d.group_code=? ORDER BY d.id`, [codeUp, codeUp]);
+  const main = rows.find(r => r.code === codeUp) || rows[0];
+  if (!main) throw new HttpError(404, 'ไม่พบรายการนี้');
+  const items = rows.map(r => ({ category: r.category, units: r.units, unit_name: r.unit_name, amount: r.amount }));
+  res.json({ ...main, code: codeUp, amount: rows.reduce((s, r) => s + r.amount, 0), category: items.map(i => i.category).join(' · '), items });
 }));
 
 /* ---------- Busking: ลงทะเบียน / เช็คอิน / Lucky Fan / ขอเพลง ---------- */

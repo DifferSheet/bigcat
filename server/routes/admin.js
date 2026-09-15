@@ -212,13 +212,19 @@ r.get('/events/:slug/donations', wrap(async (req, res) => {
 
 async function setDonationStatus(ids, status) {
   if (!ids.length) return [];
-  const rows = await q(`SELECT d.id, d.code, d.amount, d.line_user_id, d.event_id, c.name AS category, e.slug, e.title FROM donations d JOIN donation_categories c ON c.id=d.category_id JOIN events e ON e.id=d.event_id WHERE d.id IN (?)`, [ids]);
+  // ขยายไปทั้งกลุ่ม (ทำบุญหลายหมวดในครั้งเดียว) — สลิปเดียว ต้องผ่าน/ตกพร้อมกัน
+  const groups = (await q('SELECT DISTINCT group_code FROM donations WHERE id IN (?) AND group_code IS NOT NULL', [ids])).map(g => g.group_code);
+  if (groups.length) ids = [...new Set([...ids, ...(await q('SELECT id FROM donations WHERE group_code IN (?)', [groups])).map(r => r.id)])];
+  const rows = await q(`SELECT d.id, d.code, d.group_code, d.amount, d.line_user_id, d.event_id, c.name AS category, e.slug, e.title FROM donations d JOIN donation_categories c ON c.id=d.category_id JOIN events e ON e.id=d.event_id WHERE d.id IN (?)`, [ids]);
   if (!rows.length) return [];
   await q('UPDATE donations SET status=? WHERE id IN (?)', [status, rows.map(r => r.id)]);
   for (const slug of new Set(rows.map(r => r.slug))) emit(slug, 'donations', await donationSummary(rows.find(r => r.slug === slug).event_id));
+  const notified = new Set();
   for (const d of rows) {
     if (!d.line_user_id) continue;
-    const text = status === 'approved' ? msg.donationApproved({ ...d, url: `${siteUrl()}/ticket/${d.code}` }) : msg.donationRejected(d);
+    const key = d.group_code || d.code; if (notified.has(key)) continue; notified.add(key);   // กลุ่มเดียวแจ้งครั้งเดียว
+    const grp = rows.filter(r => (r.group_code || r.code) === key);
+    const text = status === 'approved' ? msg.donationApproved({ ...d, amount: grp.reduce((s, r) => s + r.amount, 0), category: grp.map(r => r.category).join(' · '), url: `${siteUrl()}/ticket/${key}` }) : msg.donationRejected({ ...d, code: key });
     push(d.line_user_id, text).catch(() => {});
   }
   return rows;

@@ -43,7 +43,8 @@ async function drawCertificate(item) {
   center(item.title, 1070, `400 36px ${F.body}`, '#8c7460');
   center(item.anonymous ? 'ผู้ไม่ประสงค์ออกนาม' : item.donor_name, 1200, `500 72px ${F.head}`, '#df8190');
   if (item.dedication) center(item.dedication, 1265, `400 40px ${F.body}`, '#8c7460');
-  const detail = `${item.units ? `${item.units} ${item.unit_name} · ` : ''}${item.category}`;
+  // หลายหมวดในครั้งเดียว → «ข้าวสาร + น้ำดื่ม 2 ชุด · อาสนะ» · หมวดเดียวเหมือนเดิม
+  const detail = item.items?.length ? item.items.map(i => `${i.category}${i.units ? ` ${i.units} ${i.unit_name}` : ''}`).join(' · ') : `${item.units ? `${item.units} ${item.unit_name} · ` : ''}${item.category}`;
   center(detail, 1380, `400 40px ${F.body}`);
   center(`฿${Number(item.amount).toLocaleString('th-TH')}`, 1500, `700 110px ${F.display}`, '#33332f');
   center('ขอให้ความสุขเล็ก ๆ ที่คุณส่งให้ ย้อนกลับมาเป็นความสุขก้อนใหญ่ ♡', 1600, `400 34px ${F.body}`, '#8c7460');

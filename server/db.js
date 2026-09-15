@@ -30,6 +30,8 @@ export async function migrate() {
   await admin.query(fs.readFileSync(path.join(here, 'schema.sql'), 'utf8'));
   // คอลัมน์ที่เพิ่มทีหลัง — MySQL ไม่มี ADD COLUMN IF NOT EXISTS จึงข้าม error 1060/1061 (ซ้ำ)
   const alters = [
+    // ทำบุญหลายหมวดในครั้งเดียว: แต่ละหมวดเป็นแถวของตัวเอง แต่ผูกกันด้วย group_code (= code ของแถวแรก) — เพิ่ม 15 ก.ย. 2026
+    "ALTER TABLE donations ADD COLUMN group_code VARCHAR(16) NULL, ADD INDEX ix_don_group (group_code)",
     // สถานะ hidden = ซ่อนจากเว็บทั้งหมด (แบบร่าง/ยกเลิก) — เพิ่ม 15 ก.ย. 2026
     "ALTER TABLE events MODIFY status ENUM('upcoming','open','soldout','live','ended','hidden') NOT NULL DEFAULT 'upcoming'",
     "ALTER TABLE donation_categories ADD COLUMN unit_name VARCHAR(40) NULL, ADD COLUMN unit_price INT NULL",
