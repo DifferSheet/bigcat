@@ -59,10 +59,18 @@ jobs:
             -e "ssh -i ~/.ssh/deploy_key" \
             release/ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/bigcat/
 
-      - name: Reload app
+      - name: Reload app (ล้าง ISR cache ของ build เก่าก่อน — ไม่งั้น Next เสิร์ฟ HTML เก่าที่ชี้ไป chunk ที่ถูกลบแล้ว หน้าเว็บจะไม่มี CSS)
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            'cd /var/www/bigcat && pm2 startOrReload ecosystem.config.cjs --update-env && pm2 save'
+          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} bash -s <<'REMOTE'
+            set -e
+            cd /var/www/bigcat
+            rm -rf .next/cache
+            find .next/server/app -type f \( -name '*.html' -o -name '*.rsc' -o -name '*.meta' -o -name '*.body' \) -newer package.json -delete 2>/dev/null || true
+            # เว็บ: สร้างโปรเซสใหม่ (ไม่ reload) ให้ in-memory cache หายแน่ ๆ · API: reload ตามเดิม
+            pm2 delete bigcat-web >/dev/null 2>&1 || true
+            pm2 startOrReload ecosystem.config.cjs --update-env
+            pm2 save
+          REMOTE
 
       - name: Health check (เว็บกับ API ต้องตอบ 200 หลัง reload ไม่งั้น deploy นี้ถือว่าล้ม)
         run: |
@@ -72,7 +80,14 @@ jobs:
               W=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/ || true)
               A=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/api/events || true)
               echo "try $i: web=$W api=$A"
-              [ "$W" = "200" ] && [ "$A" = "200" ] && exit 0
+              if [ "$W" = "200" ] && [ "$A" = "200" ]; then
+                # หน้า ISR ต้องอ้างไฟล์ CSS ที่มีอยู่จริงใน build นี้ (กัน HTML เก่าค้าง)
+                SLUG=$(curl -s http://127.0.0.1:3001/api/events | grep -oE '"slug":"[^"]+"' | head -1 | cut -d'"' -f4)
+                CSS=$(curl -s "http://127.0.0.1:3100/events/$SLUG" | grep -oE '/_next/static/[^"]+\.css' | head -1)
+                C=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3100$CSS" || true)
+                echo "event page css=$CSS → $C"
+                [ "$C" = "200" ] && exit 0
+              fi
               sleep 5
             done
             echo "::error::health check failed"; pm2 logs --lines 20 --nostream; exit 1
