@@ -6,9 +6,19 @@ let socket = null;
 // ต่อตรงไปที่ Express (Next rewrites ไม่ proxy WebSocket upgrade) — ตั้งค่าใน .env: NEXT_PUBLIC_API_ORIGIN
 const API = process.env.NEXT_PUBLIC_API_ORIGIN || '';
 
+// dev: ถ้า .env ชี้ localhost แต่เปิดหน้าเว็บจากเครื่องอื่นใน LAN (มือถือ → http://192.168.x.x:3100) ให้ต่อ socket ไปที่ IP เดียวกับหน้าเว็บแทน
+function apiOrigin() {
+  if (!API || typeof location === 'undefined') return API;
+  try {
+    const u = new URL(API), local = (h) => h === 'localhost' || h === '127.0.0.1';
+    if (local(u.hostname) && !local(location.hostname)) { u.hostname = location.hostname; return u.origin; }
+  } catch { /* ค่าไม่ใช่ URL — ใช้ตามเดิม */ }
+  return API;
+}
+
 // ใช้ socket เดียวทั้งแอป — เชื่อมต่อครั้งแรกเมื่อมีหน้าที่ต้องการ realtime
 export function getSocket() {
-  if (!socket) socket = API ? io(API, { transports: ['websocket', 'polling'] }) : io({ transports: ['websocket', 'polling'] });
+  if (!socket) { const origin = apiOrigin(); socket = origin ? io(origin, { transports: ['websocket', 'polling'] }) : io({ transports: ['websocket', 'polling'] }); }
   return socket;
 }
 
