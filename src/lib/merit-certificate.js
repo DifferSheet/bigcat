@@ -85,7 +85,7 @@ function dateLabel(value) {
 export function certificateTierForAmount(value) {
   const amount = Number(value);
   if (!['number', 'string'].includes(typeof value) || String(value).trim() === '' || !Number.isFinite(amount) || amount < 0) {
-    throw new Error('ไม่พบยอดเงินที่ถูกต้อง กรุณาติดต่อทีมงาน');
+    throw new Error('ไม่พบยอดเงินที่ถูกต้อง กรุณาแจ้งแอดมิน');
   }
   return amount < 100 ? 1 : amount < 500 ? 2 : amount < 1000 ? 3 : 4;
 }
@@ -94,7 +94,7 @@ export async function drawMeritCertificate(item, { onLayout } = {}) {
   const tier = certificateTierForAmount(item.amount);
   const amount = Number(item.amount);
   const [background, logo] = await Promise.all([
-    loadImage(tier === 1 ? '/images/certificates/cream-gold-v1.webp' : `/images/certificates/cream-gold-tier-${tier}-v1.webp`),
+    loadImage(tier === 1 ? '/images/certificates/cream-gold-v1.webp' : `/images/certificates/cream-gold-tier-${tier}-${tier === 3 ? 'v2' : 'v3'}.webp`),
     loadImage('/images/bigcat-logo-ink.png'),
     loadFonts(),
   ]);
