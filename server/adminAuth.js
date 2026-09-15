@@ -32,10 +32,22 @@ export const requireAdmin = wrap(async (req, _res, next) => {
   req.admin = admin; next();
 });
 
+// กันเดารหัสผ่าน: ผิดเกิน MAX_FAILS ครั้งต่อ IP ภายใน FAIL_WINDOW → ปฏิเสธ 429 จนกว่าจะพ้นช่วง (เก็บใน memory · รีสตาร์ต API = เริ่มนับใหม่)
+const MAX_FAILS = 8, FAIL_WINDOW = 15 * 60e3;
+const fails = new Map();   // ip → { n, until }
+const clientIp = (req) => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '?';
+
 export const login = wrap(async (req, res) => {
+  const ip = clientIp(req), f = fails.get(ip);
+  if (f && f.n >= MAX_FAILS && Date.now() < f.until) throw new HttpError(429, `ใส่รหัสผิดหลายครั้ง ลองใหม่ได้อีก ${Math.ceil((f.until - Date.now()) / 60e3)} นาที`);
   const username = String(req.body.username || '').trim().toLowerCase(), password = String(req.body.password || '');
   const admin = await one('SELECT * FROM admins WHERE username=?', [username]);
-  if (!admin || !checkPassword(password, admin.password_hash)) throw new HttpError(401, 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+  if (!admin || !checkPassword(password, admin.password_hash)) {
+    const cur = f && Date.now() < f.until ? f : { n: 0 };
+    fails.set(ip, { n: cur.n + 1, until: Date.now() + FAIL_WINDOW });
+    throw new HttpError(401, 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+  }
+  fails.delete(ip);
   const token = crypto.randomBytes(32).toString('base64url');
   await q('INSERT INTO admin_sessions SET ?', [{ token_hash: hash(token), admin_id: admin.id, expires_at: new Date(Date.now() + HOURS * 3600e3) }]);
   await q('UPDATE admins SET last_login_at=UTC_TIMESTAMP() WHERE id=?', [admin.id]);

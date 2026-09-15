@@ -11,11 +11,39 @@ import { drawMeritCertificate } from '../lib/merit-certificate.js';
 const bookingStatus = { pending: ['รอตรวจสอบสลิป', 'muted'], paid: ['ชำระแล้ว · ใช้เข้างานได้', 'open'], rejected: ['ไม่ผ่านการตรวจสอบ', 'full'], checked_in: ['เช็คอินแล้ว', 'live'] };
 const donationStatus = { pending: ['รอตรวจสอบ', 'muted'], approved: ['ยืนยันแล้ว', 'open'], rejected: ['ไม่ผ่านการตรวจสอบ', 'full'] };
 
-// QR บนบัตรชี้ไป /admin?checkin=รหัส — พี่ ๆ หน้างานสแกนด้วยกล้องมือถือปกติ เปิดหน้าจัดการแล้วกดยืนยันได้เลย (หน้า /admin ยังพิมพ์รหัสตรง ๆ ได้)
+// QR บนบัตรชี้ไปหน้าบัตรเอง /ticket/รหัส — แฟนสแกนเห็นบัตรตัวเอง · มือถือของพี่ ๆ ที่ล็อกอินแอดมินอยู่จะเห็นแถบ «ยืนยันเช็คอิน» ด้านบนบัตร (ไม่เปิดเผยพาธหน้าจัดการใน QR)
 function QR({ value }) {
   const ref = useRef(null);
-  useEffect(() => { if (ref.current) QRCode.toCanvas(ref.current, `${location.origin}/admin?checkin=${value}`, { width: 180, margin: 1, color: { dark: '#33332f', light: '#ffffff' } }); }, [value]);
+  useEffect(() => { if (ref.current) QRCode.toCanvas(ref.current, `${location.origin}/ticket/${value}`, { width: 180, margin: 1, color: { dark: '#33332f', light: '#ffffff' } }); }, [value]);
   return <canvas ref={ref} className="qr" aria-label={`QR code ${value}`} />;
+}
+
+// แถบทีมงาน — โผล่เฉพาะเครื่องที่มี session แอดมิน (สแกน QR ด้วยแอปกล้อง → เปิดหน้านี้ → กดยืนยันได้เลย)
+function StaffCheckin({ item, onDone }) {
+  const [t, setT] = useState(null);      // ข้อมูลบัตรจาก /admin/checkin/:code (ยังไม่เช็คอิน)
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);  // { ok, text }
+  useEffect(() => { setT(null); setMsg(null); api('/admin/me').then(() => api(`/admin/checkin/${item.code}`, { admin: true })).then(setT).catch(() => {}); }, [item.code]);
+  if (!t) return null;
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+  const eventDay = t.starts_at ? new Date(t.starts_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }) : today;
+  const unpaid = t.kind === 'booking' && !t.already && t.status !== 'paid';
+  const go = async () => {
+    setBusy(true);
+    try { const r = await api(`/admin/checkin/${item.code}`, { method: 'POST', admin: true }); setMsg({ ok: true, text: r.already ? 'บัตรนี้เช็คอินไปแล้ว' : 'เช็คอินสำเร็จ ✓' }); setT({ ...t, already: true }); onDone(); }
+    catch (e) { setMsg({ ok: false, text: e.message }); } finally { setBusy(false); }
+  };
+  return <div className="staff-checkin">
+    <div className="grow"><span className="eyebrow">โหมดทีมงาน · {t.title}</span><strong>{t.nickname || t.name}{t.kind === 'booking' ? ` · ที่นั่ง ${(t.seats || []).join(', ')}` : ` · #${String(t.number).padStart(3, '0')}`}</strong>
+      {msg ? <small>{msg.text}</small>
+        : t.already ? <small>เช็คอินไปแล้ว{t.checked_in_at ? ` เมื่อ ${new Date(t.checked_in_at).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'short', timeStyle: 'short' })}` : ''}</small>
+          : unpaid ? <small>ยังไม่ได้ยืนยันการชำระเงิน ({t.status}) — เช็คอินไม่ได้</small>
+            : eventDay !== today ? <small>⚠ วันนี้ยังไม่ใช่วันงาน ({new Date(t.starts_at).toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium' })})</small>
+              : <small>ตรวจชื่อแล้วกดยืนยัน</small>}
+    </div>
+    {!t.already && !unpaid && !msg?.ok && <button className="button light" onClick={go} disabled={busy}>ยืนยันเช็คอิน <Icon name="check" /></button>}
+    <Link className="staff-link" to="/admin">หน้าจัดการ</Link>
+  </div>;
 }
 
 // เช็คอินด้วยตัวเองบนบัตร (งานที่ตั้ง checkinMode = self) — เปิดเมื่องานกำลังจัด
@@ -132,7 +160,8 @@ export default function TicketPage({ code }) {
     const { kind, item } = state;
     const d = item.starts_at ? eventDate(item) : null;
     const [label, tone] = kind === 'booking' ? bookingStatus[item.status] : kind === 'donation' ? donationStatus[item.status] : item.checked_in_at ? ['เช็คอินแล้ว', 'live'] : ['ลงทะเบียนแล้ว', 'open'];
-    return <article className={`ticket tone-${item.tone || 'pink'}`}>
+    const reload = () => lookup(item.code).then(r => setState(r)).catch(() => {});
+    return <>{kind !== 'donation' && <StaffCheckin item={item} onDone={reload} />}<article className={`ticket tone-${item.tone || 'pink'}`}>
       <div className="ticket-main">
         <span className="eyebrow">{kind === 'booking' ? 'E-TICKET' : kind === 'donation' ? 'ใบอนุโมทนาบัตร' : 'REGISTRATION'}</span>
         <h1>{item.title}</h1>
@@ -145,7 +174,7 @@ export default function TicketPage({ code }) {
         </dl>
         {kind === 'donation' && item.status === 'approved' && <><p className="blessing">ขออนุโมทนาบุญ ขอให้ความสุขเล็กๆ ที่คุณส่งให้ ย้อนกลับมาหาคุณเป็นความสุขก้อนใหญ่ ♡</p><CertificateButton item={item} /></>}
         {kind === 'donation' && item.status === 'pending' && <p className="muted">เมื่อยอดได้รับการยืนยัน จะสร้างใบอนุโมทนาเป็นภาพได้จากหน้านี้</p>}
-        {kind === 'registration' && <SelfCheckin item={item} onDone={() => lookup(item.code).then(r => setState(r)).catch(() => {})} />}
+        {kind === 'registration' && <SelfCheckin item={item} onDone={reload} />}
         <LineNotify code={item.code} linked={!!item.lineLinked} />
         {kind === 'booking' && item.status === 'pending' && <p className="muted">กำลังตรวจสอบสลิป เมื่อยืนยันแล้วสถานะจะเปลี่ยนเป็น "ชำระแล้ว" และ QR ใช้เข้างานได้</p>}
         <div className="form-actions"><Link className="button ghost" to={`/events/${item.slug}`}>ไปหน้ากิจกรรม</Link><button className="button ghost" onClick={() => window.print()}>พิมพ์ / บันทึก</button></div>
@@ -155,7 +184,7 @@ export default function TicketPage({ code }) {
         <strong className="code">{item.code}</strong>
         <Paw />
       </div>
-    </article>;
+    </article></>;
   };
 
   return <><SiteHeader /><main className="ev-page narrow">{body()}</main><SiteFooter /></>;

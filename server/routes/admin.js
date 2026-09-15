@@ -213,7 +213,7 @@ r.post('/registrations/:id/uncheckin', wrap(async (req, res) => {
 }));
 
 // รหัสบัตรอาจมาเป็น URL จาก QR (https://…/admin?checkin=XXXXXXXX) — ดึงเฉพาะรหัส 8 ตัว
-const ticketCode = (raw) => { const m = String(raw || '').match(/checkin=([A-Za-z0-9]{6,12})/) || String(raw || '').trim().match(/^([A-Za-z0-9]{6,12})$/); return m ? m[1].toUpperCase() : ''; };
+const ticketCode = (raw) => { const m = String(raw || '').match(/(?:checkin=|\/ticket\/)([A-Za-z0-9]{6,12})/) || String(raw || '').trim().match(/^([A-Za-z0-9]{6,12})$/); return m ? m[1].toUpperCase() : ''; };
 
 // ดูข้อมูลบัตรก่อนกดยืนยัน (มือถือสแกน QR → การ์ดยืนยัน) — ไม่แก้อะไร
 r.get('/checkin/:code', wrap(async (req, res) => {
@@ -372,7 +372,26 @@ r.delete('/report/:id', wrap(async (req, res) => {
 /* ---------- Busking ---------- */
 r.get('/events/:slug/registrations', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
-  res.json(await q('SELECT r.id, r.code, r.number, r.name, r.nickname, r.social, r.phone, r.kind, r.line_user_id IS NOT NULL AS lineLinked, r.checked_in_at, r.created_at, r.user_id, u.display_name AS member_name FROM registrations r LEFT JOIN users u ON u.id=r.user_id WHERE r.event_id=? ORDER BY r.number', [ev.id]));
+  const rows = await q('SELECT r.id, r.code, r.number, r.name, r.nickname, r.social, r.phone, r.kind, r.line_user_id, r.line_user_id IS NOT NULL AS lineLinked, r.checked_in_at, r.created_at, r.user_id, u.display_name AS member_name FROM registrations r LEFT JOIN users u ON u.id=r.user_id WHERE r.event_id=? ORDER BY r.number', [ev.id]);
+  // ติดธง «ซ้ำ» ให้รายการที่มาทีหลัง เมื่อคนเดียวกันลงหลายครั้ง: บัญชีเดียวกัน / LINE เดียวกัน / เบอร์เดียวกัน / ชื่อ+ชื่อเล่นเดียวกัน (ตัดช่องว่าง ไม่สนตัวพิมพ์)
+  const seen = new Map();
+  const norm = (x) => String(x || '').replace(/\s+/g, '').toLowerCase();
+  for (const r of [...rows].sort((a, b) => a.number - b.number)) {
+    const keys = [r.user_id && `u:${r.user_id}:${r.kind}`, r.line_user_id && `l:${r.line_user_id}:${r.kind}`, r.phone && `p:${r.phone.replace(/\D/g, '')}:${r.kind}`, norm(r.name) && `n:${norm(r.name)}|${norm(r.nickname)}:${r.kind}`].filter(Boolean);
+    const first = keys.map(k => seen.get(k)).find(Boolean);
+    if (first) r.duplicate_of = first; else keys.forEach(k => seen.set(k, r.number));
+    delete r.line_user_id;
+  }
+  res.json(rows);
+}));
+
+// ลบการลงทะเบียน (ซ้ำ/ลงเล่น) — lucky_draws ลบตาม (FK cascade)
+r.delete('/registrations/:id', wrap(async (req, res) => {
+  const reg = await one('SELECT r.id, r.event_id, e.slug FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.id=?', [Number(req.params.id)]);
+  if (!reg) throw new HttpError(404, 'ไม่พบรายการ');
+  await q('DELETE FROM registrations WHERE id=?', [reg.id]);
+  emit(reg.slug, 'registrations', await registrationSummary(reg.event_id));
+  res.json({ ok: true });
 }));
 
 // สุ่ม Lucky Fan จากคนที่เช็คอินแล้วและยังไม่เคยได้
