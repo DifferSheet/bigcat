@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from '../lib/nav.jsx';
 import { SiteHeader, SiteFooter, StatusPill } from '../components/EventShell.jsx';
-import { Icon, PageLoader } from '../components/ui.jsx';
+import { Icon, PageLoader, Paw } from '../components/ui.jsx';
+import { SOCIALS } from '../components/Social.jsx';
 import { api } from '../lib/api.js';
 import { eventDate, typeLabel, baht } from '../lib/format.js';
 
@@ -53,7 +54,7 @@ export default function EventsPage({ notFound = false, initialEvents = null }) {
       {!events && !error && <PageLoader />}
       {events && <>
         <div className="ev-grid">{upcoming.map(ev => <Card key={ev.slug} ev={ev} />)}</div>
-        {upcoming.length === 0 && <p className="small-note">ยังไม่มีนัดในหมวดนี้</p>}
+        {upcoming.length === 0 && <div className="ev-empty"><Paw /><strong>ยังไม่มีนัดในหมวดนี้</strong><p>พวกเรากำลังเตรียมอยู่ — ลองดูหมวดอื่น หรือกดติดตามที่ <a href={SOCIALS.nobi[0][2]} target="_blank" rel="noopener">TikTok น้องโนบิ</a> จะได้ไม่พลาดนัดใหม่นะคะ</p>{filter !== 'all' && <button type="button" className="link-button" onClick={() => setFilter('all')}>ดูทุกหมวด →</button>}</div>}
         {past.length > 0 && <><h2 className="ev-subhead">ที่ผ่านมา</h2><div className="ev-grid">{past.map(ev => <Card key={ev.slug} ev={ev} />)}</div></>}
       </>}
     </main>

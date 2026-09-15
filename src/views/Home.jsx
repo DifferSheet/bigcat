@@ -4,8 +4,8 @@ import { Link, useNavigate } from '../lib/nav.jsx';
 import { Icon, Flower, Modal, Logo, Tagged } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { cart } from '../lib/cart.js';
-import { UserNav } from '../components/EventShell.jsx';
-import { SOCIALS, SocialRow, SocialLinks } from '../components/Social.jsx';
+import { UserNav, SiteFooter } from '../components/EventShell.jsx';
+import { SOCIALS, SocialRow } from '../components/Social.jsx';
 import { eventDate } from '../lib/format.js';
 import '@/home.css';
 import '../cozy.css';
@@ -146,7 +146,7 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
       <section id="events" className="hm-section">
         <SectionHead label="UPCOMING EVENTS" note="ดูตารางงานทั้งหมด →" to="/events" />
         <div className="hm-events">
-          <div className="hm-events-copy reveal"><h2>Where to<br />next? <i>♡</i></h2><p>นัดหน้าของพวกเรา —<br />เสาร์นี้อยู่ตรงนี้</p></div>
+          <div className="hm-events-copy reveal"><h2>Where to<br />next? <i>♡</i></h2><p>นัดหน้าของพวกเรา —<br />ดูวัน เวลา และที่ที่จะได้เจอกัน</p></div>
           {events.length === 0 && <div className="hm-event-empty" role="status"><Flower /><p>{eventState === 'loading' ? 'กำลังดูว่านัดหน้าเราเจอกันที่ไหน…' : eventState === 'error' ? 'ยังโหลดตารางงานไม่ได้ในขณะนี้' : 'ยังไม่มีนัดใหม่ — ติดตามที่ TikTok ก่อนนะคะ'}</p>{eventState === 'ready' ? <a href={SOCIALS.nobi[0][2]} target="_blank" rel="noopener">TikTok น้องโนบิ →</a> : <Link to="/events">{eventState === 'error' ? 'ลองดูตารางงานอีกครั้ง' : 'ไปหน้าตารางงาน'} →</Link>}</div>}
           {events.map((ev, i) => { const d = eventDate(ev); return <Link key={ev.slug} to={`/events/${ev.slug}`} className="hm-event reveal" style={{ '--delay': `${i * 120}ms` }}>
             <div className="hm-event-img"><img src={ev.cover || HERO} alt={`ภาพปกงาน ${ev.title}`} loading="lazy" /><span className="hm-date"><strong>{Number(d.day)}</strong>{TH_MONTHS[d.start.getMonth()]}</span></div>
@@ -184,12 +184,7 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
       </section>
     </main>
 
-    <footer className="hm-footer">
-      <div className="hm-footer-brand"><Logo /><small>Big cats. Lighter days.</small><span className="hm-footer-tagline">แมวตัวโต ที่ทำให้วันหนัก ๆ ของคุณเบาลง</span></div>
-      <nav className="hm-footer-nav" aria-label="เมนูท้ายเว็บ">{navItems.map(([label, href]) => href.startsWith('#') ? <a key={href} href={href}>{label}</a> : <Link key={href} to={href}>{label}</Link>)}<Link to="/shop">SHOP</Link><Link to="/privacy">ความเป็นส่วนตัว</Link></nav>
-      <SocialLinks />
-      <span className="hm-hand hm-footer-hand">See you Saturday. <i>♡</i><small>แล้วเจอกันเสาร์หน้านะคะ</small></span>
-    </footer>
+    <SiteFooter links={[...navItems, ['SHOP', '/shop'], ['ความเป็นส่วนตัว', '/privacy']]} />
 
     {toast && <div className="toast" role="status"><Icon name="check" />{toast} <Link to="/cart" className="toast-link">ดูตะกร้า →</Link></div>}
     {modal?.type === 'member' && (() => { const m = modal.member, r = m.resume; return <Modal title={`${m.name} / ${m.thai}`} wide onClose={closeModal}>

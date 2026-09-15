@@ -2,7 +2,6 @@
 .hm { --brown: #4a3b34; --pink: #df8190; --pink-2: #f2c7c8; --pink-card: #f6d9dc; --pink-band: #e9aeb6; --yellow-card: #f8e8c8; --sage-card: #e2e9d6; --line: #e8e1d6; --hand: #b26b78; max-width: 1440px; margin: auto; padding: 0 clamp(16px, 4vw, 52px) 40px; color: #33332f; }
 .hm h1, .hm h2, .hm h3 { font-family: var(--font-head); font-weight: 600; line-height: 1.15; color: var(--brown); }
 .hm-label { font-family: var(--font-display); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #8d8174; }
-.hm-hand { font-family: var(--font-hand); font-size: 22px; line-height: 1.15; color: var(--hand); }
 .hm-muted { color: #8d8174; font-size: 14px; }
 .hm i { font-style: normal; color: var(--pink); }
 .hm-btn { display: inline-flex; align-items: center; gap: 14px; padding: 15px 30px; border-radius: 100px; background: var(--pink); color: #fff; font-family: var(--font-head); font-size: 15px; font-weight: 500; transition: transform .2s, box-shadow .2s; box-shadow: 0 10px 24px -12px #df819088; }
@@ -105,11 +104,6 @@ a.hm-note:hover { text-decoration: underline; text-underline-offset: 4px; }
 .hm-sticky-flower { position: absolute; width: 54px; right: -22px; bottom: -18px; color: #fff; }
 
 /* footer */
-.hm-footer { display: grid; grid-template-columns: auto 1fr auto auto; gap: 30px; align-items: center; padding: 36px 0 10px; margin-top: 30px; border-top: 1px solid var(--line); }
-.hm-footer-brand { display: flex; flex-direction: column; gap: 4px; }
-.hm-footer-brand small { font-family: var(--font-display); font-size: 11px; letter-spacing: .06em; color: #8d8174; }
-.hm-footer-nav { display: flex; gap: 22px; justify-content: center; font-family: var(--font-head); font-size: 13px; color: var(--brown); flex-wrap: wrap; }
-.hm-footer-hand { text-align: right; font-size: 18px; }
 
 /* modal portrait */
 .hm-modal-portrait { border-radius: 120px 120px 16px 16px; overflow: hidden; aspect-ratio: 4/5; max-height: 320px; background: #f6d9dc; margin: 8px 0 14px; }
@@ -141,10 +135,6 @@ a.hm-note:hover { text-decoration: underline; text-underline-offset: 4px; }
   .hm-char-img { height: 240px; }
   .hm-merch { grid-template-columns: 1fr; }
   .hm-merch-art { aspect-ratio: 4/3; }
-  .hm-footer { grid-template-columns: 1fr; text-align: center; gap: 18px; }
-  .hm-footer-hand { text-align: center; }
-  .hm-social { justify-content: center; }
-  .hm-footer-brand { align-items: center; }
   .hm-nav { position: fixed; inset: 78px 0 auto 0; flex-direction: column; align-items: stretch; gap: 0; background: #fcf8f1; border-bottom: 1px solid var(--line); padding: 10px 24px 18px; transform: translateY(-120%); opacity: 0; transition: transform .25s, opacity .25s; }
   .hm-nav.open { transform: none; opacity: 1; }
   .hm-nav a { padding: 12px 0; border-bottom: 1px dashed var(--line); }
@@ -168,18 +158,6 @@ a.hm-note:hover { text-decoration: underline; text-underline-offset: 4px; }
 .hm .hm-polaroid.reveal.is-visible:hover { transform: rotate(0) scale(1.04); }
 
 /* ---------- โซเชียลท้ายเว็บ (NOBI / BOOTA / BIGCAT + OpenChat) ---------- */
-.hm-social { display: flex; flex-direction: column; gap: 8px; }
-.hm-social-head { font-family: var(--font-display); font-size: 12px; letter-spacing: .06em; color: #8d8174; display: flex; flex-direction: column; }
-.hm-social-head small { font-family: var(--font-body); font-size: 11px; letter-spacing: 0; }
-.hm-social-group { display: flex; align-items: center; gap: 8px; }
-.hm-social-group > b { font-family: var(--font-display); font-size: 10px; letter-spacing: .1em; color: var(--brown); min-width: 48px; }
-.hm-social-row { display: flex; gap: 6px; }
-.hm-social-row a { width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; color: var(--brown); transition: transform .2s, background .2s; }
-.hm-social-row a:hover { transform: translateY(-3px); background: #f6d9dc; }
-.hm-openchat { font-family: var(--font-display); font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 40px; background: var(--brown); color: #fff; white-space: nowrap; }
-.hm-openchat:hover { background: #7a5f4c; }
-.hm-footer-tagline { font-size: 11px; color: #8d8174; }
-.hm-footer-hand small, .hm-sticky small { display: block; font-family: var(--font-body); font-size: 11px; color: #8d8174; margin-top: 4px; }
 .member-social { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
 
 /* ---------- โมดัลตัวละครแบบ résumé หน้าเดียว ---------- */
@@ -201,3 +179,5 @@ a.hm-note:hover { text-decoration: underline; text-underline-offset: 4px; }
 .resume-quote { margin: 4px 0 0; padding: 14px 18px; border-left: 3px solid var(--pink); background: #fff; border-radius: 0 14px 14px 0; font-family: var(--font-head); font-weight: 500; font-size: 19px; line-height: 1.5; color: var(--brown); }
 .resume-quote cite { display: block; margin-top: 6px; font-family: var(--font-body); font-style: normal; font-size: 12px; color: #8d8174; }
 @media (max-width: 700px) { .resume { grid-template-columns: 1fr; gap: 18px; } .resume .hm-modal-portrait { width: 200px; margin: 0 auto; } }
+
+.hm-sticky small { display: block; font-family: var(--font-body); font-size: 11px; color: #8d8174; margin-top: 4px; }

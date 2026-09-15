@@ -39,8 +39,16 @@ export function SiteHeader({ live }) {
   </header>;
 }
 
-export function SiteFooter() {
-  return <footer className="footer"><div className="footer-top"><Link to="/" className="logo"><Logo /></Link><p><b>Big cats. Lighter days.</b><br />แมวตัวโต ที่ทำให้วันหนัก ๆ ของคุณเบาลง</p><Link to="/privacy" className="back-top">นโยบายความเป็นส่วนตัว</Link></div><div className="footer-social"><SocialLinks /></div><div className="footer-bottom"><span>© {new Date().getFullYear()} BIGCAT. Made with a whole lot of love.</span><CookieSettingsLink className="footer-link" /></div></footer>;
+// ท้ายเว็บ — โครงเดียวกันทุกหน้า (หน้าแรกส่ง links ของตัวเองมา)
+const DEFAULT_LINKS = [['หน้าแรก', '/'], ['ตารางงาน', '/events'], ['SHOP', '/shop'], ['บัตรของฉัน', '/ticket/lookup'], ['ความเป็นส่วนตัว', '/privacy']];
+export function SiteFooter({ links = DEFAULT_LINKS }) {
+  return <footer className="hm-footer">
+    <div className="hm-footer-brand"><Link to="/" className="hm-logo" aria-label="BIGCAT หน้าแรก"><Logo /></Link><small>Big cats. Lighter days.</small><span className="hm-footer-tagline">แมวตัวโต ที่ทำให้วันหนัก ๆ ของคุณเบาลง</span></div>
+    <nav className="hm-footer-nav" aria-label="เมนูท้ายเว็บ">{links.map(([label, href]) => href.startsWith('#') ? <a key={href} href={href}>{label}</a> : <Link key={href} to={href}>{label}</Link>)}</nav>
+    <SocialLinks />
+    <span className="hm-hand hm-footer-hand">See you soon. <i>♡</i><small>แล้วเจอกันนะคะ</small></span>
+    <div className="hm-footer-bottom"><span>© {new Date().getFullYear()} BIGCAT. Made with a whole lot of love.</span><CookieSettingsLink className="footer-link" /></div>
+  </footer>;
 }
 
 export function StatusPill({ status }) {
