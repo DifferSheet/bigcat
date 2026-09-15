@@ -247,6 +247,24 @@ CREATE TABLE IF NOT EXISTS users (
   last_login_at DATETIME NULL,
   UNIQUE KEY uq_user_provider (provider, provider_id)
 );
+-- แอดมิน: ชื่อผู้ใช้ + รหัสผ่าน (scrypt) · session แยกจากสมาชิก — เพิ่ม 15 ก.ย. 2026
+CREATE TABLE IF NOT EXISTS admins (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(40) NOT NULL UNIQUE,
+  password_hash VARCHAR(200) NOT NULL,
+  display_name VARCHAR(80) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_login_at DATETIME NULL
+);
+CREATE TABLE IF NOT EXISTS admin_sessions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  token_hash CHAR(64) NOT NULL UNIQUE,
+  admin_id INT NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_admin_session FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   token_hash CHAR(64) NOT NULL UNIQUE,

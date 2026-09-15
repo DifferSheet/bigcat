@@ -48,14 +48,14 @@ export const authEnabled = Object.values(authProviders).some(Boolean);
 const sameProviderLine = /^(1|true|yes)$/i.test(process.env.LINE_LOGIN_SAME_PROVIDER || '');
 
 /* ---------- cookie helpers (ไม่ใช้ cookie-parser) ---------- */
-const parseCookies = (req) => Object.fromEntries((req.headers.cookie || '').split(';').map(s => s.trim()).filter(Boolean).map(s => { const i = s.indexOf('='); return [s.slice(0, i), decodeURIComponent(s.slice(i + 1))]; }));
-const setCookie = (res, name, value, { maxAge, path = '/' } = {}) => {
+export const parseCookies = (req) => Object.fromEntries((req.headers.cookie || '').split(';').map(s => s.trim()).filter(Boolean).map(s => { const i = s.indexOf('='); return [s.slice(0, i), decodeURIComponent(s.slice(i + 1))]; }));
+export const setCookie = (res, name, value, { maxAge, path = '/' } = {}) => {
   const parts = [`${name}=${encodeURIComponent(value)}`, `Path=${path}`, 'HttpOnly', 'SameSite=Lax'];
   if (secure) parts.push('Secure');
   if (maxAge != null) parts.push(`Max-Age=${maxAge}`);
   res.append('Set-Cookie', parts.join('; '));
 };
-const hash = (t) => crypto.createHash('sha256').update(t).digest('hex');
+export const hash = (t) => crypto.createHash('sha256').update(t).digest('hex');
 
 /* ---------- session ---------- */
 async function createSession(res, userId) {

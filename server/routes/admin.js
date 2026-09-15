@@ -8,13 +8,28 @@ const siteUrl = () => process.env.SITE_URL || 'http://localhost:5173';
 
 const r = Router();
 
-// ป้องกันด้วย header x-admin-key (ตั้งค่าใน .env → ADMIN_KEY)
-export const requireAdmin = (req, _res, next) => {
-  const key = process.env.ADMIN_KEY || 'bigcat-admin';
-  if (req.get('x-admin-key') !== key) return next(new HttpError(401, 'รหัสผู้ดูแลไม่ถูกต้อง'));
-  next();
-};
+// เข้าสู่ระบบด้วยชื่อผู้ใช้/รหัสผ่าน (cookie) — ดู server/adminAuth.js · x-admin-key ยังใช้ได้กับสคริปต์
+import { requireAdmin, login, logout, me as adminMe, changePassword } from '../adminAuth.js';
+export { requireAdmin };
+r.post('/login', login);
+r.post('/logout', logout);
+r.get('/me', adminMe);
 r.use(requireAdmin);
+r.put('/password', changePassword);
+
+// สมาชิก (ผู้ที่เข้าสู่ระบบด้วย LINE/Google) + จำนวนรายการของแต่ละคน
+r.get('/members', wrap(async (req, res) => {
+  const qs = String(req.query.q || '').trim();
+  const where = qs ? 'WHERE u.display_name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?' : '';
+  const params = qs ? [`%${qs}%`, `%${qs}%`, `%${qs}%`] : [];
+  const rows = await q(`SELECT u.id, u.provider, u.display_name, u.avatar, u.email, u.phone, u.address, u.created_at, u.last_login_at, u.line_user_id IS NOT NULL AS lineLinked,
+      (SELECT COUNT(*) FROM orders o WHERE o.user_id=u.id) AS orders, (SELECT COALESCE(SUM(o.total),0) FROM orders o WHERE o.user_id=u.id AND o.status IN ('paid','packing','shipped','completed')) AS spent,
+      (SELECT COUNT(*) FROM bookings b WHERE b.user_id=u.id) AS bookings, (SELECT COUNT(*) FROM donations d WHERE d.user_id=u.id AND d.status='approved') AS donations,
+      (SELECT COALESCE(SUM(d.amount),0) FROM donations d WHERE d.user_id=u.id AND d.status='approved') AS donated, (SELECT COUNT(*) FROM registrations r WHERE r.user_id=u.id) AS registrations
+    FROM users u ${where} ORDER BY u.created_at DESC LIMIT 500`, params);
+  const [stats] = await q(`SELECT COUNT(*) AS total, SUM(provider='line') AS line, SUM(provider='google') AS google, SUM(line_user_id IS NOT NULL) AS linked, SUM(created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)) AS week FROM users`);
+  res.json({ members: rows, stats });
+}));
 
 r.get('/ping', (_req, res) => res.json({ ok: true }));
 

@@ -67,4 +67,5 @@ io.on('connection', socket => {
 setInterval(() => releaseExpiredHolds().catch(console.error), 15000);
 
 await migrate();
+await (await import('./adminAuth.js')).ensureFirstAdmin();
 server.listen(PORT, () => console.log(`✓ BIGCAT API + Socket.IO on http://localhost:${PORT} · slip: ${slipEnabled ? process.env.SLIP_PROVIDER : 'off'} · LINE: ${lineEnabled ? 'on' : 'off'} · login: ${Object.entries(authProviders).filter(([, v]) => v).map(([k]) => k).join('+') || 'off'}`));

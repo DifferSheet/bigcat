@@ -14,15 +14,69 @@ const EventAdminForm = dynamic(() => import('./EventAdminForm.jsx'), { ssr: fals
 const STATUSES = ['upcoming', 'open', 'soldout', 'live', 'ended', 'hidden'];
 
 function Login({ onDone }) {
-  const [key, setKey] = useState('');
+  const [f, setF] = useState({ username: '', password: '' });
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const submit = async (e) => {
-    e.preventDefault(); setAdminKey(key);
-    try { await api('/admin/ping', { admin: true }); onDone(); } catch (err) { setAdminKey(''); setError(err.message); }
+    e.preventDefault(); setBusy(true); setError('');
+    try { const r = await api('/admin/login', { method: 'POST', body: f }); onDone(r.admin); } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
-  return <div className="ticket-lookup"><span className="eyebrow">STAFF ONLY</span><h1>เข้าสู่ระบบแอดมิน</h1><p>ใส่รหัสผู้ดูแล (ADMIN_KEY ในไฟล์ .env)</p>
-    <form onSubmit={submit}><input id="ad-key" type="password" value={key} onChange={e => setKey(e.target.value)} placeholder="รหัสผู้ดูแล" autoFocus /><button className="button dark">เข้าสู่ระบบ <Icon name="arrow" /></button></form>
-    {error && <p className="notice error">{error}</p>}</div>;
+  return <div className="admin-login">
+    <div className="admin-login-card">
+      <span className="eyebrow">STAFF ONLY</span>
+      <h1>เข้าสู่ระบบแอดมิน</h1>
+      <form className="booking-form" onSubmit={submit}>
+        <label>ชื่อผู้ใช้<input id="ad-user" autoComplete="username" required value={f.username} onChange={e => setF({ ...f, username: e.target.value })} autoFocus /></label>
+        <label>รหัสผ่าน<input id="ad-pass" type="password" autoComplete="current-password" required value={f.password} onChange={e => setF({ ...f, password: e.target.value })} /></label>
+        {error && <Notice tone="error">{error}</Notice>}
+        <button className="button dark" disabled={busy}>{busy ? 'กำลังตรวจสอบ…' : 'เข้าสู่ระบบ'} <Icon name="arrow" /></button>
+      </form>
+    </div>
+  </div>;
+}
+
+// แท็บสมาชิก: รายชื่อผู้ที่เข้าสู่ระบบด้วย LINE/Google พร้อมสถิติ
+function Members() {
+  const [data, setData] = useState(null);
+  const [qs, setQs] = useState('');
+  const [error, setError] = useState('');
+  useEffect(() => { const t = setTimeout(() => api(`/admin/members?q=${encodeURIComponent(qs)}`, { admin: true }).then(setData).catch(e => setError(e.message)), 250); return () => clearTimeout(t); }, [qs]);
+  const st = data?.stats;
+  return <div className="admin-event">
+    {st && <div className="stat-tiles">
+      <div><span className="eyebrow">สมาชิกทั้งหมด</span><strong>{st.total}</strong><small>ใหม่ 7 วัน {st.week}</small></div>
+      <div><span className="eyebrow">LINE</span><strong>{st.line}</strong><small>ผูกแจ้งเตือน {st.linked}</small></div>
+      <div><span className="eyebrow">Google</span><strong>{st.google}</strong></div>
+    </div>}
+    <div className="tabs-row"><input className="admin-search" value={qs} onChange={e => setQs(e.target.value)} placeholder="ค้นหาชื่อ / อีเมล / เบอร์" /><span className="muted">{data ? `${data.members.length} คน` : ''}</span></div>
+    {error && <Notice tone="error">{error}</Notice>}
+    {!data ? <PageLoader /> : data.members.length === 0 ? <p className="muted">ไม่พบสมาชิก</p> : <div className="table-wrap"><table className="admin-table members">
+      <thead><tr><th></th><th>สมาชิก</th><th>ติดต่อ</th><th>สมัคร / ล่าสุด</th><th>ซื้อ</th><th>บุญ</th><th>บัตร/ลงทะเบียน</th></tr></thead>
+      <tbody>{data.members.map(m => <tr key={m.id}>
+        <td>{m.avatar ? <img className="thumb round" src={m.avatar} alt="" referrerPolicy="no-referrer" /> : <span className="thumb round placeholder">{m.display_name.slice(0, 1)}</span>}</td>
+        <td><strong>{m.display_name}</strong><br /><small className="muted">{m.provider === 'line' ? 'LINE' : 'Google'}{m.lineLinked ? ' · แจ้งเตือน LINE ✓' : ''}</small></td>
+        <td><small>{m.email || '—'}<br />{m.phone || '—'}</small></td>
+        <td><small>{fmt(m.created_at)}<br /><span className="muted">{m.last_login_at ? fmt(m.last_login_at) : '—'}</span></small></td>
+        <td>{m.orders} <small className="muted">· {baht(m.spent)}</small></td>
+        <td>{m.donations} <small className="muted">· {baht(m.donated)}</small></td>
+        <td>{Number(m.bookings) + Number(m.registrations)}</td>
+      </tr>)}</tbody>
+    </table></div>}
+  </div>;
+}
+
+// เปลี่ยนรหัสผ่านแอดมิน + ออกจากระบบ
+function AdminAccount({ admin, onLogout }) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ current: '', next: '' });
+  const [msg, setMsg] = useState('');
+  const save = async (e) => { e.preventDefault(); setMsg(''); try { await api('/admin/password', { method: 'PUT', body: f, admin: true }); setMsg('เปลี่ยนรหัสผ่านแล้ว ✓'); setF({ current: '', next: '' }); } catch (err) { setMsg(err.message); } };
+  return <div className="admin-account">
+    <span className="muted small">{admin?.display_name || admin?.username}</span>
+    <button className="link-button" onClick={() => setOpen(!open)}>เปลี่ยนรหัสผ่าน</button>
+    <button className="link-button" onClick={onLogout}>ออกจากระบบ</button>
+    {open && <form className="booking-form inline pw-form" onSubmit={save}><div className="two"><label>รหัสผ่านปัจจุบัน<input type="password" autoComplete="current-password" required value={f.current} onChange={e => setF({ ...f, current: e.target.value })} /></label><label>รหัสผ่านใหม่ (≥ 8 ตัว)<input type="password" autoComplete="new-password" required minLength={8} value={f.next} onChange={e => setF({ ...f, next: e.target.value })} /></label></div><div className="form-actions"><button className="button dark small">บันทึก</button>{msg && <span className="muted">{msg}</span>}</div></form>}
+  </div>;
 }
 
 // เครื่องมือเฉพาะงานทำบุญ: ยอดแยกหมวด, CSV, ขอบคุณทาง LINE, รายงานความโปร่งใส
@@ -116,10 +170,12 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
 
 export default function AdminPage() {
   const mounted = useMounted();
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(null);   // null = กำลังเช็ค session
+  const [admin, setAdmin] = useState(null);
   const [area, setArea] = useState('events');
-  // อ่านคีย์/พาธหลัง hydrate เพื่อให้ HTML ฝั่ง server ตรงกับ client
-  useEffect(() => { setAuthed(!!getAdminKey()); setArea(location.pathname.includes('/admin/shop') ? 'shop' : 'events'); }, []);
+  // เช็ค session cookie หลัง hydrate (HTML ฝั่ง server ตรงกับ client)
+  useEffect(() => { setArea(location.pathname.includes('/admin/shop') ? 'shop' : location.pathname.includes('/admin/members') ? 'members' : 'events'); api('/admin/me').then(r => { setAdmin(r.admin); setAuthed(true); }).catch(() => setAuthed(!!getAdminKey())); }, []);
+  const logout = async () => { await api('/admin/logout', { method: 'POST' }).catch(() => {}); setAdminKey(''); setAuthed(false); setAdmin(null); };
   const [events, setEvents] = useState(null);
   const [active, setActive] = useState(null);
   const [scan, setScan] = useState('');
@@ -136,9 +192,9 @@ export default function AdminPage() {
   };
 
   return <><SiteHeader /><main className="ev-page">
-    {!mounted ? <PageLoader /> : !authed ? <Login onDone={() => setAuthed(true)} /> : <>
-      <div className="admin-head"><div><span className="eyebrow">STAFF DASHBOARD</span><h1>{area === 'shop' ? 'จัดการร้านค้า' : 'จัดการกิจกรรม'}</h1></div>{area === 'events' && <button className="button dark small" onClick={() => setForm('new')}>+ เพิ่มกิจกรรม</button>}<div className="area-tabs"><button className={area === 'events' ? 'active' : ''} onClick={() => { setArea('events'); history.replaceState(null, '', '/admin'); }}>กิจกรรม</button><button className={area === 'shop' ? 'active' : ''} onClick={() => { setArea('shop'); history.replaceState(null, '', '/admin/shop'); }}>ร้านค้า</button><button className="link-button" onClick={() => { setAdminKey(''); setAuthed(false); }}>ออกจากระบบ</button></div></div>
-      {area === 'shop' ? <ShopAdmin /> : form ? <div className="admin-panel"><EventAdminForm initial={form === 'new' ? null : form} onCancel={() => setForm(null)} onSaved={async (slug) => { setForm(null); const list = await api('/admin/overview', { admin: true }); setEvents(list); setActive(list.find(e => e.slug === slug) || list[0]); }} /></div> : <>
+    {!mounted || authed === null ? <PageLoader /> : !authed ? <Login onDone={(a) => { setAdmin(a); setAuthed(true); }} /> : <>
+      <div className="admin-head"><div><span className="eyebrow">STAFF DASHBOARD</span><h1>{area === 'shop' ? 'จัดการร้านค้า' : area === 'members' ? 'สมาชิก' : 'จัดการกิจกรรม'}</h1><AdminAccount admin={admin} onLogout={logout} /></div>{area === 'events' && <button className="button dark small" onClick={() => setForm('new')}>+ เพิ่มกิจกรรม</button>}<div className="area-tabs">{[['events', 'กิจกรรม', '/admin'], ['shop', 'ร้านค้า', '/admin/shop'], ['members', 'สมาชิก', '/admin/members']].map(([k, l, path]) => <button key={k} className={area === k ? 'active' : ''} onClick={() => { setArea(k); history.replaceState(null, '', path); }}>{l}</button>)}</div></div>
+      {area === 'shop' ? <ShopAdmin /> : area === 'members' ? <Members /> : form ? <div className="admin-panel"><EventAdminForm initial={form === 'new' ? null : form} onCancel={() => setForm(null)} onSaved={async (slug) => { setForm(null); const list = await api('/admin/overview', { admin: true }); setEvents(list); setActive(list.find(e => e.slug === slug) || list[0]); }} /></div> : <>
       <form className="scan-box" onSubmit={checkin}><Icon name="check" /><input id="ad-scan" value={scan} onChange={e => setScan(e.target.value)} placeholder="เช็คอินหน้างาน: พิมพ์/สแกนรหัสบัตร" /><button className="button dark small">เช็คอิน</button>{scanResult && <span className={`notice ${scanResult.ok ? '' : 'error'}`}>{scanResult.ok ? `${scanResult.already ? 'เช็คอินไปแล้ว' : 'เช็คอินสำเร็จ'}: ${scanResult.name}${scanResult.seats ? ` (${scanResult.seats.join(', ')})` : scanResult.number ? ` #${scanResult.number}` : ''}` : scanResult.error}</span>}</form>
       {!events ? <PageLoader /> : <div className="admin-layout">
         <aside className="admin-list">{events.map(ev => { const pending = Number(ev.pendingBookings) + Number(ev.pendingDonations); return <button key={ev.slug} className={`admin-item ${active?.slug === ev.slug ? 'active' : ''}`} onClick={() => setActive(ev)}><span className="eyebrow">{typeLabel[ev.type]} · {eventDate(ev).long}</span><strong>{ev.title}</strong><span className="admin-item-meta"><StatusPill status={ev.status} />{pending > 0 && <span className="badge-count">{pending} รอตรวจ</span>}</span></button>; })}</aside>
