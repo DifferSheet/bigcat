@@ -11,7 +11,7 @@ import dynamic from 'next/dynamic';
 const ShopAdmin = dynamic(() => import('./ShopAdmin.jsx'), { ssr: false, loading: () => <PageLoader /> });
 const EventAdminForm = dynamic(() => import('./EventAdminForm.jsx'), { ssr: false, loading: () => <PageLoader /> });
 
-const STATUSES = ['upcoming', 'open', 'soldout', 'live', 'ended'];
+const STATUSES = ['upcoming', 'open', 'soldout', 'live', 'ended', 'hidden'];
 
 function Login({ onDone }) {
   const [key, setKey] = useState('');

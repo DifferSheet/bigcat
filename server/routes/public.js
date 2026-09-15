@@ -25,7 +25,7 @@ r.get('/config', (_req, res) => res.json({ slipEnabled, lineEnabled, lineOaId, a
 
 /* ---------- Events ---------- */
 r.get('/events', wrap(async (_req, res) => {
-  const rows = (await q('SELECT * FROM events ORDER BY starts_at')).map(shapeEvent);
+  const rows = (await q("SELECT * FROM events WHERE status <> 'hidden' ORDER BY starts_at")).map(shapeEvent);
   const list = await Promise.all(rows.map(async ev => {
     const summary = {};
     if (ev.type === 'fanmeet') {
@@ -39,7 +39,12 @@ r.get('/events', wrap(async (_req, res) => {
   res.json(list);
 }));
 
-r.get('/events/:slug', wrap(async (req, res) => res.json(await eventDetail(req.params.slug))));
+// งานที่ซ่อนอยู่: คนทั่วไปเห็น 404 · แอดมิน (ส่ง x-admin-key) พรีวิวได้
+r.get('/events/:slug', wrap(async (req, res) => {
+  const d = await eventDetail(req.params.slug);
+  if (d.event.status === 'hidden' && req.get('x-admin-key') !== (process.env.ADMIN_KEY || 'bigcat-admin')) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
+  res.json(d);
+}));
 
 /* ---------- Fan meet: ที่นั่ง ---------- */
 r.get('/events/:slug/seats', wrap(async (req, res) => res.json(await seatsOf((await getEvent(req.params.slug)).id))));

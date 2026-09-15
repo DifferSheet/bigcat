@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS events (
   id INT AUTO_INCREMENT PRIMARY KEY,
   slug VARCHAR(80) NOT NULL UNIQUE,
   type ENUM('fanmeet','merit','busking','workshop','popup') NOT NULL,
-  status ENUM('upcoming','open','soldout','live','ended') NOT NULL DEFAULT 'upcoming',
+  status ENUM('upcoming','open','soldout','live','ended','hidden') NOT NULL DEFAULT 'upcoming',
   category VARCHAR(60) NOT NULL,
   title VARCHAR(160) NOT NULL,
   subtitle VARCHAR(200) NULL,

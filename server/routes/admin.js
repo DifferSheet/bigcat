@@ -30,7 +30,7 @@ r.get('/overview', wrap(async (_req, res) => {
 
 /* ---------- Events: เพิ่ม / แก้ไข / ลบ (เพิ่ม 15 ก.ย. 2026) ---------- */
 const EV_TYPES = ['fanmeet', 'merit', 'busking', 'workshop', 'popup'];
-const EV_STATUS = ['upcoming', 'open', 'soldout', 'live', 'ended'];
+const EV_STATUS = ['upcoming', 'open', 'soldout', 'live', 'ended', 'hidden'];
 const TONES = ['pink', 'yellow', 'sage', 'blue'];
 const clean = (v, n) => String(v ?? '').trim().slice(0, n);
 // slug เป็น a-z0-9 เท่านั้น (URL อ่านง่าย) — ชื่อไทยล้วนจะได้ <ประเภท>-<วันที่> เช่น busking-20260926
@@ -152,7 +152,7 @@ r.delete('/events/:slug', wrap(async (req, res) => {
 
 r.patch('/events/:slug', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
-  const allowed = ['upcoming', 'open', 'soldout', 'live', 'ended'];
+  const allowed = EV_STATUS;
   if (!allowed.includes(req.body.status)) throw new HttpError(400, 'สถานะไม่ถูกต้อง');
   await q('UPDATE events SET status=? WHERE id=?', [req.body.status, ev.id]);
   emit(ev.slug, 'event', { status: req.body.status });

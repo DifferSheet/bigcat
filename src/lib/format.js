@@ -19,7 +19,7 @@ export function eventDate(ev) {
 
 export const statusLabel = {
   upcoming: ['เร็วๆ นี้', 'muted'], open: ['เปิดรับแล้ว', 'open'], soldout: ['เต็มแล้ว', 'full'],
-  live: ['กำลังจัด', 'live'], ended: ['จบแล้ว', 'muted'],
+  live: ['กำลังจัด', 'live'], ended: ['จบแล้ว', 'muted'], hidden: ['ซ่อนอยู่', 'muted'],
 };
 
 export const typeLabel = { fanmeet: 'Fan Meet', merit: 'ทำบุญ', busking: 'Busking', workshop: 'Workshop', popup: 'Pop-up store' };

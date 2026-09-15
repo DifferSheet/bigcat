@@ -30,6 +30,8 @@ export async function migrate() {
   await admin.query(fs.readFileSync(path.join(here, 'schema.sql'), 'utf8'));
   // คอลัมน์ที่เพิ่มทีหลัง — MySQL ไม่มี ADD COLUMN IF NOT EXISTS จึงข้าม error 1060/1061 (ซ้ำ)
   const alters = [
+    // สถานะ hidden = ซ่อนจากเว็บทั้งหมด (แบบร่าง/ยกเลิก) — เพิ่ม 15 ก.ย. 2026
+    "ALTER TABLE events MODIFY status ENUM('upcoming','open','soldout','live','ended','hidden') NOT NULL DEFAULT 'upcoming'",
     "ALTER TABLE donation_categories ADD COLUMN unit_name VARCHAR(40) NULL, ADD COLUMN unit_price INT NULL",
     "ALTER TABLE donations ADD COLUMN dedication VARCHAR(160) NULL, ADD COLUMN units INT NULL, ADD COLUMN trans_ref VARCHAR(64) NULL, ADD COLUMN verified_at DATETIME NULL, ADD COLUMN verify_note VARCHAR(300) NULL, ADD COLUMN line_user_id VARCHAR(64) NULL, ADD COLUMN thanked_at DATETIME NULL",
     "ALTER TABLE donations ADD UNIQUE KEY uq_don_ref (trans_ref)",
