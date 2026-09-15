@@ -167,8 +167,10 @@
 .amount-row input { width: 130px !important; }
 .wall { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
 .wall li { display: flex; gap: 10px; padding: 12px 14px; border-radius: 14px; background: var(--paper); border: 1px solid var(--line); font-size: 14px; }
-.wall li .paw-mark { width: 26px; height: auto; flex-shrink: 0; margin-top: 2px; }
-.wall-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--line); background: var(--sand); }
+/* avatar ผู้ร่วมบุญ: รูปสมาชิก หรือโลโก้แมวในวงกลมขนาดเดียวกัน (align-self กัน flex ยืดรูป) */
+.wall-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex: none; align-self: flex-start; border: 1px solid var(--line); background: var(--sand); }
+.wall-avatar.mark { display: grid; place-items: center; background: var(--pink-wash); border-color: var(--pink-tint); }
+.wall-avatar.mark .paw-mark { width: 22px; height: auto; }
 .wall li p { font-size: 13px; color: var(--muted); margin-top: 2px; }
 
 /* ---------- Busking ---------- */
