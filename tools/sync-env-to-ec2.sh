@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# ซิงก์ค่า login/LINE จาก .env เครื่องเรา → /var/www/bigcat/.env บน EC2 แล้วสร้างโปรเซส pm2 ใหม่
-# (pm2 restart เฉย ๆ ไม่เห็นค่าใหม่ — ดู README หัวข้อ deploy) และล้าง line_user_id ของ OA เดิม
+# ซิงก์ค่า login/LINE/สลิป จาก .env เครื่องเรา → /var/www/bigcat/.env บน EC2 แล้วสร้างโปรเซส pm2 ใหม่
+# (pm2 restart เฉย ๆ ไม่เห็นค่าใหม่ — ดู README หัวข้อ deploy) · ไม่แตะฐานข้อมูล
 # ใช้: bash tools/sync-env-to-ec2.sh        ค่าอื่นบน EC2 (DB/SLIP/PORT) ไม่แตะ · ไม่พิมพ์ secret ออกจอ
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -40,7 +40,7 @@ open('.env', 'w').write(s)
 PY
 rm -f /tmp/.env.new
 chmod 600 .env
-echo "  .env: \$(grep -cE '^(LINE_|GOOGLE_)' .env) บรรทัด LINE_/GOOGLE_ · LINE_OA_ID=\$(grep -E '^LINE_OA_ID=' .env | cut -d= -f2)"
+echo "  .env: \$(grep -cE '^(LINE_|GOOGLE_|SLIP_)' .env) บรรทัด LINE_/GOOGLE_/SLIP_ · LINE_OA_ID=\$(grep -E '^LINE_OA_ID=' .env | cut -d= -f2) · SLIP_PROVIDER=\$(grep -E '^SLIP_PROVIDER=' .env | cut -d= -f2)"
 
 echo "→ สร้างโปรเซส pm2 ใหม่ทั้งสองตัว"
 pm2 delete bigcat-api bigcat-web >/dev/null 2>&1 || true
@@ -49,15 +49,6 @@ pm2 save >/dev/null
 sleep 4
 pm2 ls | grep -E 'bigcat'
 
-echo "→ ล้าง line_user_id ของ OA เดิมทุกตาราง (ตั้ง NULL ไม่ลบรายการ)"
-node -e "
-import('./server/db.js').then(async ({ q }) => {
-  for (const t of ['users', 'orders', 'bookings', 'registrations', 'donations']) {
-    const r = await q('UPDATE ' + t + ' SET line_user_id=NULL WHERE line_user_id IS NOT NULL');
-    console.log('  ' + t + ': ล้าง ' + r.affectedRows + ' แถว');
-  }
-  process.exit(0);
-}).catch(e => { console.error('DB error', e.message); process.exit(1); });"
 REMOTE
 )
 ssh -i "$KEY" "$HOST" 'sudo -n -u deploy -H bash -s' <<< "$remote"
