@@ -61,7 +61,7 @@ export default function AccountPage() {
 
         <Section eyebrow="HISTORY" title="รายการของฉัน">
           {!act ? <PageLoader /> : empty ? <Notice tone="muted">ยังไม่มีรายการที่ทำตอนล็อกอินอยู่ — รายการก่อนหน้านี้ค้นด้วยรหัสได้ที่ <Link to="/ticket/lookup">บัตรของฉัน</Link></Notice> : <>
-            {act.orders?.length > 0 && <Group title="คำสั่งซื้อ">{act.orders.map(o => <Row key={o.code} to={`/order/${o.code}`} image={o.image || '/images/bigcat-merch.png'} main={<>#{o.code} · {baht(o.total)}</>} sub={`${fmt(o.created_at)} · ${o.itemCount} รายการ · ${o.delivery === 'ship' ? 'จัดส่ง' : 'รับหน้างาน'}`} status={o.status} />)}</Group>}
+            {act.orders?.length > 0 && <Group title="คำสั่งซื้อ">{act.orders.map(o => <Row key={o.code} to={`/order/${o.code}`} image={o.image || '/images/bigcat-merch.jpg'} main={<>#{o.code} · {baht(o.total)}</>} sub={`${fmt(o.created_at)} · ${o.itemCount} รายการ · ${o.delivery === 'ship' ? 'จัดส่ง' : 'รับหน้างาน'}`} status={o.status} />)}</Group>}
             {act.bookings?.length > 0 && <Group title="บัตร / ที่นั่ง">{act.bookings.map(b => <Row key={b.code} to={`/ticket/${b.code}`} image={b.cover} main={<>{b.title} · ที่นั่ง {b.seats.join(', ')}</>} sub={`${fmt(b.starts_at)} · ${baht(b.amount)}`} status={b.status} />)}</Group>}
             {act.registrations?.length > 0 && <Group title="ลงทะเบียนร่วมงาน">{act.registrations.map(r => <Row key={r.code} to={`/ticket/${r.code}`} image={r.cover} main={<>{r.title} · หมายเลข {r.number}</>} sub={`${fmt(r.starts_at)}${r.kind !== 'attend' ? ` · ${r.kind}` : ''}`} status={r.checked_in_at ? 'checked_in' : 'registered'} />)}</Group>}
             {act.donations?.length > 0 && <Group title="ร่วมทำบุญ">{act.donations.map(d => <Row key={d.code} to={`/ticket/${d.code}`} image={d.cover} main={<>{d.title} · {d.category}</>} sub={`${fmt(d.created_at)} · ${baht(d.amount)}`} status={d.status} />)}</Group>}
@@ -74,4 +74,4 @@ export default function AccountPage() {
 }
 
 const Group = ({ title, children }) => <div className="act-group"><h3>{title}</h3><ul className="act-list">{children}</ul></div>;
-const Row = ({ to, main, sub, status, image }) => <li><Link to={to}><img className="act-thumb" src={image || '/images/bigcat-hero.png'} alt="" loading="lazy" /><div><strong>{main}</strong><span className="muted small">{sub}</span></div><Pill status={status} /><Icon name="arrow" size={14} /></Link></li>;
+const Row = ({ to, main, sub, status, image }) => <li><Link to={to}><img className="act-thumb" src={image || '/images/bigcat-hero.jpg'} alt="" loading="lazy" /><div><strong>{main}</strong><span className="muted small">{sub}</span></div><Pill status={status} /><Icon name="arrow" size={14} /></Link></li>;

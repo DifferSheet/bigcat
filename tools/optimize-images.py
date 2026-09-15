@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 """optimize-images.py — ย่อ/บีบภาพก่อนเอาเข้า public/images ตามหน้าที่ของภาพ (ดู CLAUDE.md หัวข้อภาพ)
 
-    /usr/bin/python3 tools/optimize-images.py <ไฟล์หรือโฟลเดอร์> [...] [--dry] [--rename] [--profile=hero|product|logo|ui]
+    /usr/bin/python3 tools/optimize-images.py <ไฟล์หรือโฟลเดอร์> [...] [--dry] [--rename] [--webp] [--profile=hero|product|logo|ui]
+    --webp = PNG/JPG → WebP (เล็กกว่า JPG ~30% ที่คุณภาพเท่ากัน) แก้พาธที่อ้างให้เหมือน --rename · อย่าใช้กับภาพ OG (Facebook/LINE ไม่รองรับ WebP ตอนพรีวิวลิงก์)
 
 โปรไฟล์เลือกอัตโนมัติจากพาธ (override ได้ด้วย --profile):
   hero     public/images/*hero*, cozy/*desktop*, *-mobile*   ภาพใหญ่ไว้ดู → คุณภาพสูง ย่อเฉพาะที่เกิน
@@ -49,7 +50,7 @@ def png_has_meta(path):
         if typ in (b"caBX", b"tEXt", b"iTXt", b"zTXt", b"eXIf"): return True
         if typ == b"IEND": return False
 
-def optimize(path, override=None, dry=False, rename=False):
+def optimize(path, override=None, dry=False, rename=False, webp=False):
     prof = profile_for(path, override)
     ext = os.path.splitext(path)[1].lower()
     if ext not in (".png", ".jpg", ".jpeg", ".webp"): return
@@ -65,13 +66,15 @@ def optimize(path, override=None, dry=False, rename=False):
     scale = min(1.0, cap / max(w, h))
     out_path, fmt = path, None
     alpha = has_real_alpha(im)
-    if ext == ".png" and not alpha and rename:
+    if webp and ext != ".webp":
+        out_path = os.path.splitext(path)[0] + ".webp"; fmt = "WEBP"
+    elif ext == ".png" and not alpha and rename:
         out_path = os.path.splitext(path)[0] + ".jpg"; fmt = "JPEG"
     elif ext in (".jpg", ".jpeg"): fmt = "JPEG"
     elif ext == ".png": fmt = "PNG"
     else: fmt = "WEBP"
     nw, nh = (int(w * scale), int(h * scale)) if scale < 1 else (w, h)
-    note = f"{w}x{h}" + (f" → {nw}x{nh}" if scale < 1 else "") + (" · PNG→JPG" if out_path != path else (" · PNG ไม่มี alpha — ใส่ --rename ถ้าจะแปลงเป็น JPG" if ext == ".png" and not alpha else ""))
+    note = f"{w}x{h}" + (f" → {nw}x{nh}" if scale < 1 else "") + ((" · →WebP" if webp else " · PNG→JPG") if out_path != path else (" · PNG ไม่มี alpha — ใส่ --rename ถ้าจะแปลงเป็น JPG" if ext == ".png" and not alpha else ""))
     if dry:
         print(f"  {prof:7s} {os.path.relpath(path, ROOT)}  ({before//1024} KB) {note}"); return
     os.makedirs(ORIG, exist_ok=True)
@@ -116,10 +119,11 @@ if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     dry = "--dry" in sys.argv
     rename = "--rename" in sys.argv
+    webp = "--webp" in sys.argv
     override = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--profile=")), None)
     if not args: print(__doc__); sys.exit(1)
     for a in args:
         if os.path.isdir(a):
             for dp, _, fs in os.walk(a):
-                for f in sorted(fs): optimize(os.path.join(dp, f), override, dry, rename)
-        else: optimize(a, override, dry, rename)
+                for f in sorted(fs): optimize(os.path.join(dp, f), override, dry, rename, webp)
+        else: optimize(a, override, dry, rename, webp)

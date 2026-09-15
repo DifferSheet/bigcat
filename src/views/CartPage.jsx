@@ -31,7 +31,7 @@ export default function CartPage() {
       {items.length === 0 ? <div className="empty-cart"><Icon name="bag" size={50} /><h3>ตะกร้ายังว่างอยู่เลย</h3><p>เติมความน่ารักชิ้นเล็ก ๆ ลงในถุงกัน</p><Link to="/shop" className="button dark">ไปดูของสะสม <Icon name="arrow" /></Link></div>
         : <div className="cart-layout">
           <ul className="cart-lines">{items.map(i => <li key={i.key} className="cart-line">
-            <img src={i.image || '/images/bigcat-merch.png'} alt="" />
+            <img src={i.image || '/images/bigcat-merch.jpg'} alt="" />
             <div className="cart-line-info">
               <Link to={`/shop/${i.slug}`}><strong>{i.name}</strong></Link>
               {i.variantName && <span className="muted variant">{i.variantName}</span>}

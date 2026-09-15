@@ -49,7 +49,7 @@ export default function OrderPage({ code }) {
       <div className="order-grid">
         <section className="order-box">
           <span className="eyebrow">รายการ</span>
-          <ul className="mini-lines">{o.items.map(i => <li key={i.id}><img src={i.image || '/images/bigcat-merch.png'} alt="" /><span>{i.name}{i.variant_name ? ` · ${i.variant_name}` : ''} × {i.qty}</span><strong>{baht(i.price * i.qty)}</strong></li>)}</ul>
+          <ul className="mini-lines">{o.items.map(i => <li key={i.id}><img src={i.image || '/images/bigcat-merch.jpg'} alt="" /><span>{i.name}{i.variant_name ? ` · ${i.variant_name}` : ''} × {i.qty}</span><strong>{baht(i.price * i.qty)}</strong></li>)}</ul>
           <div className="cart-sum"><div><span>ยอดสินค้า</span><span>{baht(o.subtotal)}</span></div><div><span>ค่าจัดส่ง</span><span>{o.shipping_fee ? baht(o.shipping_fee) : 'ฟรี'}</span></div><div className="cart-sum-total"><span>รวม</span><strong>{baht(o.total)}</strong></div></div>
         </section>
         <section className="order-box">

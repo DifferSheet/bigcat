@@ -9,7 +9,7 @@ import RichText from '../components/RichText.jsx';
 
 const ORDER_STATUS = [['pending', 'รอชำระ'], ['paid', 'ชำระแล้ว'], ['packing', 'กำลังแพ็ก'], ['shipped', 'จัดส่งแล้ว'], ['completed', 'สำเร็จ'], ['cancelled', 'ยกเลิก']];
 const label = (s) => ORDER_STATUS.find(x => x[0] === s)?.[1] || s;
-const FALLBACK_IMG = '/images/bigcat-merch.png';
+const FALLBACK_IMG = '/images/bigcat-merch.jpg';
 
 /* ---------- จ่าหน้าพัสดุ: เลือกออเดอร์ → พิมพ์ (ผู้ส่งจากตั้งค่า · ผู้รับจากออเดอร์) ---------- */
 function LabelSheet({ orders, sender, onClose }) {
@@ -136,7 +136,7 @@ function Products({ onMsg }) {
     <div className="tabs-row"><span className="muted">{list.length} รายการ</span><button className="button dark small" onClick={() => setEditing('new')}>+ เพิ่มสินค้า</button></div>
     {editing && <div className="admin-panel"><ProductForm initial={editing === 'new' ? null : editing} onMsg={onMsg} onCancel={() => setEditing(null)} onSaved={() => { setEditing(null); onMsg('บันทึกแล้ว', 'ok'); load(); }} /></div>}
     <div className="table-wrap"><table className="admin-table"><thead><tr><th></th><th>สินค้า</th><th>หมวด</th><th>ราคา</th><th>สต็อก</th><th>สถานะ</th><th></th></tr></thead><tbody>{list.map(p => <tr key={p.id} className={p.status === 'hidden' ? 'dim' : ''}>
-      <td><img className="thumb" src={p.image || '/images/bigcat-merch.png'} alt="" /></td>
+      <td><img className="thumb" src={p.image || '/images/bigcat-merch.jpg'} alt="" /></td>
       <td><strong>{p.name}</strong><br /><small>{p.name_th}</small>{p.featured ? <span className="mini-tag ok">หน้าแรก</span> : null}</td>
       <td>{p.category}</td><td>{baht(p.price)}</td>
       <td>{p.variants.length ? <small>{p.variants.map(v => `${v.name}:${v.stock}`).join(' · ')}</small> : p.stock}{p.stock <= 5 && p.status === 'active' && <span className="mini-tag warn">ใกล้หมด</span>}</td>

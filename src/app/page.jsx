@@ -6,7 +6,7 @@ export const revalidate = 60;
 export const metadata = meta({
   title: 'BIGCAT — Big cats. Lighter days.', absoluteTitle: true,
   description: 'แก๊งแมวตัวโต โนบิ บูตะ ชิบะ — ร้องสด ทำบุญ และเจอกันได้จริงทุกเสาร์ ดูตารางงาน ลงทะเบียนงานฟรี และช้อปของสะสม BIGCAT',
-  // og:image = โปสเตอร์ 26 ก.ย. จนกว่างานจะผ่าน แล้วสลับกลับ /images/bigcat-hero.png
+  // og:image = โปสเตอร์ 26 ก.ย. จนกว่างานจะผ่าน แล้วสลับกลับ /images/bigcat-hero.jpg
   path: '/', image: '/images/og-26sep.jpg',
 });
 

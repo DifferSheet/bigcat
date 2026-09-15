@@ -67,7 +67,7 @@ export default function CheckoutPage() {
           {error && <Notice tone="error">{error}</Notice>}
         </form>
         <aside className="cart-side">
-          <ul className="mini-lines">{items.map(i => <li key={i.key}><img src={i.image || '/images/bigcat-merch.png'} alt="" /><span>{i.name}{i.variantName ? ` · ${i.variantName}` : ''} × {i.qty}</span><strong>{baht(i.price * i.qty)}</strong></li>)}</ul>
+          <ul className="mini-lines">{items.map(i => <li key={i.key}><img src={i.image || '/images/bigcat-merch.jpg'} alt="" /><span>{i.name}{i.variantName ? ` · ${i.variantName}` : ''} × {i.qty}</span><strong>{baht(i.price * i.qty)}</strong></li>)}</ul>
           <CartSummary subtotal={subtotal} settings={settings} />
           <button className="button dark" form="checkout-form" disabled={busy}>{busy ? 'กำลังส่งคำสั่งซื้อ…' : `ยืนยันสั่งซื้อ ${baht(total)}`} <Icon name="check" /></button>
           <small className="muted">สต็อกจะถูกจองให้ทันทีที่กดยืนยัน</small>

@@ -30,7 +30,7 @@ export default function EventsPage({ notFound = false, initialEvents = null }) {
   const Card = ({ ev }) => {
     const d = eventDate(ev);
     return <Link to={`/events/${ev.slug}`} className={`ev-card tone-${ev.tone}`}>
-      <div className="ev-card-cover"><img src={ev.cover || '/images/bigcat-hero.png'} alt={`ภาพปกงาน ${ev.title}`} loading="lazy" /><span className={`date-badge ${ev.tone}`}><strong>{d.day}</strong><span>{d.month}</span></span></div>
+      <div className="ev-card-cover"><img src={ev.cover || '/images/bigcat-hero.jpg'} alt={`ภาพปกงาน ${ev.title}`} loading="lazy" /><span className={`date-badge ${ev.tone}`}><strong>{d.day}</strong><span>{d.month}</span></span></div>
       <div className="ev-card-body">
         <div className="ev-card-meta"><span className="eyebrow">{typeLabel[ev.type]}</span><StatusPill status={ev.status} /></div>
         <h3>{ev.title}</h3>

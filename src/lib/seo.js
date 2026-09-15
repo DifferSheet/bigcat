@@ -11,7 +11,7 @@ export async function fetchJSON(path, { revalidate = 60 } = {}) {
   } catch { return null; }
 }
 
-export const abs = (url) => (!url ? `${SITE}/images/bigcat-hero.png` : /^https?:/.test(url) ? url : `${SITE}${url}`);
+export const abs = (url) => (!url ? `${SITE}/images/bigcat-hero.jpg` : /^https?:/.test(url) ? url : `${SITE}${url}`);
 
 const BRAND = 'BIGCAT';
 export function meta({ title, description, path = '/', image, type = 'website', noindex = false, publishedTime, absoluteTitle = false }) {

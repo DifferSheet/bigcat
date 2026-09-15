@@ -12,10 +12,10 @@ import '../cozy.css';
 import '../housewarming.css';
 import { useCozyMotion } from '../lib/cozy-motion.js';
 
-const HERO = '/images/cozy/hero.png';
-const MERCH = '/images/bigcat-merch.png';
+const HERO = '/images/cozy/hero.webp';
+const MERCH = '/images/bigcat-merch.jpg';
 const MERCH_DISPLAY = '/images/bigcat-merch-pink-v4.webp';
-const characterImage = id => `/images/cozy/${id}-personality-v2.png`;
+const characterImage = id => `/images/cozy/${id}-personality-v2.webp`;
 const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
 // ตัวละคร — กติกาแบรนด์: tag อังกฤษนำ · ไทยตาม · บอกว่าทำอะไรจริง/เจอได้ที่ไหน · ห้ามคำต้องห้ามของแบรนด์ (ดูใบสั่งแก้ข้อความ)
@@ -54,15 +54,11 @@ const members = [
       quote: 'จะไม่สร้างความเดือดร้อนให้ใครบนโลกนี้เด็ดขาด',
     } },
 ];
-// อัลบั้ม — โครงตามใบสั่ง 15 ก.ย.: title อังกฤษ · caption ไทย (ที่ไหน/เมื่อไหร่/เกิดอะไร) · ใช้ภาพจริงจากงานเมื่อคัดจากคลัง footage แล้ว
-// ⚠️ ตอนนี้ยังใช้ภาพวาด diary-*.png คั่นไว้ก่อน — เมื่อได้ภาพจริง ≥ 3 ใบ ให้แทน image และลบภาพวาดออก
+// Illustrated hobby moments, not documentary event photographs.
 const photos = [
-  { title: 'The first Saturday', caption: 'เยาวราช 5 ต.ค. 68 — เสาร์แรกที่โนเปิดหมวก ยังไม่มีใครหยุดฟัง', date: '2025-10-05', place: 'เยาวราช', image: '/images/cozy/diary-nobi.png', tilt: -4 },
-  { title: 'Someone stopped', caption: 'บรรทัดทอง 18 ก.ค. 69 — คนแปลกหน้าคนแรกที่หยุดฟังจนจบเพลง', date: '2026-07-18', place: 'บรรทัดทอง', image: '/images/cozy/diary-boota.png', tilt: 2 },
-  { title: 'Rain check? No.', caption: 'วันที่ฝนตกแล้วโนยังร้องต่อ', date: '', place: '', image: '/images/cozy/diary-shiba.png', tilt: -2 },
-  // รอภาพ: { title: 'Full house', caption: 'สามย่านมิตรทาวน์ 29 ส.ค. 69 — วันที่ลานเต็มครั้งแรก', date: '2026-08-29', place: 'สามย่านมิตรทาวน์' }
-  // รอภาพ: { title: "Boota's merit day", caption: 'บูตะพามัมป๊าทำบุญ', date: '2026-09-19', place: 'วัดวชิรธรรมสาธิต' }
-  // รอภาพ: { title: 'New chapter', caption: 'แดนเนรมิต 26 ก.ย. 69 — ครั้งแรกในร่างใหม่', date: '2026-09-26', place: 'ตลาดเลียบด่วนแดนเนรมิต' }
+  { title: 'A little color', short: 'ค่อย ๆ เติมสีให้วันธรรมดา', caption: 'โนบิกับบ่ายวันวาดรูป — ไม่ต้องวาดให้สวยที่สุด แค่ได้ใช้สีที่ชอบ วันนี้ก็มีความสุขเพิ่มขึ้นอีกนิดแล้ว', alt: 'โนบิในเดรสชมพูใช้พู่กันวาดดอกไม้ในสมุดวาดรูปบนโต๊ะไม้ มุมเฉียงด้านหน้าเห็นรองเท้าทั้งสองข้าง', image: '/images/cozy/moments-nobi-1200-v5.webp', thumb: '/images/cozy/moments-nobi-480-v5.webp', tilt: -4 },
+  { title: 'A quiet moment', short: 'พักใจไว้กับลมหายใจ', caption: 'บูตะนั่งสมาธิในห้องพระ — วางเรื่องวุ่น ๆ ลงสักครู่ อยู่กับลมหายใจตรงนี้ ไม่ต้องรีบคิดคำตอบให้ทุกเรื่องในวันนี้ก็ได้', alt: 'บูตะใส่สูทม่วงแขนยาวนั่งขัดสมาธิบนเบาะในห้องพระโทนไม้อบอุ่น', image: '/images/cozy/moments-boota-1200-v4.webp', thumb: '/images/cozy/moments-boota-480-v4.webp', tilt: 2 },
+  { title: 'One more step', short: 'ทีละสเต็ป ในจังหวะของเรา', caption: 'ชิบะซ้อมเต้นหน้ากระจก — วันนี้ยังไม่เป๊ะก็ไม่เป็นไร ลองอีกครั้ง ขยับอีกนิด ทุกสเต็ปที่ซ้อมคือการค่อย ๆ เก่งขึ้นในแบบของเรา', alt: 'ชิบะใส่แจ็กเก็ตฟ้าซ้อมสเต็ปเต้นในสตูดิโอพื้นไม้พร้อมเงาสะท้อนในกระจก', image: '/images/cozy/moments-shiba-1200-v3.webp', thumb: '/images/cozy/moments-shiba-480-v3.webp', tilt: -2 },
 ];
 const navItems = [['รู้จักแก๊ง', '#friends'], ['ตารางงาน', '/events'], ['อัลบั้ม', '#moments']];
 
@@ -118,8 +114,8 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
       {/* ---------- HERO ---------- */}
       <section className="party-hero" aria-labelledby="hero-title">
         <picture className="party-scene">
-          <source media="(max-width: 900px) and (orientation: portrait)" srcSet="/images/cozy/housewarming-fresh-mobile.png" />
-          <img src="/images/cozy/housewarming-fresh-desktop.png" alt="โนบิ บูตะ และชิบะ เต้นฉลองเปิดบ้านไม้โทนอุ่น มีลูกโป่งและไฟประดับ" fetchPriority="high" width="1672" height="941" data-cozy-depth="0.04" />
+          <source media="(max-width: 900px) and (orientation: portrait)" srcSet="/images/cozy/housewarming-fresh-mobile.webp" />
+          <img src="/images/cozy/housewarming-fresh-desktop.webp" alt="โนบิ บูตะ และชิบะ เต้นฉลองเปิดบ้านไม้โทนอุ่น มีลูกโป่งและไฟประดับ" fetchPriority="high" width="1672" height="941" data-cozy-depth="0.04" />
         </picture>
         <div className="party-light" aria-hidden="true" />
         <div className="party-sparkles" aria-hidden="true">{Array.from({ length: 12 }, (_, i) => <span key={i} style={{ '--x': `${8 + (i * 23) % 85}%`, '--y': `${12 + (i * 17) % 70}%` }} />)}</div>
@@ -177,8 +173,8 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
       <section id="moments" className="hm-section">
         <SectionHead label="PHOTO ALBUM" note="OUR MOMENTS ♡" />
         <div className="hm-album">
-          <div className="hm-album-copy reveal"><h2>Our<br />Moments <i>♡</i></h2><p>ช่วงเวลาเล็ก ๆ ที่อยากเก็บไว้<br />กับทุกคน</p></div>
-          <div className="hm-polaroids">{photos.map((ph, i) => <button key={ph.title} className="hm-polaroid reveal" style={{ '--tilt': `${ph.tilt}deg`, '--delay': `${i * 120}ms` }} onClick={() => { setAlbumIndex(i); setModal({ type: 'album' }); }}><img src={ph.image} alt={ph.caption} loading="lazy" /><span>{ph.title}</span></button>)}</div>
+          <div className="hm-album-copy reveal"><h2>Our<br />Moments <i>♡</i></h2><p>วาดรูป พักใจ ขยับไปตามจังหวะ<br />ความสุขเล็ก ๆ ในวันว่างของพวกเรา</p></div>
+          <div className="hm-polaroids">{photos.map((ph, i) => <button key={ph.title} className="hm-polaroid reveal" style={{ '--tilt': `${ph.tilt}deg`, '--delay': `${i * 120}ms` }} onClick={() => { setAlbumIndex(i); setModal({ type: 'album' }); }}><img src={ph.thumb} alt={ph.alt} width="480" height="480" loading="lazy" /><span>{ph.title}</span><small className="hm-moment-caption">{ph.short}</small></button>)}</div>
           <div className="hm-sticky reveal"><span>Thank you<br />for staying.</span><small>ขอบคุณที่อยู่ด้วยกันเสมอ</small><Flower className="hm-sticky-flower" /></div>
         </div>
       </section>

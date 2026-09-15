@@ -92,7 +92,7 @@ export default function EventPage({ slug, initialData = null }) {
 // ภาพฮีโร่: ปก + แกลเลอรี (config.gallery) เลื่อนดูได้ — scroll-snap ปัดบนมือถือ / ปุ่มซ้ายขวา + จุดบนเดสก์ท็อป
 function HeroSlides({ ev, d }) {
   const slides = [ev.cover, ...(ev.config?.gallery || [])].filter(Boolean);
-  if (!slides.length) slides.push('/images/bigcat-hero.png');
+  if (!slides.length) slides.push('/images/bigcat-hero.jpg');
   const ref = useRef(null);
   const [i, setI] = useState(0);
   const go = (n) => { const el = ref.current; if (!el) return; const k = (n + slides.length) % slides.length; el.scrollTo({ left: k * el.clientWidth, behavior: 'smooth' }); setI(k); };

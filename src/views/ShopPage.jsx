@@ -11,7 +11,7 @@ import { baht } from '../lib/format.js';
 export function ProductCard({ p, onAdd }) {
   const simple = !p.variants.length;
   return <article className={`shop-card ${!p.available ? 'soldout' : ''}`}>
-    <Link to={`/shop/${p.slug}`} className="shop-card-img"><img src={p.image || '/images/bigcat-merch.png'} alt={`${p.name_th || p.name} — ของแก๊ง BIGCAT`} loading="lazy" />{!p.available && <span className="shop-badge">หมดแล้ว</span>}{p.compare_price && p.available && <span className="shop-badge sale">-{Math.round((1 - p.price / p.compare_price) * 100)}%</span>}</Link>
+    <Link to={`/shop/${p.slug}`} className="shop-card-img"><img src={p.image || '/images/bigcat-merch.jpg'} alt={`${p.name_th || p.name} — ของแก๊ง BIGCAT`} loading="lazy" />{!p.available && <span className="shop-badge">หมดแล้ว</span>}{p.compare_price && p.available && <span className="shop-badge sale">-{Math.round((1 - p.price / p.compare_price) * 100)}%</span>}</Link>
     <div className="shop-card-body">
       <span className="eyebrow">{p.category}</span>
       <h3><Link to={`/shop/${p.slug}`}>{p.name}</Link></h3>

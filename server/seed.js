@@ -1,8 +1,8 @@
 // ข้อมูลตัวอย่างสำหรับรันบนเครื่อง: npm run db:seed
 import { migrate, pool, q, one } from './db.js';
 
-const HERO = '/images/bigcat-hero.png';
-const MERCH = '/images/bigcat-merch.png';
+const HERO = '/images/bigcat-hero.jpg';
+const MERCH = '/images/bigcat-merch.jpg';
 
 const events = [
   {
@@ -23,7 +23,7 @@ const events = [
     title: 'ร่วมบุญช่วงเข้าพรรษา กับมหาบูตะ', subtitle: 'เข้าพรรษา สร้างบุญ สร้างใจ ไปด้วยกัน',
     description: 'บุญครั้งนี้มาร่วมกันนะมัม ♥ มหาบูตะชวนมัมป๊าและแฟนคลับทุกคนไปร่วมทำบุญช่วงเข้าพรรษาที่วัดวชิรธรรมสาธิต วันเสาร์ที่ 19 กันยายน 2569\n\nมาไม่ได้ก็ร่วมบุญออนไลน์ได้ เลือกหมวดที่อยากร่วม แจ้งยอดพร้อมสลิป พี่ ๆ ที่ดูแลบูตะตรวจสอบแล้ว ยอดจะขึ้นบนหน้านี้ทันที และเมื่อยอดรวมถึงแต่ละขั้น มหาบูตะจะปลดล็อกของขวัญพิเศษให้ทุกคน\n\nแล้วมาสร้างบุญไปด้วยกันนะมัมป๊า 🧡',
     place: 'วัดวชิรธรรมสาธิต (ซอย 101/1 สุดซอยตรง 3 แยกเลี้ยวซ้าย)', map_url: 'https://maps.google.com/?q=วัดวชิรธรรมสาธิต',
-    starts_at: '2026-09-19 09:00:00', ends_at: '2026-09-19 12:00:00', cover: '/images/merit-vassa-2026.png',
+    starts_at: '2026-09-19 09:00:00', ends_at: '2026-09-19 12:00:00', cover: '/images/merit-vassa-2026.webp',
     config: {
       payment: { qrImage: '/images/qr-merit.png', accountName: 'บัญชีน้องบูตะน้องโนบิ' },
       // ปิดรับยอดออนไลน์ก่อนวันไปวัด 1 วัน (นับถอยหลังแยกจากวันงาน)
@@ -33,7 +33,7 @@ const events = [
       attend: { enabled: true, note: 'นัดพบหน้าวัด 8 โมงเช้า · แต่งกายสีขาว (สุภาพ) · เตรียมใจให้พร้อม 3 ขณะจิต: ก่อนทำ «ดีใจ» ขณะทำ «ตั้งใจ» หลังทำ «ปลื้มใจ» · มีของที่ระลึกสำหรับผู้ที่เช็คอินหน้างาน' },
       // milestone แบบ interactive: ปลดล็อกแล้วมีของจริงให้ดู/ทำ
       milestones: [
-        { percent: 25, title: 'ปล่อยภาพลับมหาบูตะชุดขาวทอง', reward: { type: 'image', src: '/images/merit-vassa-2026.png', caption: 'มหาบูตะในชุดขาวทอง เตรียมไปวัดกับทุกคน' } },
+        { percent: 25, title: 'ปล่อยภาพลับมหาบูตะชุดขาวทอง', reward: { type: 'image', src: '/images/merit-vassa-2026.webp', caption: 'มหาบูตะในชุดขาวทอง เตรียมไปวัดกับทุกคน' } },
         { percent: 50, title: 'Live พิเศษกับแก๊งจากวัด 1 ชั่วโมง', reward: { type: 'link', url: 'https://www.youtube.com/@bigcat', label: 'ดู Live / ย้อนหลัง' } },
         { percent: 75, title: 'โหวตบุญครั้งถัดไปที่แก๊งจะไป', reward: { type: 'poll', key: 'next-merit', question: 'บุญครั้งหน้าอยากให้แก๊ง BIGCAT ไปที่ไหน', options: ['วัดป่าในต่างจังหวัด', 'บ้านพักแมวจร', 'โรงพยาบาลสัตว์ (ค่ารักษาแมวป่วย)'] } },
         { percent: 100, title: 'แก๊ง BIGCAT ถวายสังฆทานในนามแฟนคลับทุกคน + ถ่ายทอดสด', reward: { type: 'text', body: 'ครบเป้าแล้ว! วันงานจะถ่ายทอดสดตอนถวายสังฆทาน และอ่านชื่อผู้ร่วมบุญทุกคนในคำอธิษฐาน' } },
@@ -151,7 +151,7 @@ const products = [
     variants: [['S', 0, 10], ['M', 0, 15], ['L', 0, 15], ['XL', 20, 8]] },
   { slug: 'nobi-sticker-pack', name: 'Nobi Sticker Pack', name_th: 'สติกเกอร์โนบิ 12 ชิ้น', category: 'ของสะสม', price: 120, image: HERO, stock: 200, featured: 0, sort: 4,
     description: 'สติกเกอร์ไวนิลกันน้ำ 12 ลาย ติดโน้ตบุ๊ก ขวดน้ำ ได้หมด' },
-  { slug: 'merit-set-2026', name: 'Merit Day Set', name_th: 'เซ็ตวันทำบุญ (รับหน้างาน)', category: 'ของสะสม', price: 350, image: '/images/merit-vassa-2026.png', stock: 30, featured: 1, sort: 5,
+  { slug: 'merit-set-2026', name: 'Merit Day Set', name_th: 'เซ็ตวันทำบุญ (รับหน้างาน)', category: 'ของสะสม', price: 350, image: '/images/merit-vassa-2026.webp', stock: 30, featured: 1, sort: 5,
     description: 'สายสิญจน์ + โปสการ์ดมหาบูตะ + เข็มกลัด รับได้ที่วัดวันที่ 19 ก.ย. หรือส่งไปรษณีย์' },
 ];
 for (const { variants, ...p } of products) {

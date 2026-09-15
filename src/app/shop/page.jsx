@@ -6,7 +6,7 @@ export const revalidate = 60;
 export const metadata = meta({
   title: 'ร้านค้า BIGCAT — Little things. Big love.',
   description: 'ของสะสมจากแก๊ง BIGCAT กระเป๋าผ้า พวงกุญแจ เสื้อยืด และของชิ้นเล็กที่เก็บความสุขไว้ได้เสมอ ส่งถึงบ้านหรือรับหน้างาน',
-  path: '/shop', image: '/images/bigcat-merch.png',
+  path: '/shop', image: '/images/bigcat-merch.jpg',
 });
 
 export default async function Page() {

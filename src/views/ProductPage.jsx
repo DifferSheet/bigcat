@@ -48,7 +48,7 @@ export default function ProductPage({ slug, initialProduct = null }) {
       <div className="product-layout">
         <div className="product-media">
           <div className="product-gallery">
-            <img src={gallery[shot] || '/images/bigcat-merch.png'} alt={`${p.name_th || p.name}${variant?.name ? ` — ${variant.name}` : ''} ของแก๊ง BIGCAT รูปที่ ${shot + 1}`} />
+            <img src={gallery[shot] || '/images/bigcat-merch.jpg'} alt={`${p.name_th || p.name}${variant?.name ? ` — ${variant.name}` : ''} ของแก๊ง BIGCAT รูปที่ ${shot + 1}`} />
             {!p.available && <span className="shop-badge">หมดแล้ว</span>}
             {gallery.length > 1 && <>
               <button className="gal-nav prev" aria-label="รูปก่อนหน้า" onClick={() => setShot((shot + gallery.length - 1) % gallery.length)}>←</button>

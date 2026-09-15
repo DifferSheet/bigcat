@@ -22,7 +22,7 @@ export const metadata = {
   description: 'แก๊งแมวตัวโต โนบิ บูตะ ชิบะ — ร้องสด ทำบุญ และเจอกันได้จริงทุกเสาร์ ดูตารางงาน ลงทะเบียนงานฟรี และช้อปของสะสม BIGCAT',
   keywords: ['BIGCAT', 'บิ๊กแคท', 'โนบิ', 'น้องโนบิ', 'nobisingasong', 'บูตะ', 'ชิบะ', 'แมวตัวโต', 'ด้อมบิ๊กแคท', 'ร้องสด', 'busking', 'ตลาดเลียบด่วนแดนเนรมิต', 'ของสะสม', 'art toy', 'กิจกรรมแฟนคลับ'],
   applicationName: 'BIGCAT',
-  openGraph: { type: 'website', siteName: 'BIGCAT', locale: 'th_TH', url: SITE, images: [{ url: '/images/bigcat-hero.png', width: 1536, height: 1024 }] },
+  openGraph: { type: 'website', siteName: 'BIGCAT', locale: 'th_TH', url: SITE, images: [{ url: '/images/bigcat-hero.jpg', width: 1536, height: 1024 }] },
   twitter: { card: 'summary_large_image' },
   icons: { icon: '/favicon.png', apple: '/favicon.png' },
 };

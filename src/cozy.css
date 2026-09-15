@@ -68,7 +68,8 @@
 .hm-album { grid-template-columns: .75fr 1.8fr .45fr; gap: 28px; padding: 12px 0 22px; }
 .hm-polaroids { gap: 13px; min-width: 0; }
 .hm-polaroid { min-width: 0; padding: 9px 9px 12px; border-radius: 1px; box-shadow: 0 5px 20px #6b492a17; }
-.hm-polaroid span { font-size: 19px; white-space: nowrap; }
+.hm-polaroid span { font-size: 19px; white-space: normal; }
+.hm-moment-caption { display: block; margin-top: 5px; color: #766151; font-size: 12px; line-height: 1.65; text-wrap: pretty; }
 .hm-sticky { padding: 23px 10px; font-family: var(--font-head); font-size: 17px; font-weight: 400; line-height: 1.6; }
 .hm-modal-portrait { margin-inline: auto; width: 240px; max-width: 100%; aspect-ratio: 2/3; max-height: 360px; }
 .hm-modal-portrait img { object-fit: contain; }
