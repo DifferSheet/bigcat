@@ -19,6 +19,7 @@ import { eventDate, typeLabel, baht, parseDate } from '../lib/format.js';
 
 const fmt = (d) => { const x = parseDate(d); return x ? x.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'; };
 import dynamic from 'next/dynamic';
+const QrScanner = dynamic(() => import('../components/QrScanner.jsx'), { ssr: false });
 
 const ShopAdmin = dynamic(() => import('./ShopAdmin.jsx'), { ssr: false, loading: () => <PageLoader /> });
 const EventAdminForm = dynamic(() => import('./EventAdminForm.jsx'), { ssr: false, loading: () => <PageLoader /> });
@@ -212,6 +213,29 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
   </div>;
 }
 
+// การ์ดยืนยันเช็คอินหลังสแกน — โชว์ชื่อ/หมายเลข/งาน และเตือนถ้าไม่ใช่วันงาน หรือเช็คอินไปแล้ว
+function CheckinCard({ t, onConfirm, onClose, onNext }) {
+  const d = t.starts_at ? eventDate({ starts_at: t.starts_at }) : null;
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+  const eventDay = t.starts_at ? new Date(t.starts_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }) : today;
+  const unpaid = t.kind === 'booking' && !t.already && t.status !== 'paid';
+  return <Modal title={t.already ? 'เช็คอินไปแล้ว' : 'ยืนยันเช็คอิน'} onClose={onClose}>
+    <div className="checkin-card">
+      <span className="eyebrow">{t.title}</span>
+      <strong className="checkin-name">{t.nickname || t.name}</strong>
+      <span className="checkin-meta">{t.kind === 'booking' ? `ที่นั่ง ${(t.seats || []).join(', ')}` : `หมายเลข #${String(t.number).padStart(3, '0')}`} · รหัส {t.code}{t.regKind === 'attend' ? ' · ไปวัดด้วย' : ''}</span>
+      {t.already && <Notice>บัตรนี้เช็คอินไปแล้ว{t.checked_in_at ? ` เมื่อ ${new Date(t.checked_in_at).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'short', timeStyle: 'short' })}` : ''}</Notice>}
+      {unpaid && <Notice tone="error">บัตรนี้ยังไม่ได้ยืนยันการชำระเงิน ({t.status}) — เช็คอินไม่ได้</Notice>}
+      {!t.already && eventDay !== today && <Notice tone="muted">งานนี้จัดวันที่ {d?.long} — วันนี้ยังไม่ใช่วันงาน ถ้าไม่ได้ตั้งใจให้กดปิด</Notice>}
+      <div className="form-actions">
+        {!t.already && !unpaid && <button className="button dark" onClick={onConfirm}>ยืนยันเช็คอิน <Icon name="check" /></button>}
+        <button className="button ghost" onClick={onNext}>สแกนใบต่อไป</button>
+        <button className="link-button" onClick={onClose}>ปิด</button>
+      </div>
+    </div>
+  </Modal>;
+}
+
 export default function AdminPage() {
   const mounted = useMounted();
   const [authed, setAuthed] = useState(null);   // null = กำลังเช็ค session
@@ -229,17 +253,45 @@ export default function AdminPage() {
   const refresh = () => api('/admin/overview', { admin: true }).then(list => { setEvents(list); setActive(a => a ? list.find(e => e.slug === a.slug) : list[0]); }).catch(e => { if (e.status === 401) { setAdminKey(''); setAuthed(false); } });
   useEffect(() => { if (authed) refresh(); }, [authed]);
 
+  // รหัสบัตรจากช่องพิมพ์หรือ QR (QR บนบัตรเป็น URL /admin?checkin=รหัส)
+  const codeOf = (raw) => { const m = String(raw || '').match(/checkin=([A-Za-z0-9]{6,12})/) || String(raw || '').trim().match(/^([A-Za-z0-9]{6,12})$/); return m ? m[1].toUpperCase() : ''; };
   const checkin = async (e) => {
     e.preventDefault(); setScanResult(null);
-    try { setScanResult({ ok: true, ...(await api(`/admin/checkin/${scan.trim()}`, { method: 'POST', admin: true })) }); setScan(''); refresh(); }
+    try { setScanResult({ ok: true, ...(await api(`/admin/checkin/${codeOf(scan) || scan.trim()}`, { method: 'POST', admin: true })) }); setScan(''); refresh(); }
     catch (err) { setScanResult({ ok: false, error: err.message }); }
   };
+  // สแกนจากมือถือ → การ์ดยืนยันก่อนเช็คอิน (กันสแกนผิดใบ/ก่อนวันงาน)
+  const [pending, setPending] = useState(null);   // ข้อมูลบัตรที่รอกดยืนยัน
+  const [scanning, setScanning] = useState(false);
+  const preview = async (raw) => {
+    const code = codeOf(raw);
+    setScanning(false); setScanResult(null);
+    if (!code) return setScanResult({ ok: false, error: `QR นี้ไม่ใช่บัตรของเว็บเรา (${String(raw).slice(0, 40)})` });
+    try { setPending(await api(`/admin/checkin/${code}`, { admin: true })); }
+    catch (err) { setScanResult({ ok: false, error: err.message }); }
+  };
+  const confirmCheckin = async () => {
+    const code = pending.code;
+    try { setScanResult({ ok: true, ...(await api(`/admin/checkin/${code}`, { method: 'POST', admin: true })) }); refresh(); }
+    catch (err) { setScanResult({ ok: false, error: err.message }); }
+    setPending(null);
+  };
+  // เปิดจากกล้องมือถือ: /admin?checkin=รหัส — ล็อกอินแล้วค่อยดึงข้อมูลบัตร แล้วลบ query ออกกันรีเฟรชซ้ำ
+  useEffect(() => {
+    if (!authed) return;
+    const code = new URLSearchParams(location.search).get('checkin');
+    if (!code) return;
+    history.replaceState(null, '', location.pathname);
+    preview(code);
+  }, [authed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <><SiteHeader /><main className="ev-page">
     {!mounted || authed === null ? <PageLoader /> : !authed ? <Login onDone={(a) => { setAdmin(a); setAuthed(true); }} /> : <>
       <div className="admin-head"><div><span className="eyebrow">STAFF DASHBOARD</span><h1>{area === 'shop' ? 'จัดการร้านค้า' : area === 'members' ? 'สมาชิก' : 'จัดการกิจกรรม'}</h1><AdminAccount admin={admin} onLogout={logout} /></div>{area === 'events' && <button className="button dark small" onClick={() => setForm('new')}>+ เพิ่มกิจกรรม</button>}<div className="area-tabs">{[['events', 'กิจกรรม', '/admin'], ['shop', 'ร้านค้า', '/admin/shop'], ['members', 'สมาชิก', '/admin/members']].map(([k, l, path]) => <button key={k} className={area === k ? 'active' : ''} onClick={() => { setArea(k); history.replaceState(null, '', path); }}>{l}</button>)}</div></div>
       {area === 'shop' ? <ShopAdmin /> : area === 'members' ? <Members /> : form ? <div className="admin-panel"><EventAdminForm initial={form === 'new' ? null : form} onCancel={() => setForm(null)} onSaved={async (slug) => { setForm(null); const list = await api('/admin/overview', { admin: true }); setEvents(list); setActive(list.find(e => e.slug === slug) || list[0]); }} /></div> : <>
-      <form className="scan-box" onSubmit={checkin}><Icon name="check" /><input id="ad-scan" value={scan} onChange={e => setScan(e.target.value)} placeholder="เช็คอินหน้างาน: พิมพ์/สแกนรหัสบัตร" /><button className="button dark small">เช็คอิน</button>{scanResult && <span className={`notice ${scanResult.ok ? '' : 'error'}`}>{scanResult.ok ? `${scanResult.already ? 'เช็คอินไปแล้ว' : 'เช็คอินสำเร็จ'}: ${scanResult.name}${scanResult.seats ? ` (${scanResult.seats.join(', ')})` : scanResult.number ? ` #${scanResult.number}` : ''}` : scanResult.error}</span>}</form>
+      <form className="scan-box" onSubmit={checkin}><Icon name="check" /><input id="ad-scan" value={scan} onChange={e => setScan(e.target.value)} placeholder="เช็คอินหน้างาน: พิมพ์/สแกนรหัสบัตร" /><button className="button dark small">เช็คอิน</button><button type="button" className="button ghost small" onClick={() => { setScanResult(null); setScanning(true); }}><Icon name="camera" size={16} /> สแกน QR</button>{scanResult && <span className={`notice ${scanResult.ok ? '' : 'error'}`}>{scanResult.ok ? `${scanResult.already ? 'เช็คอินไปแล้ว' : 'เช็คอินสำเร็จ'}: ${scanResult.name}${scanResult.seats ? ` (${scanResult.seats.join(', ')})` : scanResult.number ? ` #${scanResult.number}` : ''}` : scanResult.error}</span>}</form>
+      {scanning && <Modal title="สแกน QR บนบัตร" onClose={() => setScanning(false)}><QrScanner onScan={preview} onError={(msg) => { setScanning(false); setScanResult({ ok: false, error: msg }); }} /><p>หรือใช้แอปกล้องของมือถือสแกน — QR บนบัตรจะเปิดหน้านี้พร้อมการ์ดยืนยันให้เอง</p></Modal>}
+      {pending && <CheckinCard t={pending} onConfirm={confirmCheckin} onClose={() => setPending(null)} onNext={() => { setPending(null); setScanning(true); }} />}
       {!events ? <PageLoader /> : <div className="admin-layout">
         <aside className="admin-list">{events.map(ev => { const pending = Number(ev.pendingBookings) + Number(ev.pendingDonations); return <button key={ev.slug} className={`admin-item ${active?.slug === ev.slug ? 'active' : ''}`} onClick={() => setActive(ev)}><span className="eyebrow">{typeLabel[ev.type]} · {eventDate(ev).long}</span><strong>{ev.title}</strong><span className="admin-item-meta"><StatusPill status={ev.status} />{pending > 0 && <span className="badge-count">{pending} รอตรวจ</span>}</span></button>; })}</aside>
         {active && <EventAdmin key={active.slug + active.status} ev={active} refresh={refresh} onEdit={() => openEdit(active.slug)} onDeleted={async () => { const list = await api('/admin/overview', { admin: true }); setEvents(list); setActive(list[0] || null); }} />}

@@ -177,7 +177,7 @@ export default function MeritGoals({ data }) {
     {cfg.attend?.enabled && <Section eyebrow="JOIN IN PERSON" title="ไปวัดด้วยกัน" aside={<span className="ev-summary">จะไป <strong>{registrations?.total || 0}</strong> คน · เช็คอินแล้ว {registrations?.checkedIn || 0}</span>}>
       {cfg.attend.note && <p className="muted"><Tagged text={cfg.attend.note} /></p>}
       {attendDone
-        ? <><Notice>ลงทะเบียนไปวัดแล้ว หมายเลข #{String(attendDone.number).padStart(3, '0')} — วันงานเปิดหน้าบัตรเพื่อเช็คอินรับของที่ระลึก</Notice><div className="form-actions"><Link className="button ghost small" to={`/ticket/${attendDone.code}`}>เปิดบัตร</Link><button className="link-button" onClick={() => { setAttendDone(null); try { localStorage.removeItem(attendKey(ev.slug)); } catch { /* optional */ } }}>ลงทะเบียนคนอื่น</button></div></>
+        ? <><Notice>ลงทะเบียนไปวัดแล้ว หมายเลข #{String(attendDone.number).padStart(3, '0')} — วันงานเปิดหน้าบัตร{(cfg.checkinMode || 'self') === 'staff' ? 'ให้พี่ ๆ สแกน QR' : 'กดเช็คอิน (หรือให้พี่ ๆ สแกน QR)'} เพื่อรับของที่ระลึก</Notice><div className="form-actions"><Link className="button ghost small" to={`/ticket/${attendDone.code}`}>เปิดบัตร</Link><button className="link-button" onClick={() => { setAttendDone(null); try { localStorage.removeItem(attendKey(ev.slug)); } catch { /* optional */ } }}>ลงทะเบียนคนอื่น</button></div></>
         : ev.status === 'ended' ? <Notice tone="muted">งานจบแล้ว</Notice>
           : (cfg.registerMode || 'anyone') === 'self' && !user ? <LoginToRegister user={user} what="ลงทะเบียนไปวัด" />
           : <form className="booking-form inline" onSubmit={registerAttend}>

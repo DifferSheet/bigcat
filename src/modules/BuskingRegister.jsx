@@ -58,6 +58,7 @@ export default function BuskingRegister({ data }) {
 
   const selfOnly = (ev.config?.registerMode || 'anyone') === 'self';
   const isLive = ev.status === 'live';
+  const staffScan = (ev.config?.checkinMode || 'self') === 'staff';   // งานนี้ให้พี่ ๆ หน้างานสแกน QR เท่านั้น
   const isWinner = mine?.luckyRound;
 
   return <>
@@ -68,9 +69,11 @@ export default function BuskingRegister({ data }) {
           ? <Notice>🎉 คุณคือ Lucky Fan รอบที่ {isWinner}! มาข้างเวทีเพื่อถ่ายรูปคู่กับโนบิได้เลย</Notice>
           : mine.checked_in_at
             ? <Notice>เช็คอินแล้ว คุณอยู่ในกลุ่มลุ้น Lucky Fan ตอนท้ายงาน</Notice>
-            : isLive
-              ? <><p>มาถึงหน้างานแล้วใช่ไหม กดเช็คอินเพื่อรับสิทธิ์ลุ้น Lucky Fan</p><button className="button dark" onClick={checkin} disabled={busy}>ฉันมาถึงแล้ว <Icon name="check" /></button></>
-              : <Notice tone="muted">ปุ่มเช็คอินจะเปิดเมื่อถึงเวลางาน กลับมาที่หน้านี้อีกครั้งเมื่อมาถึง</Notice>}
+            : staffScan
+              ? <Notice tone="muted">ถึงหน้างานแล้วเปิดบัตรลงทะเบียน แสดง QR ให้พี่ ๆ ที่ดูแลสแกนเพื่อเช็คอินรับสิทธิ์ลุ้น Lucky Fan</Notice>
+              : isLive
+                ? <><p>มาถึงหน้างานแล้วใช่ไหม กดเช็คอินเพื่อรับสิทธิ์ลุ้น Lucky Fan</p><button className="button dark" onClick={checkin} disabled={busy}>ฉันมาถึงแล้ว <Icon name="check" /></button></>
+                : <Notice tone="muted">ปุ่มเช็คอินจะเปิดเมื่อถึงเวลางาน กลับมาที่หน้านี้อีกครั้งเมื่อมาถึง</Notice>}
         <div className="form-actions"><Link className="button ghost" to={`/ticket/${mine.code}`}>เปิดบัตรลงทะเบียน</Link>{!selfOnly && <button type="button" className="link-button" onClick={() => { try { localStorage.removeItem(myRegKey(ev.slug)); } catch { /* optional */ } setMine(null); }}>ลงทะเบียนเป็นคนอื่น</button>}</div>
         {error && <Notice tone="error">{error}</Notice>}
       </div>

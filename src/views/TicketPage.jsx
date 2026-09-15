@@ -11,10 +11,25 @@ import { drawMeritCertificate } from '../lib/merit-certificate.js';
 const bookingStatus = { pending: ['รอตรวจสอบสลิป', 'muted'], paid: ['ชำระแล้ว · ใช้เข้างานได้', 'open'], rejected: ['ไม่ผ่านการตรวจสอบ', 'full'], checked_in: ['เช็คอินแล้ว', 'live'] };
 const donationStatus = { pending: ['รอตรวจสอบ', 'muted'], approved: ['ยืนยันแล้ว', 'open'], rejected: ['ไม่ผ่านการตรวจสอบ', 'full'] };
 
+// QR บนบัตรชี้ไป /admin?checkin=รหัส — พี่ ๆ หน้างานสแกนด้วยกล้องมือถือปกติ เปิดหน้าจัดการแล้วกดยืนยันได้เลย (หน้า /admin ยังพิมพ์รหัสตรง ๆ ได้)
 function QR({ value }) {
   const ref = useRef(null);
-  useEffect(() => { if (ref.current) QRCode.toCanvas(ref.current, value, { width: 180, margin: 1, color: { dark: '#33332f', light: '#ffffff' } }); }, [value]);
+  useEffect(() => { if (ref.current) QRCode.toCanvas(ref.current, `${location.origin}/admin?checkin=${value}`, { width: 180, margin: 1, color: { dark: '#33332f', light: '#ffffff' } }); }, [value]);
   return <canvas ref={ref} className="qr" aria-label={`QR code ${value}`} />;
+}
+
+// เช็คอินด้วยตัวเองบนบัตร (งานที่ตั้ง checkinMode = self) — เปิดเมื่องานกำลังจัด
+function SelfCheckin({ item, onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  if (item.checked_in_at) return null;
+  if ((item.checkin_mode || 'self') === 'staff') return <p className="notice muted">ถึงหน้างานแล้วแสดง QR ด้านข้างให้พี่ ๆ ที่ดูแลสแกนเพื่อเช็คอิน</p>;
+  if (item.event_status !== 'live') return <p className="notice muted">ปุ่มเช็คอินจะเปิดเมื่อถึงเวลางาน — หรือแสดง QR ให้พี่ ๆ หน้างานสแกนก็ได้</p>;
+  const go = async () => {
+    setBusy(true); setError('');
+    try { await api(`/registrations/${item.code}/checkin`, { method: 'POST' }); onDone(); } catch (e) { setError(e.message); } finally { setBusy(false); }
+  };
+  return <div className="self-checkin"><p>มาถึงหน้างานแล้วใช่ไหม กดเช็คอินได้เลย หรือแสดง QR ให้พี่ ๆ สแกน</p><button className="button dark" onClick={go} disabled={busy}>ฉันมาถึงแล้ว <Icon name="check" /></button>{error && <p className="notice error">{error}</p>}</div>;
 }
 
 // ใบอนุโมทนาเป็นภาพขนาด IG Story (1080×1920) วาดด้วย canvas ฝั่ง client
@@ -130,6 +145,7 @@ export default function TicketPage({ code }) {
         </dl>
         {kind === 'donation' && item.status === 'approved' && <><p className="blessing">ขออนุโมทนาบุญ ขอให้ความสุขเล็กๆ ที่คุณส่งให้ ย้อนกลับมาหาคุณเป็นความสุขก้อนใหญ่ ♡</p><CertificateButton item={item} /></>}
         {kind === 'donation' && item.status === 'pending' && <p className="muted">เมื่อยอดได้รับการยืนยัน จะสร้างใบอนุโมทนาเป็นภาพได้จากหน้านี้</p>}
+        {kind === 'registration' && <SelfCheckin item={item} onDone={() => lookup(item.code).then(r => setState(r)).catch(() => {})} />}
         <LineNotify code={item.code} linked={!!item.lineLinked} />
         {kind === 'booking' && item.status === 'pending' && <p className="muted">กำลังตรวจสอบสลิป เมื่อยืนยันแล้วสถานะจะเปลี่ยนเป็น "ชำระแล้ว" และ QR ใช้เข้างานได้</p>}
         <div className="form-actions"><Link className="button ghost" to={`/events/${item.slug}`}>ไปหน้ากิจกรรม</Link><button className="button ghost" onClick={() => window.print()}>พิมพ์ / บันทึก</button></div>

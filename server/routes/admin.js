@@ -212,8 +212,23 @@ r.post('/registrations/:id/uncheckin', wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// รหัสบัตรอาจมาเป็น URL จาก QR (https://…/admin?checkin=XXXXXXXX) — ดึงเฉพาะรหัส 8 ตัว
+const ticketCode = (raw) => { const m = String(raw || '').match(/checkin=([A-Za-z0-9]{6,12})/) || String(raw || '').trim().match(/^([A-Za-z0-9]{6,12})$/); return m ? m[1].toUpperCase() : ''; };
+
+// ดูข้อมูลบัตรก่อนกดยืนยัน (มือถือสแกน QR → การ์ดยืนยัน) — ไม่แก้อะไร
+r.get('/checkin/:code', wrap(async (req, res) => {
+  const codeUp = ticketCode(req.params.code);
+  if (!codeUp) throw new HttpError(400, 'รหัสบัตรไม่ถูกต้อง');
+  const b = await one('SELECT b.status, b.name, b.seats, e.title, e.starts_at, e.status AS event_status FROM bookings b JOIN events e ON e.id=b.event_id WHERE b.code=?', [codeUp]);
+  if (b) return res.json({ kind: 'booking', code: codeUp, name: b.name, seats: typeof b.seats === 'string' ? JSON.parse(b.seats) : b.seats, status: b.status, already: b.status === 'checked_in', title: b.title, starts_at: b.starts_at, event_status: b.event_status });
+  const reg = await one('SELECT r.name, r.nickname, r.number, r.kind, r.checked_in_at, e.title, e.starts_at, e.status AS event_status FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.code=?', [codeUp]);
+  if (!reg) throw new HttpError(404, 'ไม่พบรหัสนี้');
+  res.json({ kind: 'registration', code: codeUp, name: reg.name, nickname: reg.nickname, number: reg.number, regKind: reg.kind, already: !!reg.checked_in_at, checked_in_at: reg.checked_in_at, title: reg.title, starts_at: reg.starts_at, event_status: reg.event_status });
+}));
+
 r.post('/checkin/:code', wrap(async (req, res) => {
-  const codeUp = req.params.code.toUpperCase();
+  const codeUp = ticketCode(req.params.code);
+  if (!codeUp) throw new HttpError(400, 'รหัสบัตรไม่ถูกต้อง');
   const b = await one('SELECT id, status, name, seats FROM bookings WHERE code=?', [codeUp]);
   if (b) {
     if (b.status === 'checked_in') return res.json({ kind: 'booking', already: true, name: b.name });

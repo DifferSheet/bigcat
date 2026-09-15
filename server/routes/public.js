@@ -197,17 +197,20 @@ r.post('/events/:slug/registrations', wrap(async (req, res) => {
 }));
 
 r.get('/registrations/:code', wrap(async (req, res) => {
-  const reg = await one(`SELECT r.*, r.line_user_id IS NOT NULL AS lineLinked, e.slug, e.title, e.status AS event_status, e.starts_at, e.place, e.tone FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.code=?`, [req.params.code.toUpperCase()]);
+  const reg = await one(`SELECT r.*, r.line_user_id IS NOT NULL AS lineLinked, e.slug, e.title, e.status AS event_status, e.starts_at, e.place, e.tone, JSON_UNQUOTE(JSON_EXTRACT(e.config, '$.checkinMode')) AS checkin_mode FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.code=?`, [req.params.code.toUpperCase()]);
   if (!reg) throw new HttpError(404, 'ไม่พบการลงทะเบียนนี้');
   const win = await one('SELECT round FROM lucky_draws WHERE registration_id=?', [reg.id]);
   delete reg.line_user_id;
   res.json({ ...reg, luckyRound: win?.round || null });
 }));
 
-// เช็คอินด้วยตัวเอง — เปิดเฉพาะตอนงานกำลังจัด (status = live)
+// เช็คอินด้วยตัวเอง — เปิดเฉพาะตอนงานกำลังจัด (status = live) และงานตั้ง checkinMode เป็น self (ค่าเริ่มต้น)
+// ถ้าตั้งเป็น staff ต้องให้พี่ ๆ หน้างานสแกน QR บนบัตร (หน้า /admin) เท่านั้น
 r.post('/registrations/:code/checkin', wrap(async (req, res) => {
-  const reg = await one(`SELECT r.id, r.event_id, r.checked_in_at, e.slug, e.status FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.code=?`, [req.params.code.toUpperCase()]);
+  const reg = await one(`SELECT r.id, r.event_id, r.checked_in_at, e.slug, e.status, e.config FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.code=?`, [req.params.code.toUpperCase()]);
   if (!reg) throw new HttpError(404, 'ไม่พบการลงทะเบียนนี้');
+  const cfg = typeof reg.config === 'string' ? JSON.parse(reg.config || '{}') : (reg.config || {});
+  if ((cfg.checkinMode || 'self') === 'staff') throw new HttpError(403, 'งานนี้ให้พี่ ๆ หน้างานสแกน QR บนบัตรเพื่อเช็คอิน');
   if (reg.status !== 'live') throw new HttpError(400, 'เช็คอินได้เฉพาะระหว่างเวลางาน');
   if (!reg.checked_in_at) await q('UPDATE registrations SET checked_in_at=UTC_TIMESTAMP() WHERE id=?', [reg.id]);
   emit(reg.slug, 'registrations', await registrationSummary(reg.event_id));
