@@ -222,7 +222,7 @@
 .draw-number { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .draw-number strong { font-family: var(--font-display); font-size: clamp(90px, 20vw, 220px); line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
 .draw-number.rolling strong { color: var(--muted); filter: blur(.5px); }
-.draw-number.reveal strong { color: var(--pink); animation: pop .5s cubic-bezier(.2, 1.4, .4, 1); }
+.draw-number.winner strong { color: var(--pink); animation: pop .5s cubic-bezier(.2, 1.4, .4, 1); }
 .draw-number h1 { font-size: clamp(30px, 6vw, 64px); }
 .draw-number.idle .paw-mark { width: 90px; height: auto; }
 .draw-cta { font-family: var(--font-hand); font-size: 30px; color: var(--pink); }
@@ -316,7 +316,7 @@
   .ticket { border: 1px solid #000; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .page-loader .paw-mark, .status-pill.live .status-dot, .draw-number.reveal strong { animation: none; }
+  .page-loader .paw-mark, .status-pill.live .status-dot, .draw-number.winner strong { animation: none; }
 }
 .event-info .status-pill { align-self: flex-start; margin-top: 4px; }
 /* ---------- Merit v2: deadline, milestones, units, transparency, LINE ---------- */

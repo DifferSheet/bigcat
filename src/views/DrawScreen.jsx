@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from '../lib/nav.jsx';
 import { Paw, Flower, Logo } from '../components/ui.jsx';
 import { api, getAdminKey } from '../lib/api.js';
-import { useMounted } from '../lib/useMounted.js';
 import { useEventSocket } from '../lib/socket.js';
 
 // จอใหญ่สำหรับเปิดโชว์หน้างานตอนสุ่ม Lucky Fan — ทุกเครื่องที่เปิดหน้านี้จะเห็นผลพร้อมกัน
@@ -14,10 +13,11 @@ export default function DrawScreen({ slug }) {
   const [reveal, setReveal] = useState(null);    // ผู้โชคดีที่เพิ่งเปิด
   const [error, setError] = useState('');
   const timer = useRef(null);
-  const mounted = useMounted();
-  const isAdmin = mounted && !!getAdminKey();
+  // ปุ่มสุ่มโชว์เมื่อเครื่องนี้มี session แอดมิน (cookie จากหน้า /admin) หรือคีย์ x-admin-key แบบเก่า
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    api('/admin/me').then(() => setIsAdmin(true)).catch(() => setIsAdmin(!!getAdminKey()));
     api(`/events/${slug}/draw`).then(setState).catch(e => setError(e.message));
     api(`/events/${slug}`).then(d => setTitle(d.event.title)).catch(() => {});
   }, [slug]);
@@ -54,7 +54,7 @@ export default function DrawScreen({ slug }) {
 
     <section className="draw-stage" aria-live="polite">
       {rolling && <div className="draw-number rolling"><span className="eyebrow">กำลังสุ่ม…</span><strong>#{String(rolling.number).padStart(3, '0')}</strong></div>}
-      {!rolling && reveal && <div className="draw-number reveal"><span className="eyebrow">LUCKY FAN รอบที่ {reveal.round}</span><strong>#{String(reveal.number).padStart(3, '0')}</strong><h1>{reveal.nickname || reveal.name}</h1>{reveal.social && <p>{reveal.social}</p>}<p className="draw-cta">มาถ่ายรูปคู่กับโนบิได้เลย ♡</p></div>}
+      {!rolling && reveal && <div className="draw-number winner"><span className="eyebrow">LUCKY FAN รอบที่ {reveal.round}</span><strong>#{String(reveal.number).padStart(3, '0')}</strong><h1>{reveal.nickname || reveal.name}</h1>{reveal.social && <p>{reveal.social}</p>}<p className="draw-cta">มาถ่ายรูปคู่กับโนบิได้เลย ♡</p></div>}
       {!rolling && !reveal && <div className="draw-number idle"><Paw /><h1>{done >= rounds ? 'สุ่มครบทุกรอบแล้ว' : 'เตรียมตัวลุ้น Lucky Fan'}</h1><p>{done >= rounds ? 'ขอบคุณทุกคนที่มาเจอกันวันนี้' : `สุ่มจากผู้ที่เช็คอินหน้างาน ${eligible} คน`}</p></div>}
     </section>
 
