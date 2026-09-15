@@ -75,10 +75,10 @@ jobs:
             pm2 save
           REMOTE
 
-      - name: Data migration (idempotent — พาธภาพที่แปลงชนิดไฟล์)
+      - name: Data migration (idempotent — พาธภาพที่แปลงชนิดไฟล์ · ลายแสตมป์ passport)
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            'cd /var/www/bigcat && node server/migrate-images-15sep.js'
+            'cd /var/www/bigcat && node server/migrate-images-15sep.js && node server/migrate-passport-16sep.js'
 
       - name: Health check (เว็บกับ API ต้องตอบ 200 หลัง reload ไม่งั้น deploy นี้ถือว่าล้ม)
         run: |
