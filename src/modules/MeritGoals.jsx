@@ -202,7 +202,7 @@ export default function MeritGoals({ data }) {
 
     {/* ---------- กำแพงผู้ร่วมบุญ ---------- */}
     <Section eyebrow="WALL OF HEARTS" title="ผู้ร่วมบุญล่าสุด">
-      {wall.length === 0 ? <p className="muted">ยังไม่มีรายการ เป็นคนแรกได้เลย</p> : <ul className="wall">{wall.map(w => <li key={w.id}>{w.avatar ? <img className="wall-avatar" src={w.avatar} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="wall-avatar mark"><Paw /></span>}<div><strong>{w.donor_name}</strong>{w.dedication && <em className="dedication"> · {w.dedication}</em>} <span className="muted">· {w.units ? `${w.units} ${w.unit_name} ` : ''}{w.category} · {baht(w.amount)}</span>{w.message && <p>“{w.message}”</p>}</div></li>)}</ul>}
+      {wall.length === 0 ? <p className="muted">ยังไม่มีรายการ เป็นคนแรกได้เลย</p> : <ul className="wall">{wall.map(w => <li key={w.id}>{w.avatar ? <img className="wall-avatar" src={w.avatar} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span className="wall-avatar mark"><Paw /></span>}<div><strong>{w.donor_name}</strong>{w.dedication && <em className="dedication"> · {w.dedication}</em>} <span className="muted">· {(w.items || [{ category: w.category, units: w.units, unit_name: w.unit_name }]).map(i => `${i.units ? `${i.units} ${i.unit_name} ` : ''}${i.category}`).join(' + ')} · {baht(w.amount)}</span>{w.message && <p>“{w.message}”</p>}</div></li>)}</ul>}
     </Section>
   </>;
 }

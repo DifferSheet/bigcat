@@ -41,9 +41,17 @@ export async function donationSummary(eventId) {
       COUNT(CASE WHEN d.status='approved' THEN 1 END) AS donors
     FROM donation_categories c LEFT JOIN donations d ON d.category_id = c.id
     WHERE c.event_id = ? GROUP BY c.id ORDER BY c.sort`, [eventId]);
-  const wall = await q(`SELECT d.id, d.donor_name, d.dedication, d.message, d.anonymous, d.amount, d.units, d.created_at, c.name AS category, c.unit_name, IF(d.anonymous, NULL, u.avatar) AS avatar
+  const rows = await q(`SELECT d.id, d.code, d.group_code, d.donor_name, d.dedication, d.message, d.anonymous, d.amount, d.units, d.created_at, c.name AS category, c.unit_name, IF(d.anonymous, NULL, u.avatar) AS avatar
     FROM donations d JOIN donation_categories c ON c.id = d.category_id LEFT JOIN users u ON u.id = d.user_id
-    WHERE d.event_id = ? AND d.status = 'approved' ORDER BY d.created_at DESC LIMIT 60`, [eventId]);
+    WHERE d.event_id = ? AND d.status = 'approved' ORDER BY d.created_at DESC, d.id LIMIT 120`, [eventId]);
+  // โอนครั้งเดียวหลายหมวด (group_code เดียวกัน) → แสดงเป็นรายการเดียว มี items + ยอดรวม
+  const groups = new Map();
+  for (const r of rows) {
+    const k = r.group_code || r.code;
+    if (!groups.has(k)) groups.set(k, { id: r.id, donor_name: r.donor_name, dedication: r.dedication, message: r.message, anonymous: r.anonymous, avatar: r.avatar, created_at: r.created_at, amount: 0, items: [] });
+    const g = groups.get(k); g.amount += Number(r.amount); g.items.push({ category: r.category, units: r.units, unit_name: r.unit_name, amount: Number(r.amount) });
+  }
+  const wall = [...groups.values()].slice(0, 60);
   const total = categories.reduce((s, c) => s + Number(c.raised), 0);
   const goal = categories.reduce((s, c) => s + Number(c.goal), 0);
   return {
