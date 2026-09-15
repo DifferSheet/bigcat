@@ -3,6 +3,8 @@ const WIDTH = 1080, HEIGHT = 1920;
 const HEAD = 'BigcatCertificateChonburi';
 const BODY = 'BigcatCertificateSerif';
 let fontsReady;
+let headReady = true;
+const headFont = () => (headReady ? `400 ${'SIZE'}px ${HEAD}` : `700 ${'SIZE'}px ${BODY}`);
 
 // โหลดฟอนต์ให้ canvas เห็นแน่ ๆ ทุกเบราว์เซอร์: (1) FontFace API (2) อุ่นฟอนต์ใน DOM ผ่าน @font-face ใน CSS (3) รอ document.fonts.load ของทั้งสอง family
 async function loadFonts() {
@@ -17,7 +19,7 @@ async function loadFonts() {
     if (!warm) { warm = document.createElement('div'); warm.className = 'cert-font-warm'; warm.setAttribute('aria-hidden', 'true'); warm.innerHTML = '<b>ใบอนุโมทนาบัตร จำนวน 1234567890 บาท</b><i>ขอมอบให้ ร่วมบุญ</i>'; document.body.appendChild(warm); }
     await Promise.all([document.fonts.load(`400 40px ${HEAD}`, 'ใบอนุโมทนา'), document.fonts.load(`400 40px ${BODY}`, 'ขอมอบให้')]);
     await document.fonts.ready;
-    if (!document.fonts.check(`400 40px ${HEAD}`)) throw new Error('โหลดฟอนต์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    headReady = document.fonts.check(`400 40px ${HEAD}`);   // บางเครื่อง (Android WebView) โหลดไม่ติด → ใช้ฟอนต์ตัวเนื้อแบบหนาแทน
   })().catch(error => { fontsReady = null; throw error; });
   return fontsReady;
 }
@@ -57,17 +59,18 @@ function textBlock(ctx, value, { y, height, size = 36, min = 18, width = 840, fa
   if (!text) return;
   let lines, lineHeight, actual = size;
   for (; actual >= min; actual--) {
-    ctx.font = `400 ${actual}px ${family}`;
+    ctx.font = family === HEAD ? headFont().replace('SIZE', actual) : `400 ${actual}px ${family}`;
     lines = wrapText(ctx, text, width);
     lineHeight = actual * 1.55;
     if (lines.length <= maxLines && lines.length * lineHeight <= height && lines.every(line => ctx.measureText(line).width <= width)) break;
   }
   if (actual < min) throw new Error('ข้อความยาวเกินพื้นที่ใบอนุโมทนา กรุณาแจ้งแอดมินเพื่อจัดรูปแบบ');
   ctx.save();
-  ctx.textAlign = 'center';
+  ctx.textAlign = 'left';   // จัดกึ่งกลางเองด้วย measureText — canvas บาง WebView ไม่เคารพ textAlign='center'
   ctx.textBaseline = 'alphabetic';
   const top = y + (height - lines.length * lineHeight) / 2;
   const metrics = [];
+  const x = (line) => (WIDTH - ctx.measureText(line).width) / 2;
   lines.forEach((line, i) => {
     const baseline = top + lineHeight * (i + 0.78);
     if (gold) {
@@ -75,10 +78,10 @@ function textBlock(ctx, value, { y, height, size = 36, min = 18, width = 840, fa
       gradient.addColorStop(0, '#815014'); gradient.addColorStop(0.3, '#d09a35');
       gradient.addColorStop(0.48, '#fff0bb'); gradient.addColorStop(0.62, '#c88a22'); gradient.addColorStop(1, '#794609');
       ctx.shadowColor = '#6e410944'; ctx.shadowBlur = 3; ctx.shadowOffsetY = 3;
-      ctx.strokeStyle = '#865215'; ctx.lineWidth = 1.2; ctx.strokeText(line, WIDTH / 2, baseline);
+      ctx.strokeStyle = '#865215'; ctx.lineWidth = 1.2; ctx.strokeText(line, x(line), baseline);
       ctx.shadowColor = 'transparent'; ctx.fillStyle = gradient;
     } else { ctx.fillStyle = color; }
-    ctx.fillText(line, WIDTH / 2, baseline);
+    ctx.fillText(line, x(line), baseline);
     metrics.push(ctx.measureText(line).width);
   });
   ctx.restore();
