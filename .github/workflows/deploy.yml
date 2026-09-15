@@ -68,6 +68,9 @@ jobs:
             find .next/server/app -type f \( -name '*.html' -o -name '*.rsc' -o -name '*.meta' -o -name '*.body' \) -newer package.json -delete 2>/dev/null || true
             # เว็บ: สร้างโปรเซสใหม่ (ไม่ reload) ให้ in-memory cache หายแน่ ๆ · API: reload ตามเดิม
             pm2 delete bigcat-web >/dev/null 2>&1 || true
+            # โปรเซสเว็บเก่าที่หลุดจาก pm2 แต่ยังจับพอร์ต 3100 อยู่ → ฆ่าทิ้งก่อน ไม่งั้นตัวใหม่ bind ไม่ได้และของเก่าเสิร์ฟ build เก่าต่อ
+            (command -v fuser >/dev/null && fuser -k -TERM 3100/tcp) || pkill -TERM -f 'bigcat/server.js' || true
+            sleep 2
             pm2 startOrReload ecosystem.config.cjs --update-env
             pm2 save
           REMOTE
