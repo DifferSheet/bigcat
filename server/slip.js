@@ -21,7 +21,13 @@ const missingCreds = () => (REQUIRED[provider] || []).filter(k => !process.env[k
 const receiverNames = (process.env.SLIP_RECEIVER_NAME || '').split('|').map(s => s.trim()).filter(Boolean);
 const MAX_AGE_DAYS = Number(process.env.SLIP_MAX_AGE_DAYS || 7);
 
-const norm = (s) => String(s || '').replace(/\s+/g, '').toLowerCase();
+const norm = (s) => String(s || '').replace(/\s+/g, '').replace(/\.+$/, '').toLowerCase();
+// ธนาคารมักย่อชื่อผู้รับบนสลิป เช่น «นาง ภัคภร เ» หรือ «น.ส. ภัคภร เอกธ…» — ถือว่าตรงถ้าชื่อบนสลิปเป็นส่วนหน้าของชื่อเต็ม (หรือกลับกัน)
+const nameMatches = (onSlip, configured) => {
+  const a = norm(onSlip).replace(/…$/, ''), b = norm(configured);
+  if (!a || !b) return false;
+  return a.includes(b) || b.includes(a) || (a.length >= 4 && b.startsWith(a));
+};
 
 /* ---------- ผู้ให้บริการ: คืนค่าเป็นรูปแบบเดียวกัน { transRef, amount, receiverName, senderName, date } ---------- */
 
@@ -122,7 +128,7 @@ export async function verifySlip(filePath, { expectedAmount }) {
     else if (r.duplicate) problems.push('ผู้ให้บริการแจ้งว่าสลิปนี้เคยถูกตรวจแล้ว (ซ้ำ)');
   }
   if (expectedAmount && !(r.amount >= expectedAmount)) problems.push(`ยอดในสลิป ${r.amount} น้อยกว่าที่แจ้ง ${expectedAmount}`);
-  if (receiverNames.length && !receiverNames.some(n => norm(r.receiverName).includes(norm(n)))) problems.push(`ชื่อผู้รับ "${r.receiverName || '?'}" ไม่ตรงบัญชีเรา`);
+  if (receiverNames.length && !receiverNames.some(n => nameMatches(r.receiverName, n))) problems.push(`ชื่อผู้รับ "${r.receiverName || '?'}" ไม่ตรงบัญชีเรา`);
   if (r.date && (Date.now() - r.date.getTime()) > MAX_AGE_DAYS * 864e5) problems.push(`สลิปเก่ากว่า ${MAX_AGE_DAYS} วัน`);
 
   if (problems.length) return { ok: false, transRef: r.transRef || null, amount: r.amount, note: problems.join(' · ') };
