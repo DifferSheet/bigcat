@@ -42,6 +42,8 @@ r.get('/events', wrap(async (_req, res) => {
 // งานที่ซ่อนอยู่: คนทั่วไปเห็น 404 · แอดมิน (ส่ง x-admin-key) พรีวิวได้
 r.get('/events/:slug', wrap(async (req, res) => {
   const d = await eventDetail(req.params.slug);
+  // การลงทะเบียนของบัญชีที่ล็อกอินอยู่ (ใช้ในโหมด self ให้หน้าเว็บรู้ว่าลงแล้ว)
+  if (req.user) d.mine = await q('SELECT code, number, kind FROM registrations WHERE event_id=? AND user_id=?', [d.event.id, req.user.id]);
   if (d.event.status === 'hidden' && req.get('x-admin-key') !== (process.env.ADMIN_KEY || 'bigcat-admin')) throw new HttpError(404, 'ไม่พบกิจกรรมนี้');
   res.json(d);
 }));
@@ -165,6 +167,12 @@ r.post('/events/:slug/registrations', wrap(async (req, res) => {
   if (!['open', 'live', 'upcoming'].includes(ev.status)) throw new HttpError(400, 'กิจกรรมนี้ปิดลงทะเบียนแล้ว');
   const name = clean(req.body.name, 120);
   if (!name) throw new HttpError(400, 'กรุณากรอกชื่อ');
+  // โหมดลงทะเบียน: anyone (ค่าเริ่มต้น) ใครลงให้ใครก็ได้ · self ต้องล็อกอินและ 1 บัญชี = 1 การลงทะเบียน
+  if ((ev.config?.registerMode || 'anyone') === 'self') {
+    if (!req.user) throw new HttpError(401, 'งานนี้ลงทะเบียนด้วยตนเองเท่านั้น — เข้าสู่ระบบด้วย LINE หรือ Google ก่อน');
+    const dup = await one('SELECT code, number FROM registrations WHERE event_id=? AND user_id=? AND kind=?', [ev.id, req.user.id, clean(req.body.kind, 20) || 'attend']);
+    if (dup) return res.json({ ...dup, existing: true });
+  }
   const reg = await tx(async ({ q, one }) => {
     const n = await one('SELECT COALESCE(MAX(number),0)+1 AS next FROM registrations WHERE event_id=? FOR UPDATE', [ev.id]);
     const c = code(8);

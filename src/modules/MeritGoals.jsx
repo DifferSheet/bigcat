@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useUser, prefillFrom } from '../lib/auth.js';
 import { Link } from '../lib/nav.jsx';
-import { Section, Notice, PayBox, Countdown, LineNotify } from '../components/EventShell.jsx';
+import { Section, Notice, PayBox, Countdown, LineNotify, LoginToRegister } from '../components/EventShell.jsx';
 import { PhoneInput, FileDrop } from '../components/forms.jsx';
 import { Icon, Paw, Tagged } from '../components/ui.jsx';
 import { api, voterToken } from '../lib/api.js';
@@ -65,7 +65,7 @@ export default function MeritGoals({ data }) {
   const { user } = useUser();
   useEffect(() => { setAttend(a => prefillFrom(user, a, { name: 'display_name', phone: 'phone' })); setForm(f => prefillFrom(user, f, { name: 'display_name' })); }, [user]);
   const [attendDone, setAttendDone] = useState(null);
-  useEffect(() => { try { setAttendDone(JSON.parse(localStorage.getItem(attendKey(ev.slug)) || 'null')); } catch { /* optional */ } }, [ev.slug]);
+  useEffect(() => { try { setAttendDone(JSON.parse(localStorage.getItem(attendKey(ev.slug)) || 'null') || data.mine?.find(m => m.kind === 'attend') || null); } catch { /* optional */ } }, [ev.slug, data.mine]);
   const [attendErr, setAttendErr] = useState('');
 
   const deadline = cfg.donateUntil ? parseDate(cfg.donateUntil) : null;
@@ -169,6 +169,7 @@ export default function MeritGoals({ data }) {
       {attendDone
         ? <><Notice>ลงทะเบียนไปวัดแล้ว หมายเลข #{String(attendDone.number).padStart(3, '0')} — วันงานเปิดหน้าบัตรเพื่อเช็คอินรับของที่ระลึก</Notice><div className="form-actions"><Link className="button ghost small" to={`/ticket/${attendDone.code}`}>เปิดบัตร</Link><button className="link-button" onClick={() => { setAttendDone(null); try { localStorage.removeItem(attendKey(ev.slug)); } catch { /* optional */ } }}>ลงทะเบียนคนอื่น</button></div></>
         : ev.status === 'ended' ? <Notice tone="muted">งานจบแล้ว</Notice>
+          : (cfg.registerMode || 'anyone') === 'self' && !user ? <LoginToRegister user={user} what="ลงทะเบียนไปวัด" />
           : <form className="booking-form inline" onSubmit={registerAttend}>
             <label>ชื่อ<input id="at-name" required value={attend.name} onChange={e => setAttend({ ...attend, name: e.target.value })} /></label>
             <label>เบอร์โทร (ถ้ามี)<PhoneInput id="at-phone" value={attend.phone} onChange={phone => setAttend({ ...attend, phone })} /></label>

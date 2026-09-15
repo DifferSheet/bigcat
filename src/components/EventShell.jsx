@@ -67,6 +67,13 @@ export function Section({ eyebrow, title, children, className = '', aside }) {
   </section>;
 }
 
+// โหมดลงทะเบียน self: ต้องล็อกอินก่อน — แสดงแทนฟอร์มเมื่อยังไม่ได้ล็อกอิน
+export function LoginToRegister({ user, what = 'ลงทะเบียน' }) {
+  if (user) return null;
+  const next = typeof location !== 'undefined' ? location.pathname : '/';
+  return <div className="notice info login-gate"><Icon name="user" size={16} /><span>งานนี้{what}ด้วยตนเองเท่านั้น (1 บัญชี = 1 สิทธิ์) — <a href={`/login?next=${encodeURIComponent(next)}`}>เข้าสู่ระบบด้วย LINE / Google</a> เพื่อ{what}</span></div>;
+}
+
 export function Notice({ tone = 'info', children }) {
   return <div className={`notice ${tone}`}><Icon name={tone === 'error' ? 'close' : 'check'} size={16} />{children}</div>;
 }

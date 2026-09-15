@@ -12,7 +12,7 @@ const TYPES = ['fanmeet', 'merit', 'busking', 'workshop', 'popup'];
 const STATUSES = [['upcoming', 'เร็ว ๆ นี้ (ยังไม่เปิด)'], ['open', 'เปิดรับ'], ['soldout', 'เต็ม'], ['live', 'กำลังจัด'], ['ended', 'จบแล้ว (ย้ายไปหมวดที่ผ่านมา)'], ['hidden', 'ซ่อน — ไม่แสดงบนเว็บเลย']];
 const TONES = [['pink', 'ชมพู'], ['yellow', 'เหลือง'], ['sage', 'เขียวอ่อน'], ['blue', 'ฟ้า']];
 // key ใน config ที่ฟอร์มมีช่องให้แล้ว — ที่เหลือไปอยู่ในกล่อง JSON ขั้นสูง
-const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs', 'gallery', 'milestones', 'report', 'seatMap'];
+const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs', 'gallery', 'milestones', 'report', 'seatMap', 'registerMode'];
 const Tag = ({ children }) => <span className="tag-label">{children}</span>;
 const REWARD_TYPES = [['text', 'ข้อความ'], ['image', 'ภาพลับ'], ['link', 'ลิงก์ (Live / คลิป)'], ['poll', 'โหวต']];
 const newMilestone = (percent = 25) => ({ percent, title: '', reward: { type: 'text', body: '' } });
@@ -33,6 +33,7 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
     capacity: cfg.capacity ?? '',
     donateUntil: toLocal(cfg.donateUntil), attendEnabled: cfg.attend?.enabled ?? false, attendNote: cfg.attend?.note || '',
     payAccount: cfg.payment?.accountName || '', payPromptpay: cfg.payment?.promptpay || '',
+    registerMode: cfg.registerMode || 'anyone',
     accountNote: cfg.report?.accountNote || '', excessPolicy: cfg.report?.excessPolicy || '', taxNote: cfg.report?.taxNote || '',
     seatRows: (cfg.seatMap?.rows || []).join(', '), seatCols: cfg.seatMap?.cols ?? 10, seatMax: cfg.seatMap?.maxPerBooking ?? 4, seatHold: cfg.seatMap?.holdMinutes ?? 10,
   });
@@ -54,7 +55,7 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
     try {
       const advanced = {};
       for (const { key, json } of other) { if (!key.trim()) continue; try { advanced[key.trim()] = json.trim() ? JSON.parse(json) : null; } catch { throw new Error(`บล็อก ${key} ไม่ใช่ JSON ที่ถูกต้อง`); } }
-      const config = { ...advanced, schedule: unlines(f.schedule), faq: unlines(f.faq) };
+      const config = { ...advanced, schedule: unlines(f.schedule), faq: unlines(f.faq), registerMode: f.registerMode };
       if (f.type === 'merit') config.report = { accountNote: f.accountNote, excessPolicy: f.excessPolicy, taxNote: f.taxNote };
       if (f.type === 'fanmeet') config.seatMap = { rows: f.seatRows.split(',').map(x => x.trim()).filter(Boolean), cols: Number(f.seatCols) || 0, maxPerBooking: Number(f.seatMax) || 1, holdMinutes: Number(f.seatHold) || 10, zones: Object.fromEntries(zones.filter(z => z.key.trim()).map(z => [z.key.trim(), { name: z.name, price: Number(z.price) || 0, perk: z.perk }])) };
       if (f.type === 'busking') { config.drawRounds = Number(f.drawRounds) || 0; config.setlist = unlines(f.setlist, '|', 1); config.songs = { enabled: !!f.songsEnabled }; }
@@ -103,12 +104,24 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
     <label>FAQ <small>บรรทัดละข้อ: คำถาม | คำตอบ</small><textarea rows={5} value={f.faq} onChange={e => set('faq', e.target.value)} placeholder={'ต้องเสียค่าเข้าไหม | ไม่เสีย เข้าฟรีทุกคน'} /></label>
 
     {f.type === 'busking' && <><h2>Busking</h2>
+      <fieldset className="mode-pick"><legend>ใครลงทะเบียนได้</legend>
+        <label className="check"><input type="radio" name="registerMode" checked={f.registerMode === 'anyone'} onChange={() => set('registerMode', 'anyone')} /> <span><strong>ใครก็ได้</strong> <small>ไม่ต้องล็อกอิน ลงให้เพื่อน/ครอบครัวได้หลายคน</small></span></label>
+        <label className="check"><input type="radio" name="registerMode" checked={f.registerMode === 'self'} onChange={() => set('registerMode', 'self')} /> <span><strong>ด้วยตนเองเท่านั้น</strong> <small>ต้องเข้าสู่ระบบ LINE/Google · 1 บัญชี = 1 สิทธิ์ (เหมาะกับงานที่มีสุ่มรางวัล/รับของ)</small></span></label>
+      </fieldset>
       <div className="two"><label>จำนวน Lucky Fan ที่สุ่ม<input type="number" min="0" value={f.drawRounds} onChange={e => set('drawRounds', e.target.value)} /></label><label className="check"><input type="checkbox" checked={!!f.songsEnabled} onChange={e => set('songsEnabled', e.target.checked)} /> เปิดให้ขอเพลง/โหวตเพลง</label></div>
       <label>เซ็ตลิสต์ <small>บรรทัดละเพลง</small><textarea rows={4} value={f.setlist} onChange={e => set('setlist', e.target.value)} /></label></>}
     {(f.type === 'workshop' || f.type === 'popup') && <><h2>ลงทะเบียน</h2>
+      <fieldset className="mode-pick"><legend>ใครลงทะเบียนได้</legend>
+        <label className="check"><input type="radio" name="registerMode" checked={f.registerMode === 'anyone'} onChange={() => set('registerMode', 'anyone')} /> <span><strong>ใครก็ได้</strong> <small>ไม่ต้องล็อกอิน ลงให้เพื่อน/ครอบครัวได้หลายคน</small></span></label>
+        <label className="check"><input type="radio" name="registerMode" checked={f.registerMode === 'self'} onChange={() => set('registerMode', 'self')} /> <span><strong>ด้วยตนเองเท่านั้น</strong> <small>ต้องเข้าสู่ระบบ LINE/Google · 1 บัญชี = 1 สิทธิ์ (เหมาะกับงานที่มีสุ่มรางวัล/รับของ)</small></span></label>
+      </fieldset>
       <label>รับกี่ที่ <small>เว้นว่าง = ไม่ต้องลงทะเบียน</small><input type="number" min="1" value={f.capacity} onChange={e => set('capacity', e.target.value)} /></label></>}
     {f.type === 'merit' && <><h2>ทำบุญ</h2>
       <div className="two"><label>ปิดรับยอดออนไลน์<input type="datetime-local" value={f.donateUntil} onChange={e => set('donateUntil', e.target.value)} /></label><label className="check"><input type="checkbox" checked={!!f.attendEnabled} onChange={e => set('attendEnabled', e.target.checked)} /> เปิดลงทะเบียน <Tag>ไปวัดด้วย</Tag></label></div>
+      <fieldset className="mode-pick"><legend>ใครลงทะเบียนไปวัดได้</legend>
+        <label className="check"><input type="radio" name="registerMode" checked={f.registerMode === 'anyone'} onChange={() => set('registerMode', 'anyone')} /> <span><strong>ใครก็ได้</strong> <small>ไม่ต้องล็อกอิน ลงให้เพื่อน/ครอบครัวได้หลายคน</small></span></label>
+        <label className="check"><input type="radio" name="registerMode" checked={f.registerMode === 'self'} onChange={() => set('registerMode', 'self')} /> <span><strong>ด้วยตนเองเท่านั้น</strong> <small>ต้องเข้าสู่ระบบ LINE/Google · 1 บัญชี = 1 สิทธิ์ (เหมาะกับงานที่มีสุ่มรางวัล/รับของ)</small></span></label>
+      </fieldset>
       <label>โน้ตสำหรับคนไปวัด<input value={f.attendNote} onChange={e => set('attendNote', e.target.value)} placeholder="เช่น นัดพบหน้าวัด 09:00 น. แต่งกายสุภาพ" /></label>
       <div className="ms-edit"><div className="ev-section-head"><span className="eyebrow">Milestone ปลดล็อกตามยอด <small>— ถึง % ของเป้ารวมแล้วเปิดของขวัญให้แฟน ๆ</small></span><button type="button" className="link-button" onClick={() => setMilestones([...milestones, newMilestone(milestones.length ? Math.min(100, (Number(milestones[milestones.length - 1].percent) || 0) + 25) : 25)])}>+ เพิ่ม milestone</button></div>
         {milestones.map((m, i) => { const r = m.reward || { type: 'text' }; const setM = (patch) => setMilestones(ms => ms.map((x, j) => j === i ? { ...x, ...patch } : x)); const setR = (patch) => setM({ reward: { ...r, ...patch } }); return <div key={i} className="ms-row">

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useUser, prefillFrom } from '../lib/auth.js';
 import { Link } from '../lib/nav.jsx';
-import { Section, Notice } from '../components/EventShell.jsx';
+import { Section, Notice, LoginToRegister } from '../components/EventShell.jsx';
 import { PhoneInput } from '../components/forms.jsx';
 import { OPENCHAT } from '../components/Social.jsx';
 import { Icon } from '../components/ui.jsx';
@@ -28,6 +28,7 @@ export default function BuskingRegister({ data }) {
   // โหลดสถานะการลงทะเบียนของฉัน (ถ้ามี) — สถานะเช็คอิน/ผลสุ่ม
   useEffect(() => {
     let code = null; try { code = localStorage.getItem(myRegKey(ev.slug)); } catch { /* optional */ }
+    if (!code && data.mine?.[0]?.code) code = data.mine[0].code;   // โหมด self: ผูกกับบัญชี
     if (code) api(`/registrations/${code}`).then(setMine).catch(() => {});
   }, [ev.slug, draws.length, registrations.checkedIn]);
 
@@ -55,6 +56,7 @@ export default function BuskingRegister({ data }) {
     setSong({ title: '', artist: '' });
   };
 
+  const selfOnly = (ev.config?.registerMode || 'anyone') === 'self';
   const isLive = ev.status === 'live';
   const isWinner = mine?.luckyRound;
 
@@ -69,10 +71,11 @@ export default function BuskingRegister({ data }) {
             : isLive
               ? <><p>มาถึงหน้างานแล้วใช่ไหม กดเช็คอินเพื่อรับสิทธิ์ลุ้น Lucky Fan</p><button className="button dark" onClick={checkin} disabled={busy}>ฉันมาถึงแล้ว <Icon name="check" /></button></>
               : <Notice tone="muted">ปุ่มเช็คอินจะเปิดเมื่อถึงเวลางาน กลับมาที่หน้านี้อีกครั้งเมื่อมาถึง</Notice>}
-        <div className="form-actions"><Link className="button ghost" to={`/ticket/${mine.code}`}>เปิดบัตรลงทะเบียน</Link><button type="button" className="link-button" onClick={() => { try { localStorage.removeItem(myRegKey(ev.slug)); } catch { /* optional */ } setMine(null); }}>ลงทะเบียนเป็นคนอื่น</button></div>
+        <div className="form-actions"><Link className="button ghost" to={`/ticket/${mine.code}`}>เปิดบัตรลงทะเบียน</Link>{!selfOnly && <button type="button" className="link-button" onClick={() => { try { localStorage.removeItem(myRegKey(ev.slug)); } catch { /* optional */ } setMine(null); }}>ลงทะเบียนเป็นคนอื่น</button>}</div>
         {error && <Notice tone="error">{error}</Notice>}
       </div>
         : ev.status === 'ended' ? <Notice tone="muted">งานนี้จบแล้ว ขอบคุณทุกคนที่มาเจอกัน</Notice>
+          : selfOnly && !user ? <LoginToRegister user={user} />
           : <form className="booking-form" onSubmit={register}>
             <p className="muted">ฟรี ไม่จำกัดจำนวน ลงทะเบียนแล้วเช็คอินหน้างานเพื่อลุ้น Lucky Fan ถ่ายรูปคู่กับโนบิ ({rounds} รางวัล)</p>
             <label>ชื่อ<input id="rg-name" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>

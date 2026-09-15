@@ -445,3 +445,7 @@
 .booking-form .json-block textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.5; }
 .event-form h2 small { font-weight: 400; font-size: 12px; color: var(--muted); }
 @media (max-width: 760px) { .zone-row { grid-template-columns: 1fr 1fr; } }
+.mode-pick { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 14px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.mode-pick legend { font-size: 13px; font-weight: 600; padding: 0 6px; }
+.mode-pick .check span { display: flex; flex-direction: column; gap: 1px; } .mode-pick .check small { font-weight: 400; color: var(--muted); }
+.login-gate a { color: var(--pink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
