@@ -14,7 +14,9 @@ export function EventStamp({ ev, state = 'earned', size = 128 }) {
   const r = 50, teeth = 36;
   // ขอบหยักแบบแสตมป์ไปรษณีย์ — วงกลมเล็ก ๆ เรียงรอบเส้นรอบวง
   const perf = Array.from({ length: teeth }, (_, i) => { const a = (i / teeth) * Math.PI * 2; return <circle key={i} cx={50 + Math.cos(a) * r} cy={50 + Math.sin(a) * r} r={3.2} />; });
-  const img = ev.stamp?.image || ev.cover;
+  // ลายวาดของงาน (มีขอบหยักในตัว) → ใช้ภาพตรง ๆ ไม่ซ้อนกรอบ SVG
+  if (ev.stamp?.image && state !== 'locked') return <span className={`stamp stamp-art stamp-${state}`} style={{ width: size, height: size }} role="img" aria-label={`${KIND_LABEL[ev.earned?.kind] || 'แสตมป์'} ${ev.title}`}><img src={ev.stamp.image} alt="" width={size} height={size} draggable={false} /></span>;
+  const img = ev.cover;
   return <svg className={`stamp stamp-${state}`} viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={`${KIND_LABEL[ev.earned?.kind] || 'แสตมป์'} ${ev.title}`}>
     <defs>
       <clipPath id={`c${uid}`}><circle cx="50" cy="50" r="36" /></clipPath>
@@ -25,21 +27,28 @@ export function EventStamp({ ev, state = 'earned', size = 128 }) {
     <g mask={`url(#m${uid})`}>
       <circle cx="50" cy="50" r="48" fill={state === 'locked' ? '#f3ede4' : '#fff'} stroke={tone} strokeWidth={state === 'locked' ? 0 : 1.5} strokeDasharray={state === 'locked' ? '0' : undefined} />
     </g>
-    {state !== 'locked' && (ev.stamp?.image
-      ? <image href={ev.stamp.image} x="6" y="6" width="88" height="88" preserveAspectRatio="xMidYMid meet" />
-      : <>
-        {img && <image href={img} x="14" y="14" width="72" height="72" preserveAspectRatio="xMidYMid slice" clipPath={`url(#c${uid})`} />}
-        <circle cx="50" cy="50" r="36" fill="none" stroke={tone} strokeWidth="1.2" />
-        <text fontSize="6.2" fontWeight="700" fill={tone} letterSpacing=".4"><textPath href={`#t${uid}`} startOffset="50%" textAnchor="middle">{ev.title.length > 26 ? ev.title.slice(0, 25) + '…' : ev.title}</textPath></text>
-        <text fontSize="5.6" fontWeight="600" fill="#6b6259"><textPath href={`#b${uid}`} startOffset="50%" textAnchor="middle">{`${d.long}`}</textPath></text>
-      </>)}
+    {state !== 'locked' && <>
+      {img && <image href={img} x="14" y="14" width="72" height="72" preserveAspectRatio="xMidYMid slice" clipPath={`url(#c${uid})`} />}
+      <circle cx="50" cy="50" r="36" fill="none" stroke={tone} strokeWidth="1.2" />
+      <text fontSize="6.2" fontWeight="700" fill={tone} letterSpacing=".4"><textPath href={`#t${uid}`} startOffset="50%" textAnchor="middle">{ev.title.length > 26 ? ev.title.slice(0, 25) + '…' : ev.title}</textPath></text>
+      <text fontSize="5.6" fontWeight="600" fill="#6b6259"><textPath href={`#b${uid}`} startOffset="50%" textAnchor="middle">{`${d.long}`}</textPath></text>
+    </>}
     {state === 'locked' && <text x="50" y="56" textAnchor="middle" fontSize="18" fill="#c8bfb2" fontWeight="700">?</text>}
   </svg>;
 }
 
-// แสตมป์พิเศษ (ไม่มีภาพปก): lucky · tier · dayone · first · friend — วาดเป็นตราสีตามชนิด · ฟอยล์ = ไล่สีทอง
+// แสตมป์พิเศษ: ถ้ามีไฟล์ลายวาด public/images/stamps/<kind>.webp ใช้ภาพนั้น (มี badge ตัวเลข/รอบทับมุม) · ไม่มี → วาดเป็นตรา SVG
+const ART = { lucky: '/images/stamps/lucky.webp', tier: '/images/stamps/tier.webp', dayone: '/images/stamps/dayone.webp', first: '/images/stamps/first.webp', friend: '/images/stamps/friend.webp' };
+const artOk = typeof window !== 'undefined' ? (window.__stampArt ??= {}) : {};
 export function SpecialStamp({ kind, meta, size = 128, label }) {
   const uid = React.useId().replace(/:/g, '');
+  const [hasArt, setHasArt] = React.useState(artOk[kind] === true);
+  React.useEffect(() => { if (!ART[kind] || artOk[kind] != null) return; const im = new Image(); im.onload = () => { artOk[kind] = true; setHasArt(true); }; im.onerror = () => { artOk[kind] = false; }; im.src = ART[kind]; }, [kind]);
+  if (hasArt) return <span className={`stamp-art ${['lucky', 'tier'].includes(kind) ? 'foil' : ''}`} style={{ width: size, height: size }} role="img" aria-label={label || KIND_LABEL[kind]}>
+    <img src={ART[kind]} alt="" width={size} height={size} draggable={false} />
+    {kind === 'friend' && meta?.count > 0 && <b className="stamp-badge">×{meta.count}</b>}
+    {kind === 'lucky' && meta?.round && <b className="stamp-badge">รอบ {meta.round}</b>}
+  </span>;
   const foil = kind === 'lucky' || kind === 'tier';
   const color = { lucky: '#c99a2e', tier: '#c99a2e', dayone: '#df8190', first: '#7fa66f', friend: '#5b8fd6' }[kind] || '#df8190';
   const icon = { lucky: '★', tier: '✦', dayone: '1', first: '♡', friend: '♡♡' }[kind] || '●';
