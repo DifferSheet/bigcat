@@ -17,7 +17,7 @@ for k in "${KEYS[@]}"; do
 done
 for k in "${OPTIONAL[@]}"; do
   v=$(grep -E "^${k}=" .env | head -1 | cut -d= -f2-)
-  [ -n "$v" ] && lines+="${k}=${v}"$'\n'
+  if [ -n "$v" ]; then lines+="${k}=${v}"$'\n'; fi   # (ห้ามใช้ [ ] && … เพราะ set -e จะหยุดเงียบ ๆ เมื่อค่าสุดท้ายว่าง)
 done
 
 echo "→ อัปเดต .env บน EC2 (สำรองเป็น .env.bak-<เวลา>)"
