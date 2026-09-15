@@ -27,7 +27,12 @@ async function saveProduct(req, id) {
     stock: Math.max(0, Math.round(Number(p.stock) || 0)), status: ['active', 'hidden', 'soldout'].includes(p.status) ? p.status : 'active',
     featured: p.featured ? 1 : 0, sort: Math.round(Number(p.sort) || 0),
   };
-  if (req.file) row.image = `/uploads/${req.file.filename}`;
+  // แกลเลอรี: ฟอร์มส่ง images เป็นลำดับ (path เดิม | 'file:<ลำดับไฟล์ใน gallery>') → ภาพแรก = รูปหลัก
+  const up = req.files?.gallery || [];
+  const ordered = Array.isArray(p.images) ? p.images.map(m => typeof m === 'string' && m.startsWith('file:') ? (up[Number(m.slice(5))] ? `/uploads/${up[Number(m.slice(5))].filename}` : null) : String(m || '').slice(0, 300)).filter(Boolean).slice(0, 12) : null;
+  const single = req.files?.image?.[0];
+  if (ordered) { row.image = ordered[0] || null; row.images = JSON.stringify(ordered); }
+  else if (single) row.image = `/uploads/${single.filename}`;
   else if (p.image) row.image = p.image;
   return tx(async ({ q, one }) => {
     if (id) {
@@ -48,13 +53,14 @@ async function saveProduct(req, id) {
       await q(keep.length ? 'DELETE FROM product_variants WHERE product_id=? AND id NOT IN (?)' : 'DELETE FROM product_variants WHERE product_id=?', keep.length ? [id, keep] : [id]);
     }
     const saved = await one('SELECT * FROM products WHERE id=?', [id]);
-    if (!saved.images || req.file) await q('UPDATE products SET images=? WHERE id=?', [JSON.stringify([saved.image].filter(Boolean)), id]);
+    if (!ordered && (!saved.images || single)) await q('UPDATE products SET images=? WHERE id=?', [JSON.stringify([saved.image].filter(Boolean)), id]);
     return id;
   });
 }
 
-r.post('/products', upload.single('image'), wrap(async (req, res) => { const id = await saveProduct(req); await broadcastProducts(); res.json((await listProducts({ all: true })).find(p => p.id === id)); }));
-r.put('/products/:id', upload.single('image'), wrap(async (req, res) => {
+const productUploads = upload.fields([{ name: 'image', maxCount: 1 }, { name: 'gallery', maxCount: 12 }]);
+r.post('/products', productUploads, wrap(async (req, res) => { const id = await saveProduct(req); await broadcastProducts(); res.json((await listProducts({ all: true })).find(p => p.id === id)); }));
+r.put('/products/:id', productUploads, wrap(async (req, res) => {
   const id = Number(req.params.id);
   if (!await one('SELECT id FROM products WHERE id=?', [id])) throw new HttpError(404, 'ไม่พบสินค้า');
   await saveProduct(req, id); await broadcastProducts();

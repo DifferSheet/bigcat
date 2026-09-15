@@ -63,7 +63,7 @@ export async function donationSummary(eventId) {
     })),
     wall: wall.map(w => ({ ...w, donor_name: w.anonymous ? 'ผู้ไม่ประสงค์ออกนาม' : w.donor_name })),
     total, goal, donors: categories.reduce((s, c) => s + Number(c.donors), 0),
-    percent: goal ? Math.min(100, Math.round(total / goal * 100)) : 0,
+    percent: goal ? Math.round(total / goal * 100) : 0,   // เกินเป้าให้แสดงเกิน 100% ได้ (แถบกราฟฝั่งเว็บ clamp เอง)
   };
 }
 

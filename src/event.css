@@ -504,3 +504,5 @@
 .member-link { color: var(--ok-text); }
 .link-button.small { font-size: 12px; padding: 2px 0; }
 .mini-tag.as-btn { cursor: pointer; border: 0; font: inherit; font-size: 10px; }
+.merit-percent.over { color: var(--ok-text); } .merit-percent small { display: block; font-size: 11px; font-weight: 600; }
+.mini-bar.full i { background: var(--ok); }

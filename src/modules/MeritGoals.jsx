@@ -106,10 +106,10 @@ export default function MeritGoals({ data }) {
       <div className="merit-total">
         <div className="merit-figures"><strong>{baht(total)}</strong><span>จากเป้าหมาย {baht(goal)}</span></div>
         <div className="merit-bar" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
-          <i style={{ width: `${percent}%` }} />
+          <i style={{ width: `${Math.min(100, percent)}%` }} />
           {milestones.map(m => <b key={m.percent} className={`tick ${percent >= m.percent ? 'hit' : ''}`} style={{ left: `${m.percent}%` }} title={`${m.percent}%`} />)}
         </div>
-        <span className="merit-percent">{percent}%</span>
+        <span className={`merit-percent ${percent >= 100 ? 'over' : ''}`}>{percent}%{percent > 100 && <small> เกินเป้าแล้ว 🎉</small>}</span>
       </div>
       {deadline && <div className="deadline">
         <span className="eyebrow">{closed ? 'ปิดรับยอดออนไลน์แล้ว' : 'ปิดรับยอดออนไลน์ใน'}</span>
@@ -123,12 +123,12 @@ export default function MeritGoals({ data }) {
     <Section eyebrow="CATEGORIES" title="ทำบุญตามหมวด">
       <p className="muted small">เลือกได้หลายหมวด แล้วโอนรวมครั้งเดียวในฟอร์มด้านล่าง</p>
       <div className="cat-grid">{categories.map(c => {
-        const pct = c.goal ? Math.min(100, Math.round(c.raised / c.goal * 100)) : 0;
+        const pct = c.goal ? Math.round(c.raised / c.goal * 100) : 0;   // แสดงเกิน 100% ได้ · แถบ clamp
         const on = !!picked[c.id];
         return <div key={c.id} className={`cat-card ${on ? 'active' : ''}`}>
           <label className="cat-pick"><input type="checkbox" checked={on} onChange={() => toggle(c)} aria-label={`เลือกหมวด ${c.name}`} /><span className="eyebrow">{c.donors} คนร่วมบุญ</span></label>
           <h3>{c.name}</h3><p>{c.description}</p>
-          {c.goal > 0 && <div className="mini-bar"><i style={{ width: `${pct}%` }} /></div>}
+          {c.goal > 0 && <div className={`mini-bar ${pct >= 100 ? 'full' : ''}`}><i style={{ width: `${Math.min(100, pct)}%` }} /></div>}
           {c.unit_price
             ? <span className="cat-figures"><strong>{c.unitsDone}/{c.unitsGoal} {c.unit_name}</strong> · {c.unit_name}ละ {baht(c.unit_price)} · {pct}%</span>
             : c.goal > 0

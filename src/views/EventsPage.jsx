@@ -12,7 +12,7 @@ const FILTERS = [['all', 'ทั้งหมด'], ['fanmeet', 'Fan Meet'], ['me
 function Summary({ ev }) {
   const s = ev.summary || {};
   if (s.seats) return <span className="ev-summary">{s.seats.free > 0 ? <>เหลือ <strong>{s.seats.free}</strong> / {s.seats.total} ที่นั่ง</> : 'ที่นั่งเต็มแล้ว'}</span>;
-  if (s.donation) return <span className="ev-summary"><span className="mini-bar"><i style={{ width: `${s.donation.percent}%` }} /></span>{baht(s.donation.total)} · {s.donation.percent}%</span>;
+  if (s.donation) return <span className="ev-summary"><span className="mini-bar"><i style={{ width: `${Math.min(100, s.donation.percent)}%` }} /></span>{baht(s.donation.total)} · {s.donation.percent}%</span>;
   // เลขน้อย ๆ ดูเงียบ — ต่ำกว่า 10 บอกแค่ว่าเปิดแล้ว · เลขเช็คอินโชว์เฉพาะระหว่างงาน
   if (s.registrations) return <span className="ev-summary">{s.registrations.total >= 10 ? <>ลงทะเบียนแล้ว <strong>{s.registrations.total}</strong> คน</> : 'เปิดลงทะเบียนแล้ว'}{ev.status === 'live' && s.registrations.checkedIn > 0 ? ` · เช็คอิน ${s.registrations.checkedIn}` : ''}</span>;
   return null;

@@ -6,6 +6,7 @@ import { Icon, PageLoader, Modal } from '../components/ui.jsx';
 import { api, getAdminKey } from '../lib/api.js';
 import { baht } from '../lib/format.js';
 import RichText from '../components/RichText.jsx';
+import ImageStrip from '../components/ImageStrip.jsx';
 
 const ORDER_STATUS = [['pending', 'รอชำระ'], ['paid', 'ชำระแล้ว'], ['packing', 'กำลังแพ็ก'], ['shipped', 'จัดส่งแล้ว'], ['completed', 'สำเร็จ'], ['cancelled', 'ยกเลิก']];
 const label = (s) => ORDER_STATUS.find(x => x[0] === s)?.[1] || s;
@@ -93,15 +94,17 @@ const emptyProduct = { name: '', name_th: '', category: 'ของสะสม',
 
 function ProductForm({ initial, onSaved, onCancel, onMsg }) {
   const [p, setP] = useState({ ...emptyProduct, ...initial, variants: (initial?.variants || []).map(v => ({ id: v.id, name: v.name, price_delta: v.price_delta, stock: v.stock, sku: v.sku || '', image: v.image || null })) });
-  const gallery = (initial?.images?.length ? initial.images : [initial?.image]).filter(Boolean);
-  const [file, setFile] = useState(null);
+  // ภาพสินค้าเรียงลำดับ — ภาพแรก = รูปหลัก · รายการเป็น path เดิม หรือ File ใหม่
+  const [images, setImages] = useState((initial?.images?.length ? initial.images : [initial?.image]).filter(Boolean));
+  const gallery = images.filter(x => typeof x === 'string');   // ให้ตัวเลือกเลือกรูปประจำได้เฉพาะภาพที่บันทึกแล้ว
   const [busy, setBusy] = useState(false);
   const set = (k, v) => setP(x => ({ ...x, [k]: v }));
   const setVar = (i, k, v) => setP(x => ({ ...x, variants: x.variants.map((row, j) => j === i ? { ...row, [k]: v } : row) }));
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); onMsg('');
     try {
-      const fd = new FormData(); fd.append('payload', JSON.stringify(p)); if (file) fd.append('image', file);
+      const files = images.filter(x => x instanceof File);
+      const fd = new FormData(); fd.append('payload', JSON.stringify({ ...p, images: images.map(x => x instanceof File ? `file:${files.indexOf(x)}` : x) })); files.forEach(f => fd.append('gallery', f));
       const saved = await api(initial?.id ? `/admin/shop/products/${initial.id}` : '/admin/shop/products', { method: initial?.id ? 'PUT' : 'POST', body: fd, admin: true });
       onSaved(saved);
     } catch (err) { onMsg(err.message); } finally { setBusy(false); }
@@ -113,7 +116,12 @@ function ProductForm({ initial, onSaved, onCancel, onMsg }) {
     <label className="rt-label">รายละเอียดสินค้า <small>(ตัวหนา ตัวเอียง รายการ ใช้ปุ่มด้านบนได้)</small>
       <RichText value={p.description || ''} onChange={v => set('description', v)} rows={8} />
     </label>
-    <div className="two"><label>รูปสินค้า {initial?.image && <small>(มีอยู่แล้ว — เลือกใหม่เพื่อเปลี่ยน)</small>}<input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} /></label><label className="check"><input type="checkbox" checked={!!p.featured} onChange={e => set('featured', e.target.checked)} /> แสดงบนหน้าแรก</label></div>
+    <div className="gallery-edit">
+      <span className="file-drop-label">รูปสินค้า <small>(ภาพแรก = รูปหลักบนการ์ด · ที่เหลือเป็นแกลเลอรีในหน้าสินค้า · ลากสลับได้ · สูงสุด 12)</small></span>
+      <ImageStrip images={images} onChange={setImages} max={12} />
+      {images.some(x => x instanceof File) && <small className="muted">ภาพใหม่จะเลือกเป็นรูปประจำตัวเลือกได้หลังกดบันทึก</small>}
+    </div>
+    <label className="check"><input type="checkbox" checked={!!p.featured} onChange={e => set('featured', e.target.checked)} /> แสดงบนหน้าแรก</label>
     <div className="variants-edit">
       <div className="ev-section-head"><span className="eyebrow">ตัวเลือก (ไซส์ / สี / แบบ) <small>— ตัวเลือกที่เป็นสี/แบบ ให้กดเลือกรูปประจำตัวเลือกด้วย ลูกค้าจะได้เห็นว่าเลือกอะไรอยู่ · ไซส์ไม่ต้อง</small></span><button type="button" className="link-button" onClick={() => set('variants', [...p.variants, { name: '', price_delta: 0, stock: 0, sku: '', image: null }])}>+ เพิ่มตัวเลือก</button></div>
       {p.variants.map((v, i) => <div key={i} className="variant-row"><input placeholder="ชื่อ เช่น M" required value={v.name} onChange={e => setVar(i, 'name', e.target.value)} /><input type="number" placeholder="+ราคา" value={v.price_delta} onChange={e => setVar(i, 'price_delta', e.target.value)} /><input type="number" min="0" placeholder="สต็อก" value={v.stock} onChange={e => setVar(i, 'stock', e.target.value)} /><input placeholder="SKU" value={v.sku} onChange={e => setVar(i, 'sku', e.target.value)} /><button type="button" className="link-button" onClick={() => set('variants', p.variants.filter((_, j) => j !== i))}>ลบ</button>
