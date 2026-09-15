@@ -98,7 +98,7 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
       <div><span className="eyebrow">{typeLabel[ev.type]}</span><h2>{ev.title}</h2></div>
       <label className="status-select">สถานะ <select value={ev.status} onChange={e => setStatus(e.target.value)}>{STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
       <button className="button ghost small" onClick={onEdit}>แก้ไขงาน</button>
-      {confirmDel ? <span className="confirm-del"><span>ลบ «{ev.title}» ถาวร?</span><button className="button dark small danger" onClick={remove}>ลบเลย</button><button className="link-button" onClick={() => setConfirmDel(false)}>ไม่ลบ</button></span> : <button className="link-button" onClick={() => setConfirmDel(true)}>ลบงาน</button>}
+      {confirmDel ? <span className="confirm-del"><span>ลบ <span className="tag-label">{ev.title}</span> ถาวร?</span><button className="button dark small danger" onClick={remove}>ลบเลย</button><button className="link-button" onClick={() => setConfirmDel(false)}>ไม่ลบ</button></span> : <button className="link-button" onClick={() => setConfirmDel(true)}>ลบงาน</button>}
       <Link className="button ghost small" to={`/events/${ev.slug}`}>ดูหน้าเว็บ ↗</Link>
       {ev.type === 'busking' && <Link className="button dark small" to={`/events/${ev.slug}/draw`}>จอสุ่ม Lucky Fan 🎲</Link>}
     </div>

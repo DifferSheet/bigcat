@@ -435,3 +435,13 @@
 .booking-form .ms-row-head select { width: auto; }
 .booking-form .ms-row input, .booking-form .ms-row select, .booking-form .ms-row textarea { padding: 9px 10px; font-size: 13px; }
 .poll-edit { display: flex; flex-direction: column; gap: 6px; }
+.tag-label { display: inline-block; padding: 1px 9px; margin: 0 2px; border-radius: var(--r-pill); background: var(--pink-tint); color: #a3485a; font-size: .85em; font-weight: 600; vertical-align: baseline; white-space: nowrap; }
+.zone-row { display: grid; grid-template-columns: .8fr 1.2fr .8fr 1.6fr auto; gap: 6px; align-items: center; }
+.booking-form .zone-row input { padding: 9px 10px; font-size: 13px; }
+.json-blocks { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.json-block { border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--paper); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.json-block-head { display: flex; align-items: center; gap: 8px; }
+.booking-form .json-block-head input { flex: 1; padding: 6px 10px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.booking-form .json-block textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.5; }
+.event-form h2 small { font-weight: 400; font-size: 12px; color: var(--muted); }
+@media (max-width: 760px) { .zone-row { grid-template-columns: 1fr 1fr; } }

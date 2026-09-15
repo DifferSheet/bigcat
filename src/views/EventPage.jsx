@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from '../lib/nav.jsx';
 import dynamic from 'next/dynamic';
 import { SiteHeader, SiteFooter, StatusPill, Countdown, Section, CalendarButton } from '../components/EventShell.jsx';
-import { Icon, PageLoader } from '../components/ui.jsx';
+import { Icon, PageLoader, Tagged } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { useEventSocket } from '../lib/socket.js';
 import { eventDate, typeLabel } from '../lib/format.js';
@@ -80,7 +80,7 @@ export default function EventPage({ slug, initialData = null }) {
         </div>
         <aside className="ev-side">
           {cfg.schedule?.length > 0 && <Section eyebrow="SCHEDULE" title="กำหนดการ"><ol className="schedule">{cfg.schedule.map(([time, title]) => <li key={time}><time>{time}</time><span>{title}</span></li>)}</ol></Section>}
-          {cfg.faq?.length > 0 && <Section eyebrow="FAQ" title="คำถามที่พบบ่อย"><div className="faq">{cfg.faq.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div></Section>}
+          {cfg.faq?.length > 0 && <Section eyebrow="FAQ" title="คำถามที่พบบ่อย"><div className="faq">{cfg.faq.map(([q, a]) => <details key={q}><summary>{q}</summary><p><Tagged text={a} /></p></details>)}</div></Section>}
           <Section eyebrow="SHARE" title="ชวนเพื่อน"><button className="button ghost" onClick={async () => { try { await navigator.share?.({ title: ev.title, url: location.href }) ?? navigator.clipboard.writeText(location.href); } catch { /* ยกเลิก */ } }}>แชร์ลิงก์งานนี้ ↗</button></Section>
         </aside>
       </div>

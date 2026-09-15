@@ -123,7 +123,8 @@ r.post('/events/:slug/donations', upload.single('slip'), wrap(async (req, res) =
   const amount = units ? units * category.unit_price : Math.round(Number(req.body.amount));
   if (!(amount >= 1)) throw new HttpError(400, 'กรุณาระบุจำนวนเงิน');
   const donor = clean(req.body.name, 120) || 'ผู้ไม่ประสงค์ออกนาม';
-  const verify = req.file ? await verifySlip(req.file.path, { expectedAmount: amount }) : { ok: false, note: 'ยังไม่แนบสลิป' };
+  if (!req.file) throw new HttpError(400, 'กรุณาแนบสลิปโอนเงิน');
+  const verify = await verifySlip(req.file.path, { expectedAmount: amount });
   const c = code(8);
   await q('INSERT INTO donations SET ?', [{
     code: c, event_id: ev.id, category_id: category.id, donor_name: donor, dedication: clean(req.body.dedication, 160) || null,

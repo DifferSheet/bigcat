@@ -47,6 +47,12 @@ export function Modal({ title, children, onClose, wide = false }) {
 }
 
 
+// แปลงข้อความที่มี «คำ» ให้ «คำ» กลายเป็นป้าย tag (ใช้กับโน้ต/คำอธิบายที่มาจากฐานข้อมูล)
+export function Tagged({ text }) {
+  const parts = String(text || '').split(/«([^»]+)»/g);
+  return <>{parts.map((p, i) => i % 2 ? <span key={i} className="tag-label">{p}</span> : p)}</>;
+}
+
 export function PageLoader({ label = 'กำลังโหลด…' }) {
   return <div className="page-loader" role="status"><Paw /><span>{label}</span></div>;
 }

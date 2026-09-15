@@ -4,7 +4,7 @@ import { useUser, prefillFrom } from '../lib/auth.js';
 import { Link } from '../lib/nav.jsx';
 import { Section, Notice, PayBox, Countdown, LineNotify } from '../components/EventShell.jsx';
 import { PhoneInput, FileDrop } from '../components/forms.jsx';
-import { Icon, Paw } from '../components/ui.jsx';
+import { Icon, Paw, Tagged } from '../components/ui.jsx';
 import { api, voterToken } from '../lib/api.js';
 import { baht, parseDate, eventDate } from '../lib/format.js';
 import { useMounted } from '../lib/useMounted.js';
@@ -81,7 +81,8 @@ export default function MeritGoals({ data }) {
     try {
       const fd = new FormData();
       Object.entries({ ...form, amount }).forEach(([k, v]) => fd.append(k, v));
-      if (slip) fd.append('slip', slip);
+      if (!slip) throw new Error('กรุณาแนบสลิปโอนเงิน');
+      fd.append('slip', slip);
       setDone(await api(`/events/${ev.slug}/donations`, { method: 'POST', body: fd }));
       document.getElementById('donate-form')?.scrollIntoView({ behavior: 'smooth' });
     } catch (err) { setError(err.message); } finally { setBusy(false); }
@@ -152,10 +153,10 @@ export default function MeritGoals({ data }) {
               <label>ชื่อที่จะแสดง<input id="dn-name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="ชื่อ / นามแฝง" /></label>
               <label>ทำบุญในนาม / อุทิศให้ (ถ้ามี)<input id="dn-ded" value={form.dedication} onChange={e => setForm({ ...form, dedication: e.target.value })} placeholder="เช่น ในนามน้องส้ม, อุทิศให้น้องมะลิ" maxLength={160} /></label>
             </div>
-            <label>ข้อความถึงน้องแมว (ถ้ามี)<input id="dn-msg" value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} maxLength={300} /></label>
+            <label>ข้อความบนกำแพงผู้ร่วมบุญ (ถ้ามี) <small className="muted">แสดงใต้ชื่อคุณให้ทุกคนเห็น เช่น คำอนุโมทนา หรือคำอวยพรถึงบูตะ</small><input id="dn-msg" value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} maxLength={300} placeholder="เช่น สาธุ ขอให้บูตะและมัมป๊าแข็งแรง" /></label>
             <label className="check"><input id="dn-anon" type="checkbox" checked={form.anonymous} onChange={e => setForm({ ...form, anonymous: e.target.checked })} /> ไม่แสดงชื่อบนกำแพงผู้ร่วมบุญ</label>
             <PayBox payment={cfg.payment} note={`โอน ${baht(amount)} แล้วแนบสลิป — ระบบตรวจสลิปอัตโนมัติ ยอดขึ้นทันทีเมื่อผ่าน`} />
-            <FileDrop id="dn-slip" file={slip} onChange={setSlip} />
+            <FileDrop id="dn-slip" file={slip} onChange={setSlip} required hint="โอนแล้วแนบสลิปเพื่อยืนยันยอด (จำเป็น) · JPG / PNG" />
             {error && <Notice tone="error">{error}</Notice>}
             <div className="form-actions"><button className="button dark" disabled={busy || !(amount >= 1)}>{busy ? 'กำลังส่ง…' : `แจ้งยอด ${baht(amount)}`} <Icon name="heart" /></button></div>
           </form>}
@@ -164,7 +165,7 @@ export default function MeritGoals({ data }) {
 
     {/* ---------- ไปวัดด้วย ---------- */}
     {cfg.attend?.enabled && <Section eyebrow="JOIN IN PERSON" title="ไปวัดด้วยกัน" aside={<span className="ev-summary">จะไป <strong>{registrations?.total || 0}</strong> คน · เช็คอินแล้ว {registrations?.checkedIn || 0}</span>}>
-      {cfg.attend.note && <p className="muted">{cfg.attend.note}</p>}
+      {cfg.attend.note && <p className="muted"><Tagged text={cfg.attend.note} /></p>}
       {attendDone
         ? <><Notice>ลงทะเบียนไปวัดแล้ว หมายเลข #{String(attendDone.number).padStart(3, '0')} — วันงานเปิดหน้าบัตรเพื่อเช็คอินรับของที่ระลึก</Notice><div className="form-actions"><Link className="button ghost small" to={`/ticket/${attendDone.code}`}>เปิดบัตร</Link><button className="link-button" onClick={() => { setAttendDone(null); try { localStorage.removeItem(attendKey(ev.slug)); } catch { /* optional */ } }}>ลงทะเบียนคนอื่น</button></div></>
         : ev.status === 'ended' ? <Notice tone="muted">งานจบแล้ว</Notice>

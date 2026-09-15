@@ -12,7 +12,8 @@ const TYPES = ['fanmeet', 'merit', 'busking', 'workshop', 'popup'];
 const STATUSES = [['upcoming', 'เร็ว ๆ นี้ (ยังไม่เปิด)'], ['open', 'เปิดรับ'], ['soldout', 'เต็ม'], ['live', 'กำลังจัด'], ['ended', 'จบแล้ว']];
 const TONES = [['pink', 'ชมพู'], ['yellow', 'เหลือง'], ['sage', 'เขียวอ่อน'], ['blue', 'ฟ้า']];
 // key ใน config ที่ฟอร์มมีช่องให้แล้ว — ที่เหลือไปอยู่ในกล่อง JSON ขั้นสูง
-const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs', 'gallery', 'milestones'];
+const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs', 'gallery', 'milestones', 'report', 'seatMap'];
+const Tag = ({ children }) => <span className="tag-label">{children}</span>;
 const REWARD_TYPES = [['text', 'ข้อความ'], ['image', 'ภาพลับ'], ['link', 'ลิงก์ (Live / คลิป)'], ['poll', 'โหวต']];
 const newMilestone = (percent = 25) => ({ percent, title: '', reward: { type: 'text', body: '' } });
 
@@ -32,8 +33,13 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
     capacity: cfg.capacity ?? '',
     donateUntil: toLocal(cfg.donateUntil), attendEnabled: cfg.attend?.enabled ?? false, attendNote: cfg.attend?.note || '',
     payAccount: cfg.payment?.accountName || '', payPromptpay: cfg.payment?.promptpay || '',
-    advanced: JSON.stringify(Object.fromEntries(Object.entries(cfg).filter(([k]) => !KNOWN.includes(k))), null, 2),
+    accountNote: cfg.report?.accountNote || '', excessPolicy: cfg.report?.excessPolicy || '', taxNote: cfg.report?.taxNote || '',
+    seatRows: (cfg.seatMap?.rows || []).join(', '), seatCols: cfg.seatMap?.cols ?? 10, seatMax: cfg.seatMap?.maxPerBooking ?? 4, seatHold: cfg.seatMap?.holdMinutes ?? 10,
   });
+  // โซนที่นั่ง: [{ key: 'A' | 'default', name, price, perk }]
+  const [zones, setZones] = useState(Object.entries(cfg.seatMap?.zones || { default: { name: 'Standard', price: 0, perk: '' } }).map(([key, z]) => ({ key, name: z.name || '', price: z.price ?? 0, perk: z.perk || '' })));
+  // ตั้งค่าอื่นที่ฟอร์มยังไม่มีช่อง — แสดงเป็นบล็อกละ key (JSON ของ key นั้น) แก้ได้
+  const [other, setOther] = useState(Object.entries(cfg).filter(([k]) => !KNOWN.includes(k)).map(([k, v]) => ({ key: k, json: JSON.stringify(v, null, 2) })));
   const [cats, setCats] = useState(initial?.categories?.length ? initial.categories : [{ name: '', description: '', goal: '', unit_name: '', unit_price: '' }]);
   // ภาพทั้งหมดเรียงลำดับ — ภาพแรก = ปก · รายการเป็น path เดิม (string) หรือ File ใหม่
   const [images, setImages] = useState([initial?.cover, ...(cfg.gallery || [])].filter(Boolean));
@@ -46,9 +52,11 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setError('');
     try {
-      let advanced = {};
-      try { advanced = f.advanced.trim() ? JSON.parse(f.advanced) : {}; } catch { throw new Error('ตั้งค่าขั้นสูงไม่ใช่ JSON ที่ถูกต้อง'); }
+      const advanced = {};
+      for (const { key, json } of other) { if (!key.trim()) continue; try { advanced[key.trim()] = json.trim() ? JSON.parse(json) : null; } catch { throw new Error(`บล็อก ${key} ไม่ใช่ JSON ที่ถูกต้อง`); } }
       const config = { ...advanced, schedule: unlines(f.schedule), faq: unlines(f.faq) };
+      if (f.type === 'merit') config.report = { accountNote: f.accountNote, excessPolicy: f.excessPolicy, taxNote: f.taxNote };
+      if (f.type === 'fanmeet') config.seatMap = { rows: f.seatRows.split(',').map(x => x.trim()).filter(Boolean), cols: Number(f.seatCols) || 0, maxPerBooking: Number(f.seatMax) || 1, holdMinutes: Number(f.seatHold) || 10, zones: Object.fromEntries(zones.filter(z => z.key.trim()).map(z => [z.key.trim(), { name: z.name, price: Number(z.price) || 0, perk: z.perk }])) };
       if (f.type === 'busking') { config.drawRounds = Number(f.drawRounds) || 0; config.setlist = unlines(f.setlist, '|', 1); config.songs = { enabled: !!f.songsEnabled }; }
       if (f.type === 'workshop' || f.type === 'popup') config.capacity = f.capacity === '' ? undefined : Number(f.capacity);
       if (f.type === 'merit') { config.donateUntil = f.donateUntil ? f.donateUntil.replace('T', ' ') + ':00' : undefined; config.attend = { enabled: !!f.attendEnabled, note: f.attendNote }; }
@@ -100,7 +108,7 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
     {(f.type === 'workshop' || f.type === 'popup') && <><h2>ลงทะเบียน</h2>
       <label>รับกี่ที่ <small>เว้นว่าง = ไม่ต้องลงทะเบียน</small><input type="number" min="1" value={f.capacity} onChange={e => set('capacity', e.target.value)} /></label></>}
     {f.type === 'merit' && <><h2>ทำบุญ</h2>
-      <div className="two"><label>ปิดรับยอดออนไลน์<input type="datetime-local" value={f.donateUntil} onChange={e => set('donateUntil', e.target.value)} /></label><label className="check"><input type="checkbox" checked={!!f.attendEnabled} onChange={e => set('attendEnabled', e.target.checked)} /> เปิดลงทะเบียน «ไปวัดด้วย»</label></div>
+      <div className="two"><label>ปิดรับยอดออนไลน์<input type="datetime-local" value={f.donateUntil} onChange={e => set('donateUntil', e.target.value)} /></label><label className="check"><input type="checkbox" checked={!!f.attendEnabled} onChange={e => set('attendEnabled', e.target.checked)} /> เปิดลงทะเบียน <Tag>ไปวัดด้วย</Tag></label></div>
       <label>โน้ตสำหรับคนไปวัด<input value={f.attendNote} onChange={e => set('attendNote', e.target.value)} placeholder="เช่น นัดพบหน้าวัด 09:00 น. แต่งกายสุภาพ" /></label>
       <div className="ms-edit"><div className="ev-section-head"><span className="eyebrow">Milestone ปลดล็อกตามยอด <small>— ถึง % ของเป้ารวมแล้วเปิดของขวัญให้แฟน ๆ</small></span><button type="button" className="link-button" onClick={() => setMilestones([...milestones, newMilestone(milestones.length ? Math.min(100, (Number(milestones[milestones.length - 1].percent) || 0) + 25) : 25)])}>+ เพิ่ม milestone</button></div>
         {milestones.map((m, i) => { const r = m.reward || { type: 'text' }; const setM = (patch) => setMilestones(ms => ms.map((x, j) => j === i ? { ...x, ...patch } : x)); const setR = (patch) => setM({ reward: { ...r, ...patch } }); return <div key={i} className="ms-row">
@@ -110,17 +118,30 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
           {r.type === 'link' && <div className="two"><input placeholder="https://…" value={r.url || ''} onChange={e => setR({ url: e.target.value })} /><input placeholder="ข้อความบนปุ่ม เช่น ดู Live / ย้อนหลัง" value={r.label || ''} onChange={e => setR({ label: e.target.value })} /></div>}
           {r.type === 'poll' && <div className="poll-edit"><input placeholder="คำถาม" value={r.question || ''} onChange={e => setR({ question: e.target.value })} /><textarea rows={3} placeholder={'ตัวเลือก บรรทัดละข้อ'} value={(r.options || []).join('\n')} onChange={e => setR({ options: e.target.value.split('\n').map(x => x.trim()).filter(Boolean), key: r.key || `poll-${i + 1}` })} /></div>}
         </div>; })}
-        {milestones.length === 0 && <p className="muted small">ยังไม่มี milestone — กด «+ เพิ่ม milestone»</p>}
+        {milestones.length === 0 && <p className="muted small">ยังไม่มี milestone — กด <Tag>+ เพิ่ม milestone</Tag></p>}
       </div>
+      <h2>ความโปร่งใส <small>(แสดงในกล่อง ความโปร่งใส บนหน้างาน)</small></h2>
+      <label>บัญชีรับเงิน<textarea rows={2} value={f.accountNote} onChange={e => set('accountNote', e.target.value)} placeholder="บัญชีนี้เป็นของใคร รวบรวมยอดแทนใคร" /></label>
+      <label>ยอดเกินเป้า<textarea rows={2} value={f.excessPolicy} onChange={e => set('excessPolicy', e.target.value)} placeholder="ยอดที่เกินจะเอาไปทำอะไร" /></label>
+      <label>ลดหย่อนภาษี<textarea rows={2} value={f.taxNote} onChange={e => set('taxNote', e.target.value)} /></label>
       <div className="cat-edit"><div className="ev-section-head"><span className="eyebrow">หมวดร่วมบุญ <small>— ราคาต่อหน่วยเว้นว่าง = ใส่ยอดเอง</small></span><button type="button" className="link-button" onClick={() => setCats([...cats, { name: '', description: '', goal: '', unit_name: '', unit_price: '' }])}>+ เพิ่มหมวด</button></div>
         {cats.map((c, i) => <div key={c.id || i} className="cat-row"><input placeholder="ชื่อหมวด" value={c.name} onChange={e => setCat(i, 'name', e.target.value)} /><input placeholder="คำอธิบาย" value={c.description || ''} onChange={e => setCat(i, 'description', e.target.value)} /><input type="number" min="0" placeholder="เป้า (บาท)" value={c.goal ?? ''} onChange={e => setCat(i, 'goal', e.target.value)} /><input placeholder="หน่วย เช่น ชุด" value={c.unit_name || ''} onChange={e => setCat(i, 'unit_name', e.target.value)} /><input type="number" min="0" placeholder="บาท/หน่วย" value={c.unit_price ?? ''} onChange={e => setCat(i, 'unit_price', e.target.value)} /><button type="button" className="link-button" onClick={() => setCats(cats.filter((_, j) => j !== i))} aria-label="ลบหมวด">ลบ</button></div>)}
       </div></>}
     {(f.type === 'merit' || f.type === 'fanmeet') && <><h2>รับเงิน</h2>
       <div className="two"><label>ชื่อบัญชี<input value={f.payAccount} onChange={e => set('payAccount', e.target.value)} /></label><label>เลข PromptPay (ถ้าไม่ใช้ QR)<input value={f.payPromptpay} onChange={e => set('payPromptpay', e.target.value)} /></label></div>
-      {f.type === 'fanmeet' && <p className="muted small">ผังที่นั่ง (seatMap) แก้ในกล่องขั้นสูงด้านล่าง — ที่นั่งจะถูกสร้างครั้งแรกที่บันทึกถ้ายังไม่มี</p>}</>}
+</>}
+    {f.type === 'fanmeet' && <><h2>ผังที่นั่ง <small>(ที่นั่งถูกสร้างครั้งแรกที่บันทึก — หลังมีคนจองแล้วแก้ผังไม่มีผลกับที่นั่งเดิม)</small></h2>
+      <div className="three"><label>แถว (คั่นด้วย ,)<input value={f.seatRows} onChange={e => set('seatRows', e.target.value)} placeholder="A, B, C, D" /></label><label>ที่นั่งต่อแถว<input type="number" min="1" value={f.seatCols} onChange={e => set('seatCols', e.target.value)} /></label><label>จองได้สูงสุด/ครั้ง<input type="number" min="1" value={f.seatMax} onChange={e => set('seatMax', e.target.value)} /></label></div>
+      <label>ล็อกที่นั่งระหว่างกรอกฟอร์ม (นาที)<input type="number" min="1" value={f.seatHold} onChange={e => set('seatHold', e.target.value)} /></label>
+      <div className="cat-edit"><div className="ev-section-head"><span className="eyebrow">โซน / ราคา <small>— key = ตัวอักษรแถว หรือ default สำหรับแถวที่เหลือ</small></span><button type="button" className="link-button" onClick={() => setZones([...zones, { key: '', name: '', price: 0, perk: '' }])}>+ เพิ่มโซน</button></div>
+        {zones.map((z, i) => { const setZ = (k, v) => setZones(zs => zs.map((x, j) => j === i ? { ...x, [k]: v } : x)); return <div key={i} className="zone-row"><input placeholder="A / default" value={z.key} onChange={e => setZ('key', e.target.value)} /><input placeholder="ชื่อโซน" value={z.name} onChange={e => setZ('name', e.target.value)} /><input type="number" min="0" placeholder="ราคา" value={z.price} onChange={e => setZ('price', e.target.value)} /><input placeholder="สิทธิพิเศษ" value={z.perk} onChange={e => setZ('perk', e.target.value)} /><button type="button" className="link-button" onClick={() => setZones(zones.filter((_, j) => j !== i))}>ลบ</button></div>; })}
+      </div></>}
 
-    <details className="adv"><summary>ตั้งค่าขั้นสูง (JSON)</summary>
-      <textarea rows={6} value={f.advanced} onChange={e => set('advanced', e.target.value)} spellCheck={false} /></details>
+    <details className="adv" open={other.length > 0}><summary>ตั้งค่าอื่น ๆ <small>({other.length} รายการ — สำหรับค่าที่ฟอร์มยังไม่มีช่องให้)</small></summary>
+      <div className="json-blocks">
+        {other.map((o, i) => <div key={i} className="json-block"><div className="json-block-head"><Tag>{o.key || 'key ใหม่'}</Tag><input value={o.key} onChange={e => setOther(os => os.map((x, j) => j === i ? { ...x, key: e.target.value } : x))} placeholder="ชื่อ key" /><button type="button" className="link-button" onClick={() => setOther(other.filter((_, j) => j !== i))}>ลบ</button></div><textarea rows={Math.min(12, Math.max(2, o.json.split('\n').length))} value={o.json} onChange={e => setOther(os => os.map((x, j) => j === i ? { ...x, json: e.target.value } : x))} spellCheck={false} /></div>)}
+        <button type="button" className="link-button" onClick={() => setOther([...other, { key: '', json: '' }])}>+ เพิ่มค่า</button>
+      </div></details>
 
     {error && <Notice tone="error">{error}</Notice>}
     <div className="form-actions"><button className="button dark small" disabled={busy}>{busy ? 'กำลังบันทึก…' : editing ? 'บันทึกการแก้ไข' : 'สร้างกิจกรรม'} <Icon name="check" size={14} /></button><button type="button" className="link-button" onClick={onCancel}>ยกเลิก</button></div>
