@@ -41,8 +41,8 @@ export async function donationSummary(eventId) {
       COUNT(CASE WHEN d.status='approved' THEN 1 END) AS donors
     FROM donation_categories c LEFT JOIN donations d ON d.category_id = c.id
     WHERE c.event_id = ? GROUP BY c.id ORDER BY c.sort`, [eventId]);
-  const wall = await q(`SELECT d.id, d.donor_name, d.dedication, d.message, d.anonymous, d.amount, d.units, d.created_at, c.name AS category, c.unit_name
-    FROM donations d JOIN donation_categories c ON c.id = d.category_id
+  const wall = await q(`SELECT d.id, d.donor_name, d.dedication, d.message, d.anonymous, d.amount, d.units, d.created_at, c.name AS category, c.unit_name, IF(d.anonymous, NULL, u.avatar) AS avatar
+    FROM donations d JOIN donation_categories c ON c.id = d.category_id LEFT JOIN users u ON u.id = d.user_id
     WHERE d.event_id = ? AND d.status = 'approved' ORDER BY d.created_at DESC LIMIT 60`, [eventId]);
   const total = categories.reduce((s, c) => s + Number(c.raised), 0);
   const goal = categories.reduce((s, c) => s + Number(c.goal), 0);
