@@ -68,14 +68,8 @@ export async function drawPassportImage(data) {
     const label = { lucky: 'LUCKY FAN', tier: 'ร่วมบุญ ✦', dayone: 'DAY ONE', first: 'มาครั้งแรก', friend: 'พามาเจอ' };
     const color = { lucky: '#c99a2e', tier: '#c99a2e', dayone: '#df8190', first: '#7fa66f', friend: '#5b8fd6' };
     const sw = 200, sl = (W - Math.min(specials.length, 5) * sw) / 2 + sw / 2;
-    const arts = await Promise.all(specials.slice(0, 5).map(s => loadImage(`/images/stamps/${s.kind}.webp`)));
     specials.slice(0, 5).forEach((s, i) => {
       const cx = sl + i * sw, cy = y + 110;
-      if (arts[i]) {   // ลายวาดจริง (ถ้ามีไฟล์) + ป้ายตัวเลข
-        x.drawImage(arts[i], cx - 85, cy - 85, 170, 170);
-        if (s.kind === 'friend' && s.meta?.count) { x.font = `700 20px ${F.head}`; x.fillStyle = '#33332f'; x.fillText(`×${s.meta.count}`, cx + 55, cy + 80); }
-        return;
-      }
       x.beginPath(); for (let k = 0; k < 24; k++) { const a = (k / 24) * Math.PI * 2, rr = k % 2 ? 62 : 72; x[k ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } x.closePath();
       x.fillStyle = ['lucky', 'tier'].includes(s.kind) ? '#f2d27a' : '#fff'; x.fill(); x.strokeStyle = color[s.kind] || '#df8190'; x.lineWidth = 3; x.stroke();
       x.font = `700 22px ${F.head}`; x.fillStyle = color[s.kind] || '#df8190'; x.fillText(label[s.kind] || s.kind, cx, cy + 8);

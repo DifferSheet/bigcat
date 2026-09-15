@@ -67,10 +67,6 @@ button.stamp-slot:hover { transform: translateY(-2px); box-shadow: var(--shadow-
 .stamp { display: block; max-width: 100%; height: auto; }
 .stamp-missed { filter: grayscale(1); opacity: .35; }
 .stamp-special.foil { filter: drop-shadow(0 2px 4px #c99a2e55); }
-.stamp-art { position: relative; display: inline-block; }
-.stamp-art img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.stamp-art.foil { filter: drop-shadow(0 2px 5px #c99a2e66); }
-.stamp-badge { position: absolute; right: 2%; bottom: 6%; font-size: 12px; font-weight: 700; color: #fff; background: var(--ink); border-radius: var(--r-pill); padding: 2px 8px; box-shadow: 0 1px 3px #0003; }
 .stamp-detail { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 .stamp-detail .stamp-earned-at { font-weight: 600; color: #a3485a; }
 .stamp-extras { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
