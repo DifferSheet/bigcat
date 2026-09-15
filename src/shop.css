@@ -213,3 +213,11 @@
   body.print-labels .ship-label { height: 128mm; border-radius: 0; }
   @page { size: A4 portrait; margin: 10mm; }
 }
+/* ตารางสินค้า: จัดลำดับ + หน้าแรก */
+.admin-table.products tr[draggable] { cursor: grab; }
+.admin-table.products tr.dragging { opacity: .4; }
+.sort-cell { white-space: nowrap; }
+.sort-num { display: inline-block; min-width: 22px; font-family: var(--font-display); font-size: 12px; color: var(--muted); }
+.sort-cell button { background: none; padding: 2px 4px; font-size: 10px; color: var(--ink); }
+.sort-cell button:disabled { opacity: .25; cursor: default; }
+.check.feat { justify-content: center; } .check.feat input { width: 18px; height: 18px; accent-color: var(--pink); }

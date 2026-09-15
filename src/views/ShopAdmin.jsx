@@ -139,15 +139,20 @@ function Products({ onMsg }) {
   useEffect(() => { load(); }, []);
   const remove = async (p) => { if (!confirm(`ลบ "${p.name}" ?`)) return; try { await api(`/admin/shop/products/${p.id}`, { method: 'DELETE', admin: true }); load(); } catch (e) { onMsg(e.message); } };
   const quick = async (p, payload) => { try { const fd = new FormData(); fd.append('payload', JSON.stringify({ ...p, ...payload })); await api(`/admin/shop/products/${p.id}`, { method: 'PUT', body: fd, admin: true }); load(); } catch (e) { onMsg(e.message); } };
+  const [drag, setDrag] = useState(null);
+  // ย้ายลำดับแล้วบันทึกทันที (ลำดับใน list = ลำดับที่แสดงบนหน้าร้าน)
+  const reorder = async (from, to) => { if (from === to || to < 0 || to >= list.length) return; const next = [...list]; const [it] = next.splice(from, 1); next.splice(to, 0, it); setList(next); try { await api('/admin/shop/products/order', { method: 'PUT', body: { ids: next.map(p => p.id) }, admin: true }); } catch (e) { onMsg(e.message); load(); } };
   if (!list) return <PageLoader />;
   return <>
-    <div className="tabs-row"><span className="muted">{list.length} รายการ</span><button className="button dark small" onClick={() => setEditing('new')}>+ เพิ่มสินค้า</button></div>
+    <div className="tabs-row"><span className="muted">{list.length} รายการ · ลากแถวหรือกด ▲▼ เพื่อจัดลำดับที่แสดงบนหน้าร้าน · ติ๊ก «หน้าแรก» ให้ขึ้นบนหน้าแรก (สูงสุด 4 ชิ้นแรกตามลำดับ)</span><button className="button dark small" onClick={() => setEditing('new')}>+ เพิ่มสินค้า</button></div>
     {editing && <div className="admin-panel"><ProductForm initial={editing === 'new' ? null : editing} onMsg={onMsg} onCancel={() => setEditing(null)} onSaved={() => { setEditing(null); onMsg('บันทึกแล้ว', 'ok'); load(); }} /></div>}
-    <div className="table-wrap"><table className="admin-table"><thead><tr><th></th><th>สินค้า</th><th>หมวด</th><th>ราคา</th><th>สต็อก</th><th>สถานะ</th><th></th></tr></thead><tbody>{list.map(p => <tr key={p.id} className={p.status === 'hidden' ? 'dim' : ''}>
+    <div className="table-wrap"><table className="admin-table products"><thead><tr><th></th><th></th><th>สินค้า</th><th>หมวด</th><th>ราคา</th><th>สต็อก</th><th>หน้าแรก</th><th>สถานะ</th><th></th></tr></thead><tbody>{list.map((p, i) => <tr key={p.id} className={`${p.status === 'hidden' ? 'dim' : ''} ${drag === i ? 'dragging' : ''}`} draggable onDragStart={() => setDrag(i)} onDragOver={e => e.preventDefault()} onDrop={() => { if (drag != null) reorder(drag, i); setDrag(null); }} onDragEnd={() => setDrag(null)}>
+      <td className="sort-cell"><span className="sort-num">{i + 1}</span><button type="button" onClick={() => reorder(i, i - 1)} disabled={i === 0} aria-label="เลื่อนขึ้น">▲</button><button type="button" onClick={() => reorder(i, i + 1)} disabled={i === list.length - 1} aria-label="เลื่อนลง">▼</button></td>
       <td><img className="thumb" src={p.image || '/images/bigcat-merch.jpg'} alt="" /></td>
-      <td><strong>{p.name}</strong><br /><small>{p.name_th}</small>{p.featured ? <span className="mini-tag ok">หน้าแรก</span> : null}</td>
+      <td><strong>{p.name}</strong><br /><small>{p.name_th}</small></td>
       <td>{p.category}</td><td>{baht(p.price)}</td>
       <td>{p.variants.length ? <small>{p.variants.map(v => `${v.name}:${v.stock}`).join(' · ')}</small> : p.stock}{p.stock <= 5 && p.status === 'active' && <span className="mini-tag warn">ใกล้หมด</span>}</td>
+      <td><label className="check feat"><input type="checkbox" checked={!!p.featured} onChange={e => quick(p, { featured: e.target.checked })} aria-label="แสดงบนหน้าแรก" /></label></td>
       <td><select value={p.status} onChange={e => quick(p, { status: e.target.value })}><option value="active">ขายอยู่</option><option value="hidden">ซ่อน</option><option value="soldout">หมด</option></select></td>
       <td className="actions"><button className="button ghost small" onClick={() => setEditing(p)}>แก้ไข</button><button className="link-button" onClick={() => remove(p)}>ลบ</button></td>
     </tr>)}</tbody></table></div>

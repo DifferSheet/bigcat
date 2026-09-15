@@ -59,6 +59,15 @@ async function saveProduct(req, id) {
 }
 
 const productUploads = upload.fields([{ name: 'image', maxCount: 1 }, { name: 'gallery', maxCount: 12 }]);
+// จัดลำดับการแสดง: ids เรียงตามที่อยากให้แสดง → sort = ตำแหน่ง
+r.put('/products/order', wrap(async (req, res) => {
+  const ids = (req.body.ids || []).map(Number).filter(Boolean);
+  if (!ids.length) throw new HttpError(400, 'ไม่มีรายการ');
+  await tx(async ({ q }) => { for (const [i, id] of ids.entries()) await q('UPDATE products SET sort=? WHERE id=?', [i, id]); });
+  await broadcastProducts();
+  res.json({ ok: true });
+}));
+
 r.post('/products', productUploads, wrap(async (req, res) => { const id = await saveProduct(req); await broadcastProducts(); res.json((await listProducts({ all: true })).find(p => p.id === id)); }));
 r.put('/products/:id', productUploads, wrap(async (req, res) => {
   const id = Number(req.params.id);
