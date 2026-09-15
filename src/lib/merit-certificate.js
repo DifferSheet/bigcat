@@ -52,7 +52,7 @@ function textBlock(ctx, value, { y, height, size = 36, min = 18, width = 840, fa
     lineHeight = actual * 1.55;
     if (lines.length <= maxLines && lines.length * lineHeight <= height && lines.every(line => ctx.measureText(line).width <= width)) break;
   }
-  if (actual < min) throw new Error('ข้อความยาวเกินพื้นที่ใบอนุโมทนา กรุณาติดต่อทีมงานเพื่อจัดรูปแบบ');
+  if (actual < min) throw new Error('ข้อความยาวเกินพื้นที่ใบอนุโมทนา กรุณาแจ้งแอดมินเพื่อจัดรูปแบบ');
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
