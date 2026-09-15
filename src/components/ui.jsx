@@ -25,8 +25,9 @@ export function Icon({ name, size = 20, ...props }) {
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name] || paths.arrow}</svg>;
 }
+// โลโก้แมวชมพู (แทนรอยเท้าเดิม) — ใช้เป็นสัญลักษณ์ตกแต่งบนบัตร กำแพงผู้ร่วมบุญ จอสุ่ม และตัวโหลด
 export function Paw({ className = '' }) {
-  return <svg className={className} viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><ellipse cx="13" cy="25" rx="7" ry="9" transform="rotate(-28 13 25)" /><ellipse cx="27" cy="15" rx="7" ry="9" /><ellipse cx="43" cy="18" rx="7" ry="9" transform="rotate(15 43 18)" /><ellipse cx="54" cy="31" rx="6" ry="8" transform="rotate(30 54 31)" /><path d="M16 46c0-8 10-20 17-20s17 12 17 20c0 12-12 6-17 6s-17 6-17-6" /></svg>;
+  return <img className={`paw-mark ${className}`} src="/images/bigcat-mark-pink.webp" alt="" aria-hidden="true" width="256" height="190" draggable={false} />;
 }
 export function Flower({ className = '' }) {
   return <svg className={className} viewBox="0 0 100 100" aria-hidden="true"><g fill="currentColor">{[0, 60, 120, 180, 240, 300].map(a => <ellipse key={a} cx="50" cy="24" rx="17" ry="23" transform={`rotate(${a} 50 50)`} />)}</g><circle cx="50" cy="50" r="15" fill="#f3cf7b" /></svg>;
