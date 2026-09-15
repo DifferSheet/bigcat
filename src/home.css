@@ -11,14 +11,6 @@
 .hm-btn:hover span { transform: translateX(4px); }
 
 /* header */
-.hm-header { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 24px; height: 78px; margin: 0 clamp(-16px, -4vw, -52px); padding: 0 clamp(16px, 4vw, 52px); background: #fcf8f1ee; backdrop-filter: blur(16px); }
-.hm-nav { display: flex; align-items: center; gap: 34px; font-family: var(--font-head); font-size: 15px; font-weight: 500; color: var(--brown); }
-.hm-nav a { position: relative; padding: 8px 0; }
-.hm-nav a::after { content: ''; position: absolute; left: 0; bottom: 2px; width: 0; height: 2px; background: var(--pink); transition: width .25s; }
-.hm-nav a:hover::after { width: 100%; }
-.hm-nav-shop { font-family: var(--font-display); letter-spacing: .1em; font-size: 14px; }
-.hm-nav-actions { display: flex; align-items: center; gap: 8px; }
-.hm-menu { display: none; }
 
 /* hero */
 .hm-hero { display: grid; grid-template-columns: .9fr 1.1fr; gap: 32px; align-items: center; padding: 26px 0 40px; }
@@ -135,10 +127,6 @@ a.hm-note:hover { text-decoration: underline; text-underline-offset: 4px; }
   .hm-char-img { height: 240px; }
   .hm-merch { grid-template-columns: 1fr; }
   .hm-merch-art { aspect-ratio: 4/3; }
-  .hm-nav { position: fixed; inset: 78px 0 auto 0; flex-direction: column; align-items: stretch; gap: 0; background: #fcf8f1; border-bottom: 1px solid var(--line); padding: 10px 24px 18px; transform: translateY(-120%); opacity: 0; transition: transform .25s, opacity .25s; }
-  .hm-nav.open { transform: none; opacity: 1; }
-  .hm-nav a { padding: 12px 0; border-bottom: 1px dashed var(--line); }
-  .hm-menu { display: inline-flex; }
 }
 @media (max-width: 640px) {
   .hm-events { grid-template-columns: 1fr; }

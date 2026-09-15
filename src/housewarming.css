@@ -1,6 +1,5 @@
 /* Full-viewport opening scene; following sections retain their reading width. */
 .hm.hm-party-shell { max-width: none; padding: 0 0 22px; --party-nav: 78px; }
-.hm-party-shell > .hm-header { margin: 0; padding-inline: clamp(22px, 4vw, 64px); height: var(--party-nav); }
 .hm-party-shell .hm-section, .hm-party-shell > .hm-footer { width: min(1336px, calc(100% - 104px)); margin-inline: auto; }
 .party-hero { position: relative; isolation: isolate; min-height: 540px; height: calc(100svh - var(--party-nav)); width: 100%; overflow: hidden; display: flex; align-items: center; background: #ecd6bc; }
 .party-scene { position: absolute; inset: 0; z-index: -3; }

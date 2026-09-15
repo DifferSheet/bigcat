@@ -2,7 +2,8 @@ import React from 'react';
 import Home from '@/views/Home.jsx';
 import { fetchJSON, meta, jsonLd, eventSchema } from '@/lib/seo.js';
 
-export const revalidate = 60;
+// render ทุก request (ไม่ prerender ตอน build บน runner ที่ยิง API ไม่ถึง — ไม่งั้นหลัง deploy จะได้หน้าว่างจน ISR รอบถัดไป)
+export const dynamic = 'force-dynamic';
 export const metadata = meta({
   title: 'BIGCAT — Big cats. Lighter days.', absoluteTitle: true,
   description: 'แก๊งแมวตัวโต โนบิ บูตะ ชิบะ — ร้องสด ทำบุญ และเจอกันได้จริงทุกเสาร์ ดูตารางงาน ลงทะเบียนงานฟรี และช้อปของสะสม BIGCAT',

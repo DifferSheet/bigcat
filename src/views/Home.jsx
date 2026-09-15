@@ -4,7 +4,7 @@ import { Link, useNavigate } from '../lib/nav.jsx';
 import { Icon, Flower, Modal, Logo, Tagged } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { cart } from '../lib/cart.js';
-import { UserNav, SiteFooter } from '../components/EventShell.jsx';
+import { SiteHeader, SiteFooter } from '../components/EventShell.jsx';
 import { SOCIALS, SocialRow } from '../components/Social.jsx';
 import { eventDate } from '../lib/format.js';
 import '@/home.css';
@@ -77,7 +77,6 @@ function SectionHead({ label, note, to }) {
 
 export default function Home({ initialEvents = [], initialProducts = [] }) {
   const navigate = useNavigate();
-  const [menu, setMenu] = useState(false);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState('');
   const [albumIndex, setAlbumIndex] = useState(0);
@@ -92,23 +91,12 @@ export default function Home({ initialEvents = [], initialProducts = [] }) {
     api('/shop/products').then(list => { setProducts(list.filter(p => p.featured).concat(list.filter(p => !p.featured)).slice(0, 4)); cart.sync(list); }).catch(() => {});
   }, []);
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(''), 2500); return () => clearTimeout(t); } }, [toast]);
-  useEffect(() => { if (!menu) return; const close = e => { if (e.key === 'Escape') setMenu(false); }; addEventListener('keydown', close); return () => removeEventListener('keydown', close); }, [menu]);
   const closeModal = () => setModal(null);
   const addToCart = (p) => { if (p.variants?.length) return navigate(`/shop/${p.slug}`); setToast(cart.add(p, null, 1) ? `เพิ่ม ${p.name} ลงตะกร้าแล้ว` : 'สินค้าหมดแล้ว'); };
 
   return <div className="hm hm-party-shell">
     <a className="skip-link" href="#main">ข้ามไปเนื้อหา</a>
-    <header className="hm-header">
-      <Link to="/" className="hm-logo" aria-label="BIGCAT หน้าแรก"><Logo /></Link>
-      <nav className={`hm-nav ${menu ? 'open' : ''}`} id="main-nav" aria-label="เมนูหลัก">
-        {navItems.map(([label, href]) => href.startsWith('#') ? <a key={href} href={href} onClick={() => setMenu(false)}>{label}</a> : <Link key={href} to={href} onClick={() => setMenu(false)}>{label}</Link>)}
-        <Link to="/shop" className="hm-nav-shop" onClick={() => setMenu(false)}>SHOP</Link>
-      </nav>
-      <div className="hm-nav-actions">
-        <UserNav iconSize={22} />
-        <button className="icon-button hm-menu" aria-label={menu ? 'ปิดเมนู' : 'เปิดเมนู'} aria-expanded={menu} aria-controls="main-nav" onClick={() => setMenu(!menu)}><Icon name={menu ? 'close' : 'menu'} /></button>
-      </div>
-    </header>
+    <SiteHeader links={navItems} />
 
     <main id="main">
       {/* ---------- HERO ---------- */}

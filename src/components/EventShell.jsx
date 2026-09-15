@@ -21,20 +21,21 @@ export function UserNav({ iconSize = 23 }) {
   </>;
 }
 
-export function SiteHeader({ live }) {
-  return <header className="header">
-    <div className="nav-shell">
-      <Link to="/" className="logo" aria-label="BIGCAT หน้าแรก"><Logo /></Link>
-      <nav className="nav-links" aria-label="เมนู">
-        <Link to="/">หน้าแรก</Link>
-        <Link to="/events">ตารางงาน</Link>
-        <Link to="/shop" className="shop-nav">SHOP <span>↗</span></Link>
-        <Link to="/ticket/lookup">บัตรของฉัน</Link>
-      </nav>
-      <div className="nav-actions">
-        {live != null && <span className={`live-dot ${live ? 'on' : ''}`} title={live ? 'เชื่อมต่อ realtime แล้ว' : 'กำลังเชื่อมต่อ…'}><span />{live ? 'LIVE' : 'OFFLINE'}</span>}
-        <UserNav />
-      </div>
+// แถบบน — โครงเดียวกันทุกหน้า (หน้าแรกส่ง links ของตัวเองมา) · มือถือมีปุ่มเมนู ≡ เปิดรายการลง
+const DEFAULT_NAV = [['หน้าแรก', '/'], ['ตารางงาน', '/events'], ['บัตรของฉัน', '/ticket/lookup']];
+export function SiteHeader({ live, links = DEFAULT_NAV, className = '' }) {
+  const [menu, setMenu] = useState(false);
+  useEffect(() => { if (!menu) return; const close = e => { if (e.key === 'Escape') setMenu(false); }; addEventListener('keydown', close); return () => removeEventListener('keydown', close); }, [menu]);
+  return <header className={`hm-header ${className}`}>
+    <Link to="/" className="hm-logo" aria-label="BIGCAT หน้าแรก"><Logo /></Link>
+    <nav className={`hm-nav ${menu ? 'open' : ''}`} id="main-nav" aria-label="เมนูหลัก">
+      {links.map(([label, href]) => href.startsWith('#') ? <a key={href} href={href} onClick={() => setMenu(false)}>{label}</a> : <Link key={href} to={href} onClick={() => setMenu(false)}>{label}</Link>)}
+      <Link to="/shop" className="hm-nav-shop" onClick={() => setMenu(false)}>SHOP</Link>
+    </nav>
+    <div className="hm-nav-actions">
+      {live != null && <span className={`live-dot ${live ? 'on' : ''}`} title={live ? 'เชื่อมต่อ realtime แล้ว' : 'กำลังเชื่อมต่อ…'}><span />{live ? 'LIVE' : 'OFFLINE'}</span>}
+      <UserNav iconSize={22} />
+      <button className="icon-button hm-menu" aria-label={menu ? 'ปิดเมนู' : 'เปิดเมนู'} aria-expanded={menu} aria-controls="main-nav" onClick={() => setMenu(!menu)}><Icon name={menu ? 'close' : 'menu'} /></button>
     </div>
   </header>;
 }

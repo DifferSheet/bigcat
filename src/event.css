@@ -355,7 +355,14 @@
 .line-box .button { margin: 0; }
 .line-box.linked { background: var(--sand-2); border-color: var(--line); }
 .line-logo { font-family: var(--font-display); font-weight: 700; background: var(--line-green); color: #fff; padding: 6px 10px; border-radius: 8px; font-size: 12px; letter-spacing: .08em; }
+/* ฟอนต์ใบอนุโมทนา — ประกาศใน CSS ด้วย เพราะ Safari/LINE บน iOS โหลดผ่าน FontFace API แล้ว canvas ยังไม่เห็นฟอนต์ (ตัวหนังสือกลายเป็นฟอนต์สำรอง) */
+@font-face { font-family: 'BigcatCertificateChonburi'; src: url('/fonts/certificate/Chonburi-Regular.ttf') format('truetype'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'BigcatCertificateSerif'; src: url('/fonts/certificate/NotoSerifThai.ttf') format('truetype'); font-weight: 100 900; font-display: block; }
+.cert-font-warm { position: absolute; left: -9999px; top: 0; visibility: hidden; font-size: 40px; }
+.cert-font-warm b { font-family: 'BigcatCertificateChonburi'; } .cert-font-warm i { font-family: 'BigcatCertificateSerif'; font-style: normal; }
 .cert-preview { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.cert-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.cert-hint { font-size: 13px; color: var(--muted-2); line-height: 1.6; max-width: 360px; }
 .cert-preview img { width: 240px; border-radius: 14px; border: 1px solid var(--line); box-shadow: 0 16px 40px -20px #0006; }
 
 /* admin */

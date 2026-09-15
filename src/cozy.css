@@ -1,8 +1,6 @@
 /* Cozy Collectible art direction. Scoped to Home; commerce and event flows
    retain their existing components and layouts. */
 .hm { --brown: #594538; --pink: #cd7f8a; --hand: #9c7763; --pink-card: #f5dce0; --yellow-card: #f8e8c8; --sage-card: #e2e9d6; --pink-band: #dca8ab; padding-bottom: 22px; }
-.hm-header { border-bottom: 1px solid #e8e1d670; }
-.hm-nav { font-family: var(--font-body); font-size: 14px; }
 .hm-hero { grid-template-columns: .8fr 1.2fr; gap: 10px; padding: 34px 0 24px; min-height: 480px; }
 .hm-hero-copy { gap: 21px; padding: 25px 0; }
 .hm-hero-copy > .hm-label { font-size: 9px; letter-spacing: .19em; }
@@ -106,13 +104,9 @@
   .hm-merch-art { aspect-ratio: auto; }
   .hm-merch-copy { padding: 28px 0 28px 25px; }
   .hm-merch h2 { font-size: 46px; }
-  .hm-nav { visibility: hidden; pointer-events: none; }
-  .hm-nav.open { visibility: visible; pointer-events: auto; }
 }
 @media (max-width: 600px) {
   .hm { padding-inline: 22px; }
-  .hm-header { margin-inline: -22px; padding-inline: 22px; height: 72px; }
-  .hm-nav { top: 72px; }
   .hm-hero { grid-template-columns: 1fr; gap: 24px; padding: 29px 0 17px; }
   .hm-hero-copy { align-items: center; text-align: center; padding: 0; gap: 16px; }
   .hm-hero-copy > .hm-label { font-size: 8px; }

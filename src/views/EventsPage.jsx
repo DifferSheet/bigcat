@@ -22,7 +22,8 @@ export default function EventsPage({ notFound = false, initialEvents = null }) {
   const [events, setEvents] = useState(initialEvents);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
-  useEffect(() => { if (!initialEvents) api('/events').then(setEvents).catch(e => setError(e.message)); }, [initialEvents]);
+  // รีเฟรชฝั่ง client เสมอ — กัน HTML ที่ server ส่งมาว่าง (API ล่ม/สร้างตอน build) แล้วค้างว่าง
+  useEffect(() => { api('/events').then(setEvents).catch(e => { if (!initialEvents?.length) setError(e.message); }); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const list = (events || []).filter(ev => filter === 'all' || ev.type === filter);
   const upcoming = list.filter(ev => ev.status !== 'ended');
   const past = list.filter(ev => ev.status === 'ended');

@@ -59,7 +59,23 @@ function CertificateButton({ item }) {
   const [url, setUrl] = useState(null);
   const [error, setError] = useState('');
   const make = async () => { setBusy(true); setError(''); try { setUrl(await drawCertificate(item)); } catch (e) { setError(e.message || 'สร้างภาพไม่สำเร็จ กรุณาลองอีกครั้ง'); } finally { setBusy(false); } };
-  if (url) return <div className="cert-preview"><img src={url} alt="ใบอนุโมทนาบัตร" /><a className="button dark" href={url} download={`anumodana-${item.code}.png`}>บันทึกภาพ <Icon name="arrow" /></a></div>;
+  const inLine = typeof navigator !== 'undefined' && /\bLine\//i.test(navigator.userAgent);
+  const fileName = `anumodana-${item.code}.png`;
+  // บันทึก: ใช้ Web Share (iOS/Android บันทึกลงรูปภาพได้) → ถ้าไม่มีให้ดาวน์โหลดตรง · ใน LINE ที่ทั้งสองอย่างใช้ไม่ได้ ให้เปิดเบราว์เซอร์นอก
+  const save = async () => {
+    try {
+      const blob = await (await fetch(url)).blob();
+      const file = new File([blob], fileName, { type: 'image/png' });
+      if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], title: 'ใบอนุโมทนาบัตร BIGCAT' }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+    } catch { /* ตกไปใช้วิธีดาวน์โหลด */ }
+    if (inLine) { location.href = `${location.pathname}?openExternalBrowser=1`; return; }
+    const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); a.remove();
+  };
+  if (url) return <div className="cert-preview">
+    <img src={url} alt="ใบอนุโมทนาบัตร" />
+    <div className="cert-actions"><button type="button" className="button dark" onClick={save}>บันทึกภาพ <Icon name="arrow" /></button>{inLine && <a className="button ghost small" href={`${location.pathname}?openExternalBrowser=1`}>เปิดใน Safari / Chrome</a>}</div>
+    <p className="cert-hint">{inLine ? 'ใน LINE บันทึกไม่ได้โดยตรง — กดค้างที่รูปแล้วเลือก «บันทึกรูปภาพ» หรือกด «เปิดใน Safari / Chrome» แล้วบันทึกจากที่นั่น' : 'ถ้าปุ่มไม่ทำงาน กดค้างที่รูปแล้วเลือก «บันทึกรูปภาพ» ได้เลย'}</p>
+  </div>;
   return <><button className="button dark" onClick={make} disabled={busy}>{busy ? 'กำลังสร้างภาพ…' : 'สร้างใบอนุโมทนาเป็นภาพ (IG Story)'} <Icon name="heart" /></button>{error && <p className="notice error" role="alert">{error}</p>}</>;
 }
 

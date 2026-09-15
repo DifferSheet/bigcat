@@ -4,11 +4,21 @@ const HEAD = 'BigcatCertificateChonburi';
 const BODY = 'BigcatCertificateSerif';
 let fontsReady;
 
+// โหลดฟอนต์ให้ canvas เห็นแน่ ๆ ทุกเบราว์เซอร์: (1) FontFace API (2) อุ่นฟอนต์ใน DOM ผ่าน @font-face ใน CSS (3) รอ document.fonts.load ของทั้งสอง family
 async function loadFonts() {
-  if (!fontsReady) fontsReady = Promise.all([
-    new FontFace(HEAD, 'url(/fonts/certificate/Chonburi-Regular.ttf)', { weight: '400' }).load(),
-    new FontFace(BODY, 'url(/fonts/certificate/NotoSerifThai.ttf)', { weight: '100 900' }).load(),
-  ]).then(fonts => { fonts.forEach(font => document.fonts.add(font)); }).catch(error => { fontsReady = null; throw error; });
+  if (!fontsReady) fontsReady = (async () => {
+    const faces = [
+      new FontFace(HEAD, 'url(/fonts/certificate/Chonburi-Regular.ttf)', { weight: '400' }),
+      new FontFace(BODY, 'url(/fonts/certificate/NotoSerifThai.ttf)', { weight: '100 900' }),
+    ];
+    for (const f of faces) { try { await f.load(); document.fonts.add(f); } catch { /* ใช้ @font-face จาก CSS แทน */ } }
+    // อุ่นฟอนต์: ให้เบราว์เซอร์ render ตัวอักษรไทยด้วยฟอนต์นี้ใน DOM ก่อน (Safari/iOS canvas ต้องการ)
+    let warm = document.querySelector('.cert-font-warm');
+    if (!warm) { warm = document.createElement('div'); warm.className = 'cert-font-warm'; warm.setAttribute('aria-hidden', 'true'); warm.innerHTML = '<b>ใบอนุโมทนาบัตร จำนวน 1234567890 บาท</b><i>ขอมอบให้ ร่วมบุญ</i>'; document.body.appendChild(warm); }
+    await Promise.all([document.fonts.load(`400 40px ${HEAD}`, 'ใบอนุโมทนา'), document.fonts.load(`400 40px ${BODY}`, 'ขอมอบให้')]);
+    await document.fonts.ready;
+    if (!document.fonts.check(`400 40px ${HEAD}`)) throw new Error('โหลดฟอนต์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+  })().catch(error => { fontsReady = null; throw error; });
   return fontsReady;
 }
 
