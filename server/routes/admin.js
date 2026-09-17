@@ -11,6 +11,8 @@ const r = Router();
 
 // เข้าสู่ระบบด้วยชื่อผู้ใช้/รหัสผ่าน (cookie) — ดู server/adminAuth.js · x-admin-key ยังใช้ได้กับสคริปต์
 import { syncStamps } from '../passport.js';
+import { importPhoto, deletePhoto, kick as kickAlbumScan, scanPhoto } from '../album.js';
+import { facesEnabled, faceProvider } from '../faces.js';
 import { requireAdmin, login, logout, me as adminMe, changePassword } from '../adminAuth.js';
 export { requireAdmin };
 r.post('/login', login);
@@ -455,6 +457,37 @@ r.get('/events/:slug/gate', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
   const win = checkinWindow(ev);
   res.json({ token: gateToken(ev.slug), ttl: GATE_TTL, expiresIn: gateExpiresIn(), mode: ev.config.checkinMode || 'self', window: win, title: ev.title, registrations: await registrationSummary(ev.id) });
+}));
+
+/* ---------- อัลบั้มรูปงาน ---------- */
+// อัปโหลดทีละหลายไฟล์ (ฟอร์มส่งเป็นชุด ชุดละ ≤ 40) → เก็บ 3 ขนาด → เข้าคิวสแกนหน้าอัตโนมัติ
+const albumUpload = uploadMedia.array('photos', 40);
+r.post('/events/:slug/album', albumUpload, wrap(async (req, res) => {
+  const ev = await getEvent(req.params.slug);
+  const ids = [];
+  for (const f of req.files || []) { if (!f.mimetype.startsWith('image/')) continue; ids.push(await importPhoto(ev.id, f.path, { remove: true })); }
+  res.json({ ok: true, added: ids.length });
+}));
+r.get('/events/:slug/album', wrap(async (req, res) => {
+  const ev = await getEvent(req.params.slug);
+  const photos = await q(`SELECT p.*, (SELECT COUNT(*) FROM photo_faces f WHERE f.photo_id=p.id AND f.user_id IS NOT NULL AND f.status<>'rejected') AS matched,
+      (SELECT GROUP_CONCAT(u.display_name SEPARATOR ' · ') FROM photo_faces f JOIN users u ON u.id=f.user_id WHERE f.photo_id=p.id AND f.status<>'rejected') AS matched_names
+    FROM event_photos p WHERE p.event_id=? ORDER BY p.sort_order, p.id`, [ev.id]);
+  const removals = await q('SELECT r.id, r.photo_id, r.reason, r.status, r.created_at, u.display_name FROM photo_removals r JOIN users u ON u.id=r.user_id JOIN event_photos p ON p.id=r.photo_id WHERE p.event_id=? ORDER BY r.status, r.created_at DESC', [ev.id]);
+  const faceUsers = (await one('SELECT COUNT(DISTINCT user_id) AS n FROM user_faces')).n;
+  res.json({ photos, removals, faceUsers, facesEnabled, provider: faceProvider, pending: photos.filter(p => p.scan === 'pending').length });
+}));
+r.post('/events/:slug/album/:id/featured', wrap(async (req, res) => { await q('UPDATE event_photos SET featured=1-featured WHERE id=?', [Number(req.params.id)]); res.json({ ok: true }); }));
+r.post('/events/:slug/album/:id/rescan', wrap(async (req, res) => { await q("UPDATE event_photos SET scan='pending' WHERE id=?", [Number(req.params.id)]); kickAlbumScan(); res.json({ ok: true }); }));
+r.post('/events/:slug/album/rescan-all', wrap(async (req, res) => { const ev = await getEvent(req.params.slug); await q("UPDATE event_photos SET scan='pending' WHERE event_id=? AND scan IN ('failed','skipped','done')", [ev.id]); kickAlbumScan(); res.json({ ok: true }); }));
+r.delete('/events/:slug/album/:id', wrap(async (req, res) => { await deletePhoto(Number(req.params.id)); res.json({ ok: true }); }));
+r.post('/album/removals/:id/:action', wrap(async (req, res) => {
+  if (!['done', 'declined'].includes(req.params.action)) throw new HttpError(400, 'คำสั่งไม่ถูกต้อง');
+  const rm = await one('SELECT * FROM photo_removals WHERE id=?', [Number(req.params.id)]);
+  if (!rm) throw new HttpError(404, 'ไม่พบคำขอ');
+  if (req.params.action === 'done') await deletePhoto(rm.photo_id);   // ลบรูป → คำขอหายตาม (cascade)
+  else await q("UPDATE photo_removals SET status='declined' WHERE id=?", [rm.id]);
+  res.json({ ok: true });
 }));
 
 // ลบการลงทะเบียน (ซ้ำ/ลงเล่น) — lucky_draws ลบตาม (FK cascade)

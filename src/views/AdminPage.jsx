@@ -80,6 +80,46 @@ function Members() {
   </div>;
 }
 
+// อัลบั้มรูปงาน — อัปโหลดทีเดียวหลายร้อยรูป (ส่งเป็นชุดละ 40) → server คัดรูปเดี่ยว/คู่แล้วจับคู่ใบหน้าหลังบ้าน · พรีวิว · ลบ · คำขอเอารูปออก
+function AlbumAdmin({ ev }) {
+  const [open, setOpen] = useState(false);
+  const [d, setD] = useState(null);
+  const [prog, setProg] = useState(null);   // { done, total }
+  const [msg, setMsg] = useState('');
+  const load = () => api(`/admin/events/${ev.slug}/album`, { admin: true }).then(setD).catch(e => setMsg(e.message));
+  useEffect(() => { if (open) load(); }, [open, ev.slug]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!open || !d?.pending) return; const t = setTimeout(load, 3000); return () => clearTimeout(t); }, [open, d]); // eslint-disable-line react-hooks/exhaustive-deps
+  const upload = async (files) => {
+    const list = Array.from(files || []).filter(f => f.type.startsWith('image/'));
+    if (!list.length) return;
+    setMsg(''); setProg({ done: 0, total: list.length });
+    try {
+      for (let i = 0; i < list.length; i += 40) {
+        const fd = new FormData(); list.slice(i, i + 40).forEach(f => fd.append('photos', f));
+        await api(`/admin/events/${ev.slug}/album`, { method: 'POST', body: fd, admin: true });
+        setProg({ done: Math.min(list.length, i + 40), total: list.length });
+      }
+    } catch (e) { setMsg(e.message); }
+    setProg(null); load();
+  };
+  const act = async (path, method = 'POST') => { setMsg(''); try { await api(path, { method, admin: true }); load(); } catch (e) { setMsg(e.message); } };
+  const st = d ? { total: d.photos.length, done: d.photos.filter(p => p.scan === 'done').length, skipped: d.photos.filter(p => p.scan === 'skipped').length, pending: d.pending, failed: d.photos.filter(p => p.scan === 'failed').length, matched: d.photos.filter(p => p.matched > 0).length } : null;
+  return <details className="adv album-admin" open={open} onToggle={e => setOpen(e.target.open)}><summary>อัลบั้มรูปงาน <small>{st ? `(${st.total} รูป · จับคู่ใบหน้าแล้ว ${st.matched}${st.pending ? ` · กำลังสแกน ${st.pending}` : ''})` : '(กดเพื่อจัดการ)'}</small></summary>
+    {msg && <Notice tone="error">{msg}</Notice>}
+    <label className={`album-drop ${prog ? 'busy' : ''}`}><input type="file" accept="image/*" multiple disabled={!!prog} onChange={e => { upload(e.target.files); e.target.value = ''; }} /><Icon name="upload" /><span>{prog ? `กำลังอัปโหลด ${prog.done}/${prog.total}…` : 'เลือกรูปทั้งหมดของงานทีเดียว (ลากมาวางได้) — ระบบย่อรูป คัดรูปเดี่ยว/คู่ และจับคู่ใบหน้าให้เอง'}</span></label>
+    {d && <>
+      <p className="checkin-stats"><span>ทั้งหมด <strong>{st.total}</strong></span><span>รูปเดี่ยว/คู่ (จับคู่ได้) <strong>{st.done}</strong></span><span>รูปหมู่/ไม่มีหน้า <strong>{st.skipped}</strong></span>{st.pending > 0 && <span>กำลังสแกน <strong>{st.pending}</strong></span>}{st.failed > 0 && <span className="danger">ล้มเหลว <strong>{st.failed}</strong></span>}<span>มีสมาชิกในรูป <strong>{st.matched}</strong></span><span>สมาชิกที่ลงทะเบียนใบหน้า <strong>{d.faceUsers}</strong></span><span className="muted">ตัวจับคู่: {d.facesEnabled ? d.provider : 'ปิด'}</span>{st.failed > 0 && <button type="button" className="link-button" onClick={() => act(`/admin/events/${ev.slug}/album/rescan-all`)}>สแกนใหม่ทั้งหมด</button>}</p>
+      {d.removals.filter(r => r.status === 'open').length > 0 && <div className="removal-list"><strong>คำขอเอารูปออก</strong>{d.removals.filter(r => r.status === 'open').map(r => { const p = d.photos.find(x => x.id === r.photo_id); return <div key={r.id} className="removal-row">{p && <img src={p.thumb} alt="" />}<span>{r.display_name}{r.reason ? ` — ${r.reason}` : ''} <small className="muted">{fmt(r.created_at)}</small></span><button className="button dark small" onClick={() => act(`/admin/album/removals/${r.id}/done`)}>ลบรูป</button><button className="link-button" onClick={() => act(`/admin/album/removals/${r.id}/declined`)}>ไม่ลบ</button></div>; })}</div>}
+      <div className="album-admin-grid">{d.photos.map(p => <figure key={p.id} className={`aa-tile ${p.scan}`} title={p.matched_names || ''}>
+        <img src={p.thumb} alt="" loading="lazy" />
+        <span className="aa-badges">{p.scan === 'pending' ? <b className="mini-tag">สแกน…</b> : p.scan === 'done' ? <b className="mini-tag ok">{p.faces === 1 ? 'เดี่ยว' : p.faces === 2 ? 'คู่' : `${p.faces} คน`}</b> : p.scan === 'failed' ? <b className="mini-tag dup">ล้มเหลว</b> : <b className="mini-tag via">{p.faces ? `หมู่ ${p.faces}` : 'ไม่มีหน้า'}</b>}{p.matched > 0 && <b className="mini-tag warn">👤 {p.matched}</b>}{!!p.featured && <b className="mini-tag ok">พรีวิว</b>}</span>
+        <span className="aa-actions"><button type="button" className="link-button" onClick={() => act(`/admin/events/${ev.slug}/album/${p.id}/featured`)}>{p.featured ? 'เอาออกจากพรีวิว' : 'ใช้เป็นพรีวิว'}</button><button type="button" className="link-button" onClick={() => act(`/admin/events/${ev.slug}/album/${p.id}/rescan`)}>สแกนใหม่</button><button type="button" className="link-button danger" onClick={() => act(`/admin/events/${ev.slug}/album/${p.id}`, 'DELETE')}>ลบ</button></span>
+      </figure>)}</div>
+      <p className="small-note">พรีวิว = รูปที่คนไม่ได้เช็คอินเห็นได้ 3 รูป (ไม่ตั้งใช้ 3 รูปแรก) · รูปหมู่ (4 คนขึ้นไป) และรูปไม่มีหน้าจะไม่ถูกส่งจับคู่ใบหน้า</p>
+    </>}
+  </details>;
+}
+
 // Passport: เล่ม (season) — งานที่วันจัดอยู่ในช่วง จะถูกจัดเข้าเล่มนั้นในหน้า /passport · ไม่ตั้ง = แยกเล่มตามปี พ.ศ.
 function Seasons() {
   const [list, setList] = useState(null);
@@ -210,6 +250,7 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
     </div>
     {msg && <Notice tone={msgTone === 'ok' ? 'info' : 'error'}>{msg}</Notice>}
     {ev.type === 'merit' && <MeritTools ev={ev} onMsg={setMsg} />}
+    <AlbumAdmin ev={ev} />
     {rows?.attend && <div className="view-switch"><button className={view === 'donations' ? 'active' : ''} onClick={() => setView('donations')}>ยอดร่วมบุญ ({rows.donations.length})</button><button className={view === 'registrations' ? 'active' : ''} onClick={() => setView('registrations')}>ไปวัดด้วย ({rows.attend.length})</button></div>}
     {rows?.donations && view === 'donations' && <input className="admin-search" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="ค้นหารหัส / ชื่อผู้ร่วมบุญ / สมาชิก" style={{ marginBottom: 10 }} />}
     <div className="tabs-row"><div className="filter-tabs"><button className={tab === 'pending' ? 'active' : ''} onClick={() => setTab('pending')}>{view === 'registrations' && rows?.attend ? 'ยังไม่เช็คอิน' : 'รอตรวจ'}</button><button className={tab === 'all' ? 'active' : ''} onClick={() => setTab('all')}>ทั้งหมด</button></div>

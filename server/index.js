@@ -11,6 +11,8 @@ import publicRoutes from './routes/public.js';
 import adminRoutes from './routes/admin.js';
 import shopRoutes from './routes/shop.js';
 import passportRoutes from './routes/passport.js';
+import albumRoutes from './routes/album.js';
+import { kick as kickAlbumScan } from './album.js';
 import { backfillIfEmpty } from './passport.js';
 import shopAdminRoutes from './routes/shopAdmin.js';
 import { verifySignature, handleWebhookEvent, lineEnabled } from './line.js';
@@ -44,6 +46,7 @@ app.use('/api/me', meRoutes);
 app.use('/api', publicRoutes);
 app.use('/api', shopRoutes);
 app.use('/api', passportRoutes);
+app.use('/api', albumRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/shop', shopAdminRoutes);
 
@@ -72,4 +75,5 @@ setInterval(() => releaseExpiredHolds().catch(console.error), 15000);
 await migrate();
 await (await import('./adminAuth.js')).ensureFirstAdmin();
 backfillIfEmpty().catch(e => console.error('passport backfill:', e.message));
+kickAlbumScan();   // สแกนรูปที่ค้างจากรอบก่อน (ถ้ามี)
 server.listen(PORT, () => console.log(`✓ BIGCAT API + Socket.IO on http://localhost:${PORT} · slip: ${slipEnabled ? process.env.SLIP_PROVIDER : 'off'} · LINE: ${lineEnabled ? 'on' : 'off'} · login: ${Object.entries(authProviders).filter(([, v]) => v).map(([k]) => k).join('+') || 'off'}`));

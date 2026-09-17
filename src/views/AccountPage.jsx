@@ -4,6 +4,7 @@ import { Link } from '../lib/nav.jsx';
 import { SiteHeader, SiteFooter, Notice, Section } from '../components/EventShell.jsx';
 import { Icon, PageLoader } from '../components/ui.jsx';
 import { PhoneInput, AddressForm } from '../components/forms.jsx';
+import FaceSection from '../components/FaceSection.jsx';
 import { api } from '../lib/api.js';
 import { useUser, refreshUser, logout } from '../lib/auth.js';
 import { baht, parseDate } from '../lib/format.js';
@@ -59,6 +60,7 @@ export default function AccountPage() {
           </form>
         </Section>
 
+        <FaceSection />
         <Section eyebrow="HISTORY" title="รายการของฉัน">
           {!act ? <PageLoader /> : empty ? <Notice tone="muted">ยังไม่มีรายการที่ทำตอนล็อกอินอยู่ — รายการก่อนหน้านี้ค้นด้วยรหัสได้ที่ <Link to="/ticket/lookup">บัตรของฉัน</Link></Notice> : <>
             {act.orders?.length > 0 && <Group title="คำสั่งซื้อ">{act.orders.map(o => <Row key={o.code} to={`/order/${o.code}`} image={o.image || '/images/bigcat-merch.jpg'} main={<>#{o.code} · {baht(o.total)}</>} sub={`${fmt(o.created_at)} · ${o.itemCount} รายการ · ${o.delivery === 'ship' ? 'จัดส่ง' : 'รับหน้างาน'}`} status={o.status} />)}</Group>}

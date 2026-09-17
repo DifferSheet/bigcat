@@ -14,6 +14,10 @@
     "db:seed": "node server/seed.js"
   },
   "dependencies": {
+    "@aws-sdk/client-rekognition": "^3.1134.0",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-backend-wasm": "^4.22.0",
+    "@vladmandic/face-api": "^1.7.15",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

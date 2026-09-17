@@ -4,6 +4,7 @@ import { EventStamp } from './Stamp.jsx';
 import { eventDate } from '../lib/format.js';
 import { eventMemory } from '../lib/passport-memory.js';
 import { drawEventMemoryImage } from '../lib/passport-image.js';
+import PortraitPicker from './PortraitPicker.jsx';
 
 export function MemoryPhoto({ src, caption, kind }) {
   const [failed, setFailed] = useState(false);
@@ -18,6 +19,7 @@ export default function PassportMemory({ ev, side, onOpen }) {
   const [image, setImage] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [pick, setPick] = useState(false);
   if (!ev) return <div className="pc-page-note"><span>♡</span><p>ยังไม่มีความทรงจำในตัวกรองนี้</p></div>;
   const m = eventMemory(ev);
   const state = ev.earned ? 'earned' : ev.phase === 'upcoming' ? 'locked' : 'missed';
@@ -44,7 +46,13 @@ export default function PassportMemory({ ev, side, onOpen }) {
       {m.portrait && <MemoryPhoto src={m.portrait} caption="เธอกับเรา" kind="portrait" />}
       {!m.group && !m.portrait && <div className="pm-photo-pending"><span aria-hidden="true">♡</span><strong>{ev.earned ? 'รูปวันดี ๆ กำลังเดินทางมา' : 'หน้าต่อไปของความทรงจำ'}</strong><p>{ev.earned ? 'เมื่อทีมงานเตรียมภาพหลังงานเรียบร้อย เราจะเก็บไว้ให้ตรงนี้' : 'ภาพหลังงานสำหรับสมาชิกที่ได้รับแสตมป์นี้'}</p></div>}
     </div>
-    {(m.group || m.portrait) && <><p className="pm-caption">{m.caption}</p><button type="button" className="pm-detail-link" onClick={() => setShare(!share)} aria-expanded={share}>เตรียมภาพสำหรับแชร์ ↗</button></>}
+    {pick && <PortraitPicker ev={ev} onClose={() => setPick(false)} onChanged={() => dispatchEvent(new CustomEvent('bigcat:passport-refresh'))} />}
+    {(m.group || m.portrait) && <p className="pm-caption">{m.caption}</p>}
+    {ev.earned && ev.phase === 'past' && <div className="pm-portrait-tools">
+      <button type="button" className="pm-detail-link" onClick={() => setPick(true)}>{m.portrait ? 'เปลี่ยนรูปคู่' : 'เลือกรูปคู่ของฉัน'} ↗</button>
+      {(m.group || m.portrait) && <button type="button" className="pm-detail-link" onClick={() => setShare(!share)} aria-expanded={share}>เตรียมภาพสำหรับแชร์ ↗</button>}
+      {m.portrait && ev.memory?.portraitSource === 'auto' && <small className="muted">รูปคู่นี้ระบบเลือกจากอัลบั้มให้{ev.memory.myPhotos > 1 ? ` · มีรูปคุณอีก ${ev.memory.myPhotos - 1} รูป` : ''}</small>}
+    </div>}
     {share && <div className="pm-share-panel"><strong>เลือกสิ่งที่อยากแบ่งปัน</strong>{m.portrait && <label><input type="checkbox" disabled={busy} checked={includePortrait} onChange={e => { setIncludePortrait(e.target.checked); setImage(null); }} /> รวมรูปคู่ของฉันในภาพแชร์</label>}<small>รูปคู่จะไม่ถูกใส่ลงภาพแชร์จนกว่าคุณจะเลือก</small><button className="button small ghost" type="button" disabled={busy} onClick={makeImage}>{busy ? 'กำลังเตรียมภาพ…' : 'สร้างภาพแชร์'}</button>{image && <a href={image} download={`bigcat-memory-${ev.slug}.png`}>ดาวน์โหลดภาพ PNG ↓</a>}{error && <p role="alert">{error}</p>}</div>}
   </div>;
 }

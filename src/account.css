@@ -93,3 +93,23 @@ button.stamp-slot:hover { transform: translateY(-2px); box-shadow: var(--shadow-
   .stamp-grid { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 10px; }
   .passport-head h1 { font-size: 24px; }
 }
+
+/* ---------- รูปของฉันในอัลบั้มงาน (ใบหน้า opt-in) ---------- */
+.face-section { grid-column: 1 / -1; }
+.face-box { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border-radius: var(--r-md); background: #fff; border: 1px solid var(--line); }
+.face-copy p { margin: 0 0 6px; }
+.face-form { gap: 12px; }
+.face-form .check span { font-size: 14px; }
+.link-button.inline { display: inline; padding: 0; font-size: inherit; }
+.link-button.danger { color: var(--danger); }
+.pdpa-text { display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.7; max-height: 60dvh; overflow: auto; }
+.pdpa-text p { margin: 0; }
+.pm-portrait-tools { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 4px 14px; flex-wrap: wrap; margin-top: 4px; }
+.pm-portrait-tools small { width: 100%; text-align: center; font-size: 10px; }
+.pp-body { display: flex; flex-direction: column; gap: 18px; }
+.pp-body section { display: flex; flex-direction: column; gap: 8px; }
+.pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; max-height: 40dvh; overflow: auto; }
+.pp-tile { display: flex; flex-direction: column; gap: 3px; padding: 0; border: 3px solid transparent; border-radius: 12px; background: none; cursor: pointer; overflow: hidden; }
+.pp-tile img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 9px; display: block; }
+.pp-tile small { font-size: 11px; color: var(--muted); }
+.pp-tile.active { border-color: var(--pink); }

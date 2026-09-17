@@ -5,6 +5,8 @@ import { passportPrivateRoot } from '../upload.js';
 import { wrap, HttpError } from '../lib.js';
 import { requireUser, parseCookies, setCookie } from '../auth.js';
 import { passportOf, attachInvite, INVITE_COOKIE_NAME, syncStamps } from '../passport.js';
+import { photosOfUser } from '../album.js';
+import { uploadPassportPortrait } from '../upload.js';
 
 const r = Router();
 
@@ -14,6 +16,35 @@ r.get('/passport/:slug/portrait', requireUser, wrap(async (req, res) => {
   if (!file || !/^[\w-]+\.(jpg|png|webp)$/.test(file)) throw new HttpError(404, 'ยังไม่มีรูปคู่');
   res.set('Cache-Control', 'private, no-store');
   res.sendFile(file, { root: passportPrivateRoot });
+}));
+
+// รูปคู่ใน passport — เลือกจากรูปที่มีฉันในอัลบั้ม / อัปโหลดเอง / กลับไปใช้อัตโนมัติ (เก็บใน stamps.meta ของงานนั้น)
+const myStamp = async (userId, slug) => {
+  const st = await one(`SELECT s.id, s.meta, e.id AS event_id FROM stamps s JOIN events e ON e.id=s.event_id WHERE s.user_id=? AND e.slug=? AND s.kind IN ('checkin','merit') LIMIT 1`, [userId, slug]);
+  if (!st) throw new HttpError(404, 'คุณยังไม่มีแสตมป์ของงานนี้');
+  return st;
+};
+r.get('/passport/:slug/photos', requireUser, wrap(async (req, res) => {
+  const st = await myStamp(req.user.id, req.params.slug);
+  const photos = await photosOfUser(req.user.id, st.event_id);
+  res.set('Cache-Control', 'private, no-store').json({ photos: photos.map(p => ({ id: p.id, thumb: p.thumb, view: p.view, faces: p.faces, status: p.status })), current: parseJSON(st.meta, {}) });
+}));
+r.put('/passport/:slug/portrait', requireUser, uploadPassportPortrait.single('portrait'), wrap(async (req, res) => {
+  const st = await myStamp(req.user.id, req.params.slug);
+  if (req.file) {   // อัปโหลดเอง → ไฟล์ส่วนตัว (เหมือนแอดมินอัปให้)
+    await q("UPDATE stamps SET meta=JSON_REMOVE(JSON_SET(COALESCE(meta, JSON_OBJECT()), '$.passportPortrait', ?), '$.portraitPhoto') WHERE id=?", [req.file.filename, st.id]);
+    return res.json({ ok: true, source: 'upload' });
+  }
+  const photoId = Number(req.body?.photoId);
+  if (photoId) {    // เลือกจากอัลบั้ม — ต้องเป็นรูปที่จับคู่กับตัวเอง
+    const p = (await photosOfUser(req.user.id, st.event_id)).find(x => x.id === photoId);
+    if (!p) throw new HttpError(400, 'เลือกได้เฉพาะรูปที่มีคุณในอัลบั้มงานนี้');
+    await q("UPDATE stamps SET meta=JSON_REMOVE(JSON_SET(COALESCE(meta, JSON_OBJECT()), '$.portraitPhoto', JSON_OBJECT('id', ?, 'view', ?)), '$.passportPortrait') WHERE id=?", [p.id, p.view, st.id]);
+    return res.json({ ok: true, source: 'chosen' });
+  }
+  // ไม่ส่งอะไร = กลับไปใช้อัตโนมัติ
+  await q("UPDATE stamps SET meta=JSON_REMOVE(COALESCE(meta, JSON_OBJECT()), '$.portraitPhoto', '$.passportPortrait') WHERE id=?", [st.id]);
+  res.json({ ok: true, source: 'auto' });
 }));
 
 r.get('/passport', requireUser, wrap(async (req, res) => {

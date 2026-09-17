@@ -114,14 +114,22 @@ export async function passportOf(user) {
   const byEvent = new Map();
   for (const s of stamps) { if (!byEvent.has(s.event_id)) byEvent.set(s.event_id, []); byEvent.get(s.event_id).push({ kind: s.kind, meta: parseJSON(s.meta, null), earned_at: s.earned_at }); }
   const now = Date.now();
-  const list = events.map(e => {
+  // รูปคู่อัตโนมัติจากอัลบั้ม: รูปที่ระบบจับคู่ว่าเป็นคนนี้ (ไม่ถูกปฏิเสธ) — รูปคู่ (2 หน้า) มาก่อน แล้วค่อยเดี่ยว · ต่องาน
+  const autoPortrait = new Map();
+  for (const r of await q(`SELECT p.event_id, p.view, p.id FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id WHERE f.user_id=? AND f.status<>'rejected' ORDER BY (p.faces=2) DESC, (f.status='confirmed') DESC, f.similarity DESC`, [user.id])) if (!autoPortrait.has(r.event_id)) autoPortrait.set(r.event_id, r);
+  const list = await Promise.all(events.map(async e => {
     const cfg = parseJSON(e.config, {});
     const mine = byEvent.get(e.id) || [];
     const earned = mine.find(s => s.kind === 'checkin' || s.kind === 'merit') || null;
     const start = dt(String(e.starts_at).replace(' ', 'T') + '+07:00').getTime();
     return {
       slug: e.slug, type: e.type, status: e.status, title: e.title, starts_at: e.starts_at, place: e.place, cover: e.cover, tone: e.tone,
-      memory: earned && (e.status === 'ended' || start < now - 6 * 3600e3) ? { ...(cfg.memory || {}), portraitImage: earned.meta?.passportPortrait ? `/api/passport/${encodeURIComponent(e.slug)}/portrait?v=${encodeURIComponent(earned.meta.passportPortrait)}` : null } : null,
+      // รูปคู่: (1) ไฟล์ส่วนตัวที่แอดมิน/สมาชิกอัปโหลด (2) รูปจากอัลบั้มที่สมาชิกเลือกเอง (3) อัตโนมัติจากการจับคู่ใบหน้า
+      memory: earned && (e.status === 'ended' || start < now - 6 * 3600e3) ? { ...(cfg.memory || {}),
+        portraitImage: earned.meta?.passportPortrait ? `/api/passport/${encodeURIComponent(e.slug)}/portrait?v=${encodeURIComponent(earned.meta.passportPortrait)}` : earned.meta?.portraitPhoto?.view || autoPortrait.get(e.id)?.view || null,
+        portraitSource: earned.meta?.passportPortrait ? 'upload' : earned.meta?.portraitPhoto ? 'chosen' : autoPortrait.has(e.id) ? 'auto' : null,
+        myPhotos: (await q('SELECT COUNT(*) AS n FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id WHERE f.user_id=? AND f.status<>\'rejected\' AND p.event_id=?', [user.id, e.id]))[0].n,
+      } : null,
       stamp: cfg.stamp || null,                      // { image } ลายแสตมป์ของงาน (แอดมินอัปโหลด) — ไม่มี = วาดจากปก
       dayOne: !!cfg.dayOne,
       earned, extras: mine.filter(s => !['checkin', 'merit'].includes(s.kind)),
@@ -129,7 +137,7 @@ export async function passportOf(user) {
       unlock: earned && cfg.unlock ? cfg.unlock : null, hasUnlock: !!cfg.unlock,
       phase: e.status === 'ended' || start < now - 6 * 3600e3 ? 'past' : e.status === 'live' ? 'live' : 'upcoming',
     };
-  });
+  }));
   const seasons = await q('SELECT id, name, starts_on, ends_on, cover FROM seasons ORDER BY starts_on');
   const season = (ev) => seasons.find(s => String(ev.starts_at).slice(0, 10) >= String(s.starts_on).slice(0, 10) && String(ev.starts_at).slice(0, 10) <= String(s.ends_on).slice(0, 10));
   const books = [];

@@ -111,3 +111,12 @@ build บน runner arm64 → rsync โฟลเดอร์ `release/` ไป `
 
 **Secrets ใน GitHub** (Settings → Secrets → Actions): `EC2_HOST` · `EC2_USER` · `EC2_SSH_KEY` · `EC2_KNOWN_HOSTS`
 โฟลเดอร์ `server/uploads/` (สลิป) ถูก exclude จาก rsync — ไม่ถูกลบตอน deploy
+
+## อัลบั้มรูปงาน + ค้นหาใบหน้า (18 ก.ย. 2026)
+* แอดมินอัปโหลดรูปทั้งงานทีเดียวในหน้าจัดการ (หรือ `node server/import-album.js <slug> "<โฟลเดอร์>" [--limit N] [--wait]`) → เก็บ 3 ขนาดที่ `server/uploads/albums/<eventId>/` → คิวสแกนหลังบ้าน (`server/album.js`)
+* ขั้นคัด: นับหน้าทุกขนาดบนเครื่องเรา (face-api/WASM) — รูป 1–3 คนที่มีหน้าใหญ่พอเท่านั้นถูก "จำ" เพื่อจับคู่ · รูปหมู่/ไม่มีหน้า = `skipped`
+* ผู้ให้บริการจับคู่ `FACE_PROVIDER=local|rekognition|none` (`server/faces.js`) — prod ตั้ง `rekognition` ได้ทันทีเมื่อใส่ AWS credentials (collection เดียว เก็บทั้งใบหน้าอัลบั้ม `p:<id>` และสมาชิก `u:<id>`)
+* สมาชิก opt-in ที่ `/account` → ยินยอม PDPA → อัปโหลดหน้า 1 รูป → เก็บเฉพาะเวกเตอร์/FaceId ลบเซลฟี่ทันที → `/api/me/face` (GET/POST/DELETE)
+* สิทธิ์ดูอัลบั้ม: เช็คอินงานนั้น (registration/booking ที่ผูกบัญชี) หรือแอดมิน · คนอื่นเห็นพรีวิว 3 รูป (`featured` หรือ 3 รูปแรก)
+* Passport: รูปคู่ = ไฟล์ที่อัปโหลดเอง > รูปที่เลือกจากอัลบั้ม > อัตโนมัติจากการจับคู่ (รูป 2 หน้าก่อน) — `PUT /api/passport/:slug/portrait`
+* คำขอเอารูปออก (`photo_removals`) ดูในหน้าจัดการ → ลบรูป/ไม่ลบ

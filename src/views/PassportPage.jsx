@@ -269,7 +269,17 @@ export default function PassportPage() {
   const [img, setImg] = useState(null);        // data URL รูปแชร์
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (loaded && !user) location.replace('/login?next=/passport'); }, [loaded, user]);
-  useEffect(() => { if (user) api('/passport').then(setData).catch(e => setError(e.message)); }, [user]);
+  const reload = () => api('/passport').then(setData).catch(e => setError(e.message));
+  useEffect(() => { if (user) reload(); }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const h = () => reload(); addEventListener('bigcat:passport-refresh', h); return () => removeEventListener('bigcat:passport-refresh', h); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // มาจากอัลบั้ม: /passport?portrait=slug:photoId → ตั้งเป็นรูปคู่ของงานนั้นทันที
+  useEffect(() => {
+    if (!user) return;
+    const m = new URLSearchParams(location.search).get('portrait')?.match(/^([\w-]+):(\d+)$/);
+    if (!m) return;
+    history.replaceState(null, '', location.pathname);
+    api(`/passport/${m[1]}/portrait`, { method: 'PUT', body: { photoId: Number(m[2]) } }).then(reload).catch(e => setError(e.message));
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
   const makeImage = async () => { setBusy(true); try { setImg((await drawPassportImage(data)).toDataURL('image/png')); } catch (e) { setError(e.message); } finally { setBusy(false); } };
 
   if (!user || (!data && !error)) return <><SiteHeader /><PageLoader label="กำลังเปิดสมุด…" /></>;

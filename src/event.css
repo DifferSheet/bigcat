@@ -582,3 +582,53 @@
 .mini-tag.as-btn { cursor: pointer; border: 0; font: inherit; font-size: 10px; }
 .merit-percent.over { color: var(--ok-text); } .merit-percent small { display: block; font-size: 11px; font-weight: 600; }
 .mini-bar.full i { background: var(--ok); }
+
+/* ---------- อัลบั้มรูปงาน ---------- */
+.album-preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.album-preview-tile { position: relative; display: block; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--sand-2); }
+.album-preview-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.album-preview.locked .album-preview-tile img { filter: blur(3px) saturate(.8); transform: scale(1.06); }
+.album-preview-tile.more { display: flex; align-items: center; justify-content: center; background: var(--ink); color: #fff; font-family: var(--font-display); font-size: 22px; }
+.album-me { position: absolute; left: 6px; bottom: 6px; font-size: 11px; font-weight: 700; background: var(--pink); color: #fff; border-radius: var(--r-pill); padding: 2px 8px; }
+.album-page .album-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 10px 0 18px; }
+.album-page .album-head h1 { font-size: 30px; }
+.album-grid { columns: 4 220px; column-gap: 10px; }
+.album-tile { position: relative; display: block; width: 100%; margin: 0 0 10px; padding: 0; border: 0; border-radius: 12px; overflow: hidden; background: var(--sand-2); cursor: zoom-in; break-inside: avoid; }
+.album-tile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .25s; }
+.album-tile:hover img { transform: scale(1.03); }
+.album-tile.mine { outline: 3px solid var(--pink); outline-offset: -3px; }
+.album-locked { max-width: 720px; }
+.lightbox { position: fixed; inset: 0; z-index: 60; background: #1d1a17ee; display: flex; align-items: center; justify-content: center; padding: 16px; animation: appear .2s ease; }
+.lightbox figure { margin: 0; max-width: min(1200px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.lightbox img { max-width: 100%; max-height: calc(100dvh - 130px); object-fit: contain; border-radius: 10px; }
+.lightbox figcaption { display: flex; flex-direction: column; align-items: center; gap: 8px; color: #fff; text-align: center; }
+.lightbox figcaption .muted { color: #ffffffaa; font-size: 13px; }
+.lb-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.lb-actions .button { margin: 0; }
+.lb-actions .button.ghost { color: #fff; border-color: #ffffff66; }
+.lb-actions .link-button { color: #ffffffb3; }
+.lb-close { position: absolute; top: 14px; right: 14px; color: #fff; }
+.lb-nav { position: absolute; top: 50%; transform: translateY(-50%); background: #ffffff22; color: #fff; border: 0; width: 44px; height: 44px; border-radius: 50%; font-size: 28px; line-height: 1; cursor: pointer; }
+.lb-nav.prev { left: 12px; }
+.lb-nav.next { right: 12px; }
+@media (max-width: 640px) {
+  .album-grid { columns: 2 140px; }
+  .lb-nav { display: none; }
+}
+.album-admin { margin: 0 0 14px; }
+.album-drop { display: flex; align-items: center; gap: 10px; padding: 16px; border: 2px dashed var(--line); border-radius: var(--r-md); background: #fff; cursor: pointer; font-size: 14px; color: var(--muted); margin: 10px 0; }
+.album-drop input { display: none; }
+.album-drop.busy { opacity: .7; cursor: progress; }
+.album-admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 60dvh; overflow: auto; padding: 2px; }
+.aa-tile { position: relative; margin: 0; border-radius: 10px; overflow: hidden; background: var(--sand-2); aspect-ratio: 1; }
+.aa-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.aa-tile.skipped img { opacity: .55; }
+.aa-badges { position: absolute; top: 5px; left: 5px; display: flex; gap: 3px; flex-wrap: wrap; }
+.aa-actions { position: absolute; inset: auto 0 0 0; display: none; gap: 2px; justify-content: space-around; background: #ffffffe6; padding: 3px 2px; }
+.aa-actions .link-button { font-size: 11px; padding: 4px 2px; }
+.aa-tile:hover .aa-actions, .aa-tile:focus-within .aa-actions { display: flex; }
+.removal-list { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: var(--r-md); background: #fbe6e6; margin: 8px 0; font-size: 13px; }
+.removal-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.removal-row img { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; }
+.removal-row .button { margin: 0; }
+.checkin-stats .danger { color: var(--danger); }
