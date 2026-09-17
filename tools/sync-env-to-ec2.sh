@@ -43,7 +43,7 @@ open('.env', 'w').write(s)
 PY
 rm -f /tmp/.env.new
 chmod 600 .env
-echo "  .env: \$(grep -cE '^(LINE_|GOOGLE_|SLIP_)' .env) บรรทัด LINE_/GOOGLE_/SLIP_ · LINE_OA_ID=\$(grep -E '^LINE_OA_ID=' .env | cut -d= -f2) · SLIP_PROVIDER=\$(grep -E '^SLIP_PROVIDER=' .env | cut -d= -f2)"
+echo "  .env: \$(grep -cE '^(LINE_|GOOGLE_|SLIP_)' .env) บรรทัด LINE_/GOOGLE_/SLIP_ · LINE_OA_ID=\$(grep -E '^LINE_OA_ID=' .env | cut -d= -f2) · SLIP_PROVIDER=\$(grep -E '^SLIP_PROVIDER=' .env | cut -d= -f2) · FACE_PROVIDER=\$(grep -E '^FACE_PROVIDER=' .env | cut -d= -f2) · MEDIA_BUCKET=\$(grep -E '^MEDIA_BUCKET=' .env | cut -d= -f2)"
 
 echo "→ สร้างโปรเซส pm2 ใหม่ทั้งสองตัว"
 pm2 delete bigcat-api bigcat-web >/dev/null 2>&1 || true
