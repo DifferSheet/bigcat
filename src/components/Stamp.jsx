@@ -3,11 +3,13 @@
 // state: earned (ได้แล้ว) · missed (งานผ่านไป ไม่ได้ไป → เงาจาง) · locked (งานยังไม่ถึง → ช่องว่าง)
 import React from 'react';
 import { eventDate } from '../lib/format.js';
+import { eventStampArt, SPECIAL_STAMP_ART } from '../lib/stamp-art.js';
 
 const TONE = { pink: '#df8190', yellow: '#e2b53c', sage: '#7fa66f' };
 const KIND_LABEL = { checkin: 'มางาน', merit: 'ร่วมบุญ', lucky: 'LUCKY FAN', tier: 'ร่วมบุญ ✦', dayone: 'DAY ONE', first: 'มาครั้งแรก', friend: 'พามาเจอ' };
 
 export function EventStamp({ ev, state = 'earned', size = 128 }) {
+  const art = eventStampArt(ev);
   const uid = React.useId().replace(/:/g, '');
   const d = eventDate(ev);
   const tone = TONE[ev.tone] || TONE.pink;
@@ -15,7 +17,7 @@ export function EventStamp({ ev, state = 'earned', size = 128 }) {
   // ขอบหยักแบบแสตมป์ไปรษณีย์ — วงกลมเล็ก ๆ เรียงรอบเส้นรอบวง
   const perf = Array.from({ length: teeth }, (_, i) => { const a = (i / teeth) * Math.PI * 2; return <circle key={i} cx={50 + Math.cos(a) * r} cy={50 + Math.sin(a) * r} r={3.2} />; });
   // ลายวาดของงาน (มีขอบหยักในตัว) → ใช้ภาพตรง ๆ ไม่ซ้อนกรอบ SVG
-  if (ev.stamp?.image && state !== 'locked') return <span className={`stamp stamp-art stamp-${state}`} style={{ width: size, height: size }} role="img" aria-label={`${KIND_LABEL[ev.earned?.kind] || 'แสตมป์'} ${ev.title}`}><img src={ev.stamp.image} alt="" width={size} height={size} draggable={false} /></span>;
+  if (art && state !== 'locked') return <span className={`stamp stamp-art stamp-${state}`} style={{ width: size, height: size }} role="img" aria-label={`${KIND_LABEL[ev.earned?.kind] || 'แสตมป์'} ${ev.title}`}><img src={art} alt="" width={size} height={size} draggable={false} /></span>;
   const img = ev.cover;
   return <svg className={`stamp stamp-${state}`} viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={`${KIND_LABEL[ev.earned?.kind] || 'แสตมป์'} ${ev.title}`}>
     <defs>
@@ -38,12 +40,21 @@ export function EventStamp({ ev, state = 'earned', size = 128 }) {
 }
 
 // แสตมป์พิเศษ: ถ้ามีไฟล์ลายวาด public/images/stamps/<kind>.webp ใช้ภาพนั้น (มี badge ตัวเลข/รอบทับมุม) · ไม่มี → วาดเป็นตรา SVG
-const ART = { lucky: '/images/stamps/lucky.webp', tier: '/images/stamps/tier.webp', dayone: '/images/stamps/dayone.webp', first: '/images/stamps/first.webp', friend: '/images/stamps/friend.webp' };
+const ART = SPECIAL_STAMP_ART;
 const artOk = typeof window !== 'undefined' ? (window.__stampArt ??= {}) : {};
 export function SpecialStamp({ kind, meta, size = 128, label }) {
   const uid = React.useId().replace(/:/g, '');
-  const [hasArt, setHasArt] = React.useState(artOk[kind] === true);
-  React.useEffect(() => { if (!ART[kind] || artOk[kind] != null) return; const im = new Image(); im.onload = () => { artOk[kind] = true; setHasArt(true); }; im.onerror = () => { artOk[kind] = false; }; im.src = ART[kind]; }, [kind]);
+  const [loadedSrc, setLoadedSrc] = React.useState(null);
+  const src = ART[kind];
+  const hasArt = !!src && (loadedSrc === src || artOk[src] === true);
+  React.useEffect(() => {
+    if (!src || artOk[src] != null) return;
+    const im = new Image(); let active = true;
+    im.onload = () => { artOk[src] = true; if (active) setLoadedSrc(src); };
+    im.onerror = () => { artOk[src] = false; };
+    im.src = src;
+    return () => { active = false; };
+  }, [src]);
   if (hasArt) return <span className={`stamp-art ${['lucky', 'tier'].includes(kind) ? 'foil' : ''}`} style={{ width: size, height: size }} role="img" aria-label={label || KIND_LABEL[kind]}>
     <img src={ART[kind]} alt="" width={size} height={size} draggable={false} />
     {kind === 'friend' && meta?.count > 0 && <b className="stamp-badge">×{meta.count}</b>}

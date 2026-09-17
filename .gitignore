@@ -4,6 +4,7 @@ dist/
 
 .env
 server/uploads/
+server/private-passport/
 .next/
 next-env.d.ts
 release/

@@ -2,6 +2,7 @@
 // ฟอร์มเพิ่ม/แก้ไขกิจกรรม (หน้าแอดมิน) — ข้อมูลหลัก + กำหนดการ + FAQ + ส่วนเฉพาะประเภท · ตั้งค่าขั้นสูงแก้เป็น JSON ได้
 import React, { useState } from 'react';
 import ImageStrip from '../components/ImageStrip.jsx';
+import PassportMemoryEditor from '../components/PassportMemoryEditor.jsx';
 import { Notice } from '../components/EventShell.jsx';
 import { Icon, Tag } from '../components/ui.jsx';
 
@@ -12,7 +13,7 @@ const TYPES = ['fanmeet', 'merit', 'busking', 'workshop', 'popup'];
 const STATUSES = [['upcoming', 'เร็ว ๆ นี้ (ยังไม่เปิด)'], ['open', 'เปิดรับ'], ['soldout', 'เต็ม'], ['live', 'กำลังจัด'], ['ended', 'จบแล้ว (ย้ายไปหมวดที่ผ่านมา)'], ['hidden', 'ซ่อน — ไม่แสดงบนเว็บเลย']];
 const TONES = [['pink', 'ชมพู'], ['yellow', 'เหลือง'], ['sage', 'เขียวอ่อน'], ['blue', 'ฟ้า']];
 // key ใน config ที่ฟอร์มมีช่องให้แล้ว — ที่เหลือไปอยู่ในกล่อง JSON ขั้นสูง
-const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs', 'gallery', 'milestones', 'report', 'seatMap', 'registerMode', 'checkinMode', 'checkinWindow', 'stamp', 'unlock', 'dayOne'];
+const KNOWN = ['schedule', 'faq', 'drawRounds', 'setlist', 'capacity', 'donateUntil', 'attend', 'payment', 'songs', 'gallery', 'milestones', 'report', 'seatMap', 'registerMode', 'checkinMode', 'checkinWindow', 'stamp', 'unlock', 'dayOne', 'memory'];
 const REWARD_TYPES = [['text', 'ข้อความ'], ['image', 'ภาพลับ'], ['link', 'ลิงก์ (Live / คลิป)'], ['poll', 'โหวต']];
 const newMilestone = (percent = 25) => ({ percent, title: '', reward: { type: 'text', body: '' } });
 
@@ -48,6 +49,8 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
   // passport: ลายแสตมป์ + เนื้อหาปลดล็อก — เก็บ path เดิม หรือ File ใหม่ · null = ลบ
   const [stamp, setStamp] = useState(cfg.stamp?.image || null);
   const [unlockFile, setUnlockFile] = useState(null);
+  const [memory, setMemory] = useState(cfg.memory || {});
+  const [memoryFiles, setMemoryFiles] = useState({});
   const unlockSrc = cfg.unlock?.src || null;
   const [milestones, setMilestones] = useState(cfg.milestones || []);
   const [busy, setBusy] = useState(false);
@@ -68,6 +71,7 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
       if (f.type === 'merit') { config.donateUntil = f.donateUntil ? f.donateUntil.replace('T', ' ') + ':00' : undefined; config.attend = { enabled: !!f.attendEnabled, note: f.attendNote }; }
       if (f.type === 'merit' || f.type === 'fanmeet') config.payment = { ...(cfg.payment || {}), accountName: f.payAccount, promptpay: f.payPromptpay };
       config.dayOne = !!f.dayOne || undefined;
+      config.memory = memory;
       config.stamp = stamp instanceof File ? (cfg.stamp || {}) : stamp ? { image: stamp } : null;
       config.unlock = f.unlockType === 'text' ? (f.unlockText.trim() ? { type: 'text', text: f.unlockText.trim(), caption: f.unlockCaption } : undefined) : { ...(cfg.unlock?.type !== 'text' ? cfg.unlock : {}), type: f.unlockType, caption: f.unlockCaption, text: undefined };
       if (f.type === 'merit') config.milestones = milestones.filter(m => m.title).map(m => ({ ...m, percent: Number(m.percent) || 0 })).sort((a, b) => a.percent - b.percent);
@@ -77,6 +81,7 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
       fd.append('payload', JSON.stringify(payload)); files.forEach(file => fd.append('gallery', file));
       if (stamp instanceof File) fd.append('stamp', stamp);
       if (unlockFile) fd.append('unlock', unlockFile);
+      Object.entries(memoryFiles).forEach(([key, file]) => { if (file) fd.append(key, file); });
       const r = await api(editing ? `/admin/events/${initial.slug}` : '/admin/events', { method: editing ? 'PUT' : 'POST', body: fd, admin: true });
       onSaved(r.slug);
     } catch (err) { setError(err.message); } finally { setBusy(false); }
@@ -177,6 +182,7 @@ export default function EventAdminForm({ initial, onSaved, onCancel }) {
       </div></>}
 
     <h2>Passport</h2>
+    <PassportMemoryEditor memory={memory} onChange={setMemory} files={memoryFiles} onFiles={setMemoryFiles} slug={initial?.slug} />
     <p className="muted small">แสตมป์ที่สมาชิกได้เมื่อมางานนี้ (เช็คอิน/ร่วมบุญ) — 1 งาน 1 ลาย ไม่ออกซ้ำ · ถ้าไม่อัปโหลด ระบบวาดจากภาพปกให้</p>
     <div className="two">
       <label>ลายแสตมป์ <small>PNG โปร่งใส สี่เหลี่ยมจัตุรัส ≥ 600px</small>

@@ -68,7 +68,7 @@ function Members() {
       <thead><tr><th></th><th>สมาชิก</th><th>ติดต่อ</th><th>สมัคร / ล่าสุด</th><th>ซื้อ</th><th>บุญ</th><th>บัตร/ลงทะเบียน</th><th>Passport</th></tr></thead>
       <tbody>{data.members.map(m => <tr key={m.id}>
         <td>{m.avatar ? <img className="thumb round" src={m.avatar} alt="" referrerPolicy="no-referrer" /> : <span className="thumb round placeholder">{m.display_name.slice(0, 1)}</span>}</td>
-        <td><strong>{m.display_name}</strong><br /><small className="muted">{m.provider === 'line' ? 'LINE' : 'Google'}{m.lineLinked ? ' · แจ้งเตือน LINE ✓' : ''}</small></td>
+        <td><strong>{m.display_name}</strong><br /><small className="muted">สมาชิก #{m.id} · {m.provider === 'line' ? 'LINE' : 'Google'}{m.lineLinked ? ' · แจ้งเตือน LINE ✓' : ''}</small></td>
         <td><small>{m.email || '—'}<br />{m.phone || '—'}</small></td>
         <td><small>{fmt(m.created_at)}<br /><span className="muted">{m.last_login_at ? fmt(m.last_login_at) : '—'}</span></small></td>
         <td>{m.orders} <small className="muted">· {baht(m.spent)}</small></td>

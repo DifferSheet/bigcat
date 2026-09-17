@@ -109,7 +109,7 @@ export const INVITE_COOKIE_NAME = INVITE_COOKIE;
 
 /* ---------- ข้อมูลหน้า passport ---------- */
 export async function passportOf(user) {
-  const events = await q(`SELECT id, slug, type, status, title, starts_at, cover, tone, config FROM events WHERE status <> 'hidden' ORDER BY starts_at`);
+  const events = await q(`SELECT id, slug, type, status, title, starts_at, place, cover, tone, config FROM events WHERE status <> 'hidden' ORDER BY starts_at`);
   const stamps = await q('SELECT event_id, kind, meta, earned_at FROM stamps WHERE user_id=? ORDER BY earned_at', [user.id]);
   const byEvent = new Map();
   for (const s of stamps) { if (!byEvent.has(s.event_id)) byEvent.set(s.event_id, []); byEvent.get(s.event_id).push({ kind: s.kind, meta: parseJSON(s.meta, null), earned_at: s.earned_at }); }
@@ -120,7 +120,8 @@ export async function passportOf(user) {
     const earned = mine.find(s => s.kind === 'checkin' || s.kind === 'merit') || null;
     const start = dt(String(e.starts_at).replace(' ', 'T') + '+07:00').getTime();
     return {
-      slug: e.slug, type: e.type, status: e.status, title: e.title, starts_at: e.starts_at, cover: e.cover, tone: e.tone,
+      slug: e.slug, type: e.type, status: e.status, title: e.title, starts_at: e.starts_at, place: e.place, cover: e.cover, tone: e.tone,
+      memory: earned && (e.status === 'ended' || start < now - 6 * 3600e3) ? { ...(cfg.memory || {}), portraitImage: earned.meta?.passportPortrait ? `/api/passport/${encodeURIComponent(e.slug)}/portrait?v=${encodeURIComponent(earned.meta.passportPortrait)}` : null } : null,
       stamp: cfg.stamp || null,                      // { image } ลายแสตมป์ของงาน (แอดมินอัปโหลด) — ไม่มี = วาดจากปก
       dayOne: !!cfg.dayOne,
       earned, extras: mine.filter(s => !['checkin', 'merit'].includes(s.kind)),

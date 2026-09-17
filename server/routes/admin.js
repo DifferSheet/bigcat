@@ -3,7 +3,7 @@ import { q, one } from '../db.js';
 import { wrap, HttpError, getEvent, seatsOf, donationSummary, registrationSummary, drawsOf, reportOf, emit, gateToken, gateExpiresIn, GATE_TTL, checkinWindow } from '../lib.js';
 import { push, multicast, msg, lineEnabled } from '../line.js';
 import { upload } from './public.js';
-import { uploadMedia } from '../upload.js';
+import { uploadMedia, uploadPassportPortrait } from '../upload.js';
 
 const siteUrl = () => process.env.SITE_URL || 'http://localhost:5173';
 
@@ -140,9 +140,37 @@ r.get('/events/:slug/full', wrap(async (req, res) => {
   res.json({ ...ev, config, categories, counts: { bookings, donations, registrations } });
 }));
 
-const eventUploads = uploadMedia.fields([{ name: 'cover', maxCount: 1 }, { name: 'gallery', maxCount: 10 }, { name: 'stamp', maxCount: 1 }, { name: 'unlock', maxCount: 1 }]);
+// Resolve the exact member before accepting a private portrait upload.
+const portraitOwner = wrap(async (req, _res, next) => {
+  const id = Number(req.params.userId);
+  if (!Number.isSafeInteger(id) || id < 1) throw new HttpError(400, 'รหัสสมาชิกไม่ถูกต้อง');
+  const owner = await one(`SELECT s.id, u.display_name FROM stamps s JOIN events e ON e.id=s.event_id JOIN users u ON u.id=s.user_id WHERE e.slug=? AND s.user_id=? AND s.kind IN ('checkin','merit') ORDER BY s.earned_at LIMIT 1`, [req.params.slug, id]);
+  if (!owner) throw new HttpError(404, 'สมาชิกคนนี้ยังไม่มีแสตมป์ของงานนี้');
+  req.portraitOwner = owner; next();
+});
+r.get('/events/:slug/passport-portrait/:userId', portraitOwner, (req, res) => res.json({ name: req.portraitOwner.display_name }));
+r.put('/events/:slug/passport-portrait/:userId', portraitOwner, uploadPassportPortrait.single('portrait'), wrap(async (req, res) => {
+  if (!req.file) throw new HttpError(400, 'กรุณาเลือกภาพ');
+  await q("UPDATE stamps SET meta=JSON_SET(COALESCE(meta, JSON_OBJECT()), '$.passportPortrait', ?) WHERE id=?", [req.file.filename, req.portraitOwner.id]);
+  res.json({ ok: true, name: req.portraitOwner.display_name });
+}));
+r.delete('/events/:slug/passport-portrait/:userId', portraitOwner, wrap(async (req, res) => {
+  await q("UPDATE stamps SET meta=JSON_REMOVE(meta, '$.passportPortrait') WHERE id=?", [req.portraitOwner.id]);
+  res.json({ ok: true });
+}));
+
+const eventUploads = uploadMedia.fields([{ name: 'cover', maxCount: 1 }, { name: 'gallery', maxCount: 10 }, { name: 'stamp', maxCount: 1 }, { name: 'unlock', maxCount: 1 }, { name: 'memoryNote', maxCount: 1 }, { name: 'memoryGroup', maxCount: 1 }]);
 // passport: ลายแสตมป์ของงาน (ภาพ) + เนื้อหาปลดล็อก (ภาพ/เสียง/ข้อความ) — ไฟล์ใหม่ทับของเดิม · ฟอร์มส่ง stamp:null เพื่อลบ
 const applyPassportFiles = (cfg, files) => {
+  if (cfg.memory) {
+    const m = cfg.memory;
+    cfg.memory = { layout: ['auto', 'warm', 'playful', 'special', 'merit'].includes(m.layout) ? m.layout : 'auto', author: m.author === 'nobi' ? 'nobi' : 'boota', noteText: Object.hasOwn(m, 'noteText') ? clean(m.noteText, 5000) : undefined, caption: clean(m.caption, 500), noteImage: clean(m.noteImage, 300), groupImage: Object.hasOwn(m, 'groupImage') ? clean(m.groupImage, 300) : undefined };
+    for (const [field, key] of [['memoryNote', 'noteImage'], ['memoryGroup', 'groupImage']]) {
+      const f = files?.[field]?.[0];
+      if (f && !/^image\//.test(f.mimetype)) throw new HttpError(400, 'โน้ตและรูปหมู่ต้องเป็นไฟล์ภาพ');
+      if (f) cfg.memory[key] = `/uploads/${f.filename}`;
+    }
+  }
   if (files?.stamp?.[0]) cfg.stamp = { image: `/uploads/${files.stamp[0].filename}` };
   if (files?.unlock?.[0]) cfg.unlock = { ...(cfg.unlock || {}), type: files.unlock[0].mimetype.startsWith('audio/') ? 'audio' : 'image', src: `/uploads/${files.unlock[0].filename}` };
   if (cfg.unlock && !cfg.unlock.src && !cfg.unlock.text) delete cfg.unlock;

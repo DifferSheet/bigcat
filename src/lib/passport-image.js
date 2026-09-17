@@ -1,8 +1,35 @@
 // รูป passport สำหรับแชร์ (IG Story 1080×1920) — วาดด้วย canvas ฝั่ง client
 // แสตมป์ที่ได้ = วงกลมภาพ (ลายแอดมิน หรือภาพปก) ขอบสีงาน · งานที่พลาด = วงเทาจาง · แสตมป์พิเศษ = ตราสี
+import { eventStampArt, SPECIAL_STAMP_ART } from './stamp-art.js';
+import { eventMemory } from './passport-memory.js';
 const W = 1080, H = 1920;
 const loadImage = (src) => new Promise((resolve) => { if (!src) return resolve(null); const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => resolve(im); im.onerror = () => resolve(null); im.src = src; });
 const TONE = { pink: '#df8190', yellow: '#e2b53c', sage: '#7fa66f' };
+
+// Export never includes a member's portrait unless they explicitly opt in.
+export async function drawEventMemoryImage(ev, { includePortrait = false } = {}) {
+  const m = eventMemory(ev), c = document.createElement('canvas');
+  c.width = 1080; c.height = 1350;
+  const x = c.getContext('2d');
+  await document.fonts.ready;
+  const font = getComputedStyle(document.documentElement).getPropertyValue('--font-body').trim() || 'sans-serif';
+  x.fillStyle = '#f6ecdc'; x.fillRect(0, 0, c.width, c.height);
+  x.textAlign = 'center'; x.fillStyle = '#79563d'; x.font = '28px Georgia'; x.fillText('BIGCAT · OUR PHOTO MEMORIES', 540, 95);
+  x.font = `600 36px ${font}`; x.fillText(ev.title, 540, 165, 950);
+  const sources = [m.group, includePortrait ? m.portrait : null].filter(Boolean);
+  if (!sources.length) sources.push(eventStampArt(ev) || ev.cover);
+  const photos = await Promise.all(sources.map(loadImage));
+  if (photos.some(im => !im)) throw new Error('โหลดภาพไม่สำเร็จ');
+  photos.forEach((im, i) => {
+    const top = 245 + i * 460, height = photos.length === 1 ? 780 : 395;
+    x.fillStyle = '#fffdfa'; x.fillRect(100, top, 880, height + 50);
+    const scale = Math.min(820 / im.width, height / im.height);
+    x.drawImage(im, 540 - im.width * scale / 2, top + 15 + (height - im.height * scale) / 2, im.width * scale, im.height * scale);
+    x.fillStyle = '#ddc7a2b0'; x.fillRect(430, top - 14, 220, 38);
+  });
+  x.fillStyle = '#79563d'; x.font = `26px ${font}`; x.fillText(m.caption, 540, 1250, 940);
+  return c;
+}
 
 function perforated(x, cx, cy, r, fill, stroke) {
   x.save();
@@ -39,7 +66,7 @@ export async function drawPassportImage(data) {
   if (data.friend) specials.push({ kind: 'friend', meta: data.friend.meta });
   // น้อยดวง → 2 คอลัมน์ดวงใหญ่ · หลายดวง → 3 คอลัมน์ · แถวสุดท้ายจัดกึ่งกลาง
   const cols = slots.length <= 4 ? 2 : 3, cell = cols === 2 ? 420 : 300, r = cols === 2 ? 160 : 118, top = 640;
-  const imgs = await Promise.all(slots.map(s => loadImage(s.earned ? (s.ev.stamp?.image || s.ev.cover) : null)));
+  const imgs = await Promise.all(slots.map(s => loadImage(s.earned ? (eventStampArt(s.ev) || s.ev.cover) : null)));
   slots.forEach((s, i) => {
     const row = Math.floor(i / cols), inRow = Math.min(cols, slots.length - row * cols);
     const cx = (W - inRow * cell) / 2 + cell / 2 + (i % cols) * cell, cy = top + row * (cell + 40);
@@ -48,7 +75,7 @@ export async function drawPassportImage(data) {
       perforated(x, cx, cy, r, '#ffffff', s.ev.stamp?.image ? null : tone);
       const im = imgs[i];
       if (im) {
-        x.save(); x.beginPath(); x.arc(cx, cy, s.ev.stamp?.image ? r * 0.88 : r * 0.72, 0, Math.PI * 2); x.clip();
+        x.save(); if (!s.ev.stamp?.image) { x.beginPath(); x.arc(cx, cy, r * 0.72, 0, Math.PI * 2); x.clip(); }
         const side = Math.min(im.width, im.height), sx = (im.width - side) / 2, sy = (im.height - side) / 2, R = s.ev.stamp?.image ? r * 0.88 : r * 0.72;
         if (s.ev.stamp?.image) x.drawImage(im, cx - R, cy - R, R * 2, R * 2); else x.drawImage(im, sx, sy, side, side, cx - R, cy - R, R * 2, R * 2);
         x.restore();
@@ -68,12 +95,14 @@ export async function drawPassportImage(data) {
     const label = { lucky: 'LUCKY FAN', tier: 'ร่วมบุญ ✦', dayone: 'DAY ONE', first: 'มาครั้งแรก', friend: 'พามาเจอ' };
     const color = { lucky: '#c99a2e', tier: '#c99a2e', dayone: '#df8190', first: '#7fa66f', friend: '#5b8fd6' };
     const sw = 200, sl = (W - Math.min(specials.length, 5) * sw) / 2 + sw / 2;
-    const arts = await Promise.all(specials.slice(0, 5).map(s => loadImage(`/images/stamps/${s.kind}.webp`)));
+    const arts = await Promise.all(specials.slice(0, 5).map(s => loadImage(SPECIAL_STAMP_ART[s.kind])));
     specials.slice(0, 5).forEach((s, i) => {
       const cx = sl + i * sw, cy = y + 110;
       if (arts[i]) {   // ลายวาดจริง (ถ้ามีไฟล์) + ป้ายตัวเลข
         x.drawImage(arts[i], cx - 85, cy - 85, 170, 170);
+        x.font = `600 20px ${F.head}`; x.fillStyle = '#7d6250'; x.fillText(label[s.kind] || s.kind, cx, cy + 112);
         if (s.kind === 'friend' && s.meta?.count) { x.font = `700 20px ${F.head}`; x.fillStyle = '#33332f'; x.fillText(`×${s.meta.count}`, cx + 55, cy + 80); }
+        if (s.kind === 'lucky' && s.meta?.round) { x.font = `700 20px ${F.head}`; x.fillStyle = '#33332f'; x.fillText(`รอบ ${s.meta.round}`, cx + 45, cy + 80); }
         return;
       }
       x.beginPath(); for (let k = 0; k < 24; k++) { const a = (k / 24) * Math.PI * 2, rr = k % 2 ? 62 : 72; x[k ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } x.closePath();
