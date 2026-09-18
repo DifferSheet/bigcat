@@ -115,7 +115,6 @@ function Lightbox({ list, index, setIndex, onClose, onAct, busy }) {
         <div className="lb-actions">
           <a className="button dark small" href={p.orig} download target="_blank" rel="noreferrer">ดาวน์โหลด <Icon name="arrow" size={14} /></a>
           {p.status !== 'confirmed' && <button type="button" className="button ghost small" disabled={busy} onClick={() => onAct(p, 'me')}>ใช่ นี่ฉัน</button>}
-          <Link className="button ghost small" to={`/passport?portrait=${p.event.slug}:${p.id}`}>ใช้เป็นรูปคู่ใน Passport</Link>
           <button type="button" className="link-button" disabled={busy} onClick={() => onAct(p, 'not-me')}>ไม่ใช่ฉัน</button>
         </div>
       </figcaption>
@@ -169,7 +168,7 @@ function MyPhotoGrid({ data, onChange }) {
         <span className="muted small">{sel.length ? `เลือกไว้ ${sel.length} รูป` : 'แตะรูปเพื่อเลือก'}</span>
       </>}
     </div>
-    {picking && sel.length > 0 && <div className="bulk-bar mp-bulk">
+    {picking && sel.length > 0 && <div className="mp-bulk">
       <span>เลือก {sel.length} รูป</span>
       <button className="button dark small" disabled={busy} onClick={bulkDownload}>{busy ? 'กำลังเตรียมไฟล์…' : 'ดาวน์โหลด (.zip)'}</button>
       <button className="link-button danger" disabled={busy} onClick={bulkNotMe}>ไม่ใช่ฉัน</button>
@@ -193,7 +192,6 @@ function MyPhotoGrid({ data, onChange }) {
             <span className={`mini-tag ${p.status === 'confirmed' ? 'ok' : ''}`}>{p.status === 'confirmed' ? 'ยืนยันแล้ว' : `น่าจะคุณ ${p.similarity ? `${Math.round(p.similarity * 100)}%` : ''}`}</span>
             {!picking && <span className="mp-photo-actions">
               {p.status !== 'confirmed' && <button type="button" className="link-button" disabled={busy} onClick={() => act({ ...p, event: ev }, 'me')}>ใช่ฉัน</button>}
-              <Link className="link-button" to={`/passport?portrait=${ev.slug}:${p.id}`}>ใช้ใน Passport</Link>
               <a className="link-button" href={p.orig} download target="_blank" rel="noreferrer">ดาวน์โหลด</a>
               <button type="button" className="link-button danger" disabled={busy} onClick={() => act({ ...p, event: ev }, 'not-me')}>ไม่ใช่ฉัน</button>
             </span>}

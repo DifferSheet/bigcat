@@ -27,8 +27,25 @@ const myStamp = async (userId, slug) => {
 };
 r.get('/passport/:slug/photos', requireUser, wrap(async (req, res) => {
   const st = await myStamp(req.user.id, req.params.slug);
-  const photos = await photosOfUser(req.user.id, st.event_id);
-  res.set('Cache-Control', 'private, no-store').json({ photos: await withUrls(photos.map(p => ({ id: p.id, thumb: p.thumb, view: p.view, faces: p.faces, status: p.status }))), current: parseJSON(st.meta, {}) });
+  const mine = await photosOfUser(req.user.id, st.event_id);
+  // รูปหมู่: เลือกจากรูปในอัลบั้มของงาน — เอารูปที่มีคนหลายคนขึ้นก่อน
+  const album = await q(`SELECT id, thumb, view, faces FROM event_photos WHERE event_id=? ORDER BY (faces IS NULL OR faces>=3) DESC, featured DESC, sort_order LIMIT 60`, [st.event_id]);
+  res.set('Cache-Control', 'private, no-store').json({
+    photos: await withUrls(mine.map(p => ({ id: p.id, thumb: p.thumb, view: p.view, faces: p.faces, status: p.status }))),
+    album: await withUrls(album.map(p => ({ id: p.id, thumb: p.thumb, view: p.view, faces: p.faces }))),
+    current: parseJSON(st.meta, {}),
+  });
+}));
+
+// รูปหมู่ของงานนี้ในสมุดของฉัน — เลือกจากอัลบั้ม หรือไม่ส่ง id = กลับไปใช้รูปที่แอดมินตั้งไว้
+r.put('/passport/:slug/group', requireUser, wrap(async (req, res) => {
+  const st = await myStamp(req.user.id, req.params.slug);
+  const photoId = Number(req.body?.photoId) || 0;
+  if (!photoId) { await q("UPDATE stamps SET meta=JSON_REMOVE(COALESCE(meta, JSON_OBJECT()), '$.groupPhoto') WHERE id=?", [st.id]); return res.json({ ok: true, source: 'event' }); }
+  const p = await one('SELECT id, view FROM event_photos WHERE id=? AND event_id=?', [photoId, st.event_id]);
+  if (!p) throw new HttpError(400, 'เลือกได้เฉพาะรูปในอัลบั้มของงานนี้');
+  await q("UPDATE stamps SET meta=JSON_SET(COALESCE(meta, JSON_OBJECT()), '$.groupPhoto', JSON_OBJECT('id', ?, 'view', ?)) WHERE id=?", [p.id, p.view, st.id]);
+  res.json({ ok: true, source: 'chosen' });
 }));
 r.put('/passport/:slug/portrait', requireUser, uploadPassportPortrait.single('portrait'), wrap(async (req, res) => {
   const st = await myStamp(req.user.id, req.params.slug);
@@ -53,7 +70,10 @@ r.get('/passport', requireUser, wrap(async (req, res) => {
   const inviter = await attachInvite(req, res, { parseCookies, setCookie });
   const fresh = inviter ? await one('SELECT * FROM users WHERE id=?', [req.user.id]) : req.user;
   const data = await passportOf(fresh);
-  for (const b of data.books) for (const ev of b.events) if (ev.memory?.portraitImage) ev.memory.portraitImage = await mediaUrl(ev.memory.portraitImage);
+  for (const b of data.books) for (const ev of b.events) if (ev.memory) {
+    if (ev.memory.portraitImage) ev.memory.portraitImage = await mediaUrl(ev.memory.portraitImage);
+    if (ev.memory.groupImage) ev.memory.groupImage = await mediaUrl(ev.memory.groupImage);
+  }
   res.set('Cache-Control', 'private, no-store').json(data);
 }));
 

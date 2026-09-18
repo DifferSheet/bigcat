@@ -128,6 +128,9 @@ export async function passportOf(user) {
       memory: earned && (e.status === 'ended' || start < now - 6 * 3600e3) ? { ...(cfg.memory || {}),
         portraitImage: earned.meta?.passportPortrait ? `/api/passport/${encodeURIComponent(e.slug)}/portrait?v=${encodeURIComponent(earned.meta.passportPortrait)}` : earned.meta?.portraitPhoto?.view || autoPortrait.get(e.id)?.view || null,
         portraitSource: earned.meta?.passportPortrait ? 'upload' : earned.meta?.portraitPhoto ? 'chosen' : autoPortrait.has(e.id) ? 'auto' : null,
+        // รูปหมู่: ที่สมาชิกเลือกเอง > ที่แอดมินตั้งให้ทั้งงาน
+        groupImage: earned.meta?.groupPhoto?.view || cfg.memory?.groupImage || null,
+        groupSource: earned.meta?.groupPhoto ? 'chosen' : cfg.memory?.groupImage ? 'event' : null,
         myPhotos: (await q('SELECT COUNT(*) AS n FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id WHERE f.user_id=? AND f.status<>\'rejected\' AND p.event_id=?', [user.id, e.id]))[0].n,
       } : null,
       stamp: cfg.stamp || null,                      // { image } ลายแสตมป์ของงาน (แอดมินอัปโหลด) — ไม่มี = วาดจากปก

@@ -117,6 +117,7 @@ export function AlbumDetail({ slug }) {
     try { const r = await api(`/admin/albums/${slug}/bulk`, { method: 'POST', body: { ids: sel, action }, admin: true }); setSel([]); setMsg(`ทำกับ ${r.count} รูปแล้ว`); load(); }
     catch (e) { setErr(e.message); }
   };
+  const setGroup = async (id) => { setMsg(''); try { await api(`/admin/albums/${slug}/group-photo`, { method: 'POST', body: { id }, admin: true }); setMsg(id ? 'ตั้งเป็นรูปหมู่ของงานแล้ว — จะไปโชว์ในสมุด Passport ของทุกคนที่ได้แสตมป์งานนี้' : 'เอารูปหมู่ออกแล้ว'); load(); } catch (e) { setErr(e.message); } };
   const publish = async (next) => { try { await api(`/admin/albums/${slug}/publish`, { method: 'POST', body: { published: next }, admin: true }); load(); } catch (e) { setErr(e.message); } };
   const removal = async (id, action) => { try { await api(`/admin/album/removals/${id}/${action}`, { method: 'POST', admin: true }); load(); } catch (e) { setErr(e.message); } };
 
@@ -181,15 +182,17 @@ export function AlbumDetail({ slug }) {
 
     {!list.length ? <p className="muted">ไม่มีรูปในมุมมองนี้</p> : <div className="ab-photos">{list.map(p => {
       const on = sel.includes(p.id);
-      return <figure key={p.id} className={`ab-tile ${p.scan} ${on ? 'on' : ''}`} title={p.matched_names || ''} onClick={e => { if (e.shiftKey) e.preventDefault(); setSel(s => on ? s.filter(x => x !== p.id) : [...s, p.id]); }}>
+      const isGroup = d.event.groupPhotoId === p.id;
+      return <figure key={p.id} className={`ab-tile ${p.scan} ${on ? 'on' : ''} ${isGroup ? 'is-group' : ''}`} title={p.matched_names || ''} onClick={e => { if (e.shiftKey) e.preventDefault(); setSel(s => on ? s.filter(x => x !== p.id) : [...s, p.id]); }}>
         <img src={p.thumb} alt="" loading="lazy" />
         <span className="ab-check">{on ? '✓' : ''}</span>
         <span className="aa-badges">
           {p.scan === 'pending' ? <b className="mini-tag">สแกน…</b> : p.scan === 'done' ? <b className="mini-tag ok">{p.faces === 1 ? 'เดี่ยว' : p.faces === 2 ? 'คู่' : `${p.faces} คน`}</b> : p.scan === 'failed' ? <b className="mini-tag dup">ล้มเหลว</b> : <b className="mini-tag via">{p.faces ? `หมู่ ${p.faces}` : 'ไม่มีหน้า'}</b>}
           {p.matched > 0 && <b className="mini-tag warn">👤 {p.matched}</b>}
-          {!!p.featured && <b className="mini-tag ok">พรีวิว</b>}
+          {!!p.featured && <b className="mini-tag ok">พรีวิว</b>}{isGroup && <b className="mini-tag warn">รูปหมู่ Passport</b>}
         </span>
         <a className="ab-open" href={p.view} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} aria-label="เปิดรูปเต็ม">↗</a>
+        <span className="ab-tile-actions"><button type="button" className="link-button" onClick={e => { e.stopPropagation(); setGroup(isGroup ? 0 : p.id); }}>{isGroup ? 'เอารูปหมู่ออก' : 'ตั้งเป็นรูปหมู่'}</button></span>
       </figure>;
     })}</div>}
     {faces && <FaceReview slug={slug} onClose={() => setFaces(false)} onChanged={load} />}

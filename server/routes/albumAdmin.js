@@ -41,8 +41,9 @@ r.get('/albums/:slug', wrap(async (req, res) => {
       (SELECT COUNT(*) FROM photo_faces f WHERE f.photo_id=p.id AND f.user_id IS NULL AND f.status<>'rejected') AS unknown
     FROM event_photos p WHERE p.event_id=? ORDER BY p.sort_order, p.id`, [ev.id]);
   const removals = await q(`SELECT rm.id, rm.photo_id, rm.reason, rm.status, rm.created_at, u.display_name FROM photo_removals rm JOIN users u ON u.id=rm.user_id JOIN event_photos p ON p.id=rm.photo_id WHERE p.event_id=? AND rm.status='open' ORDER BY rm.created_at DESC`, [ev.id]);
+  const groupPhotoId = ev.config.memory?.groupImage ? (photos.find(p => p.view === ev.config.memory.groupImage)?.id || null) : null;   // หา id ก่อนเซ็น URL
   res.json({
-    event: { slug: ev.slug, title: ev.title, type: ev.type, status: ev.status, starts_at: ev.starts_at, published: albumPublished(ev.config) },
+    event: { slug: ev.slug, title: ev.title, type: ev.type, status: ev.status, starts_at: ev.starts_at, published: albumPublished(ev.config), groupPhotoId },
     photos: await withUrls(photos), removals, facesEnabled, provider: faceProvider, threshold: MATCH_THRESHOLD, storage: usingS3 ? 's3' : 'disk',
   });
 }));
@@ -79,6 +80,18 @@ r.post('/albums/:slug/bulk', wrap(async (req, res) => {
   else if (action === 'delete') { for (const id of mine) await deletePhoto(id); }
   else throw new HttpError(400, 'คำสั่งไม่ถูกต้อง');
   res.json({ ok: true, count: mine.length });
+}));
+
+// ตั้ง/ยกเลิก «รูปหมู่ของงาน» ที่ไปโชว์ในสมุด passport ของทุกคนที่ได้แสตมป์งานนี้ (สมาชิกเปลี่ยนเป็นรูปอื่นในสมุดตัวเองได้)
+r.post('/albums/:slug/group-photo', wrap(async (req, res) => {
+  const ev = await getEvent(req.params.slug);
+  const id = Number(req.body?.id) || 0;
+  if (!id) { const cfg = { ...ev.config, memory: { ...(ev.config.memory || {}) } }; delete cfg.memory.groupImage; await q('UPDATE events SET config=? WHERE id=?', [JSON.stringify(cfg), ev.id]); return res.json({ ok: true, groupImage: null }); }
+  const p = await one('SELECT id, view FROM event_photos WHERE id=? AND event_id=?', [id, ev.id]);
+  if (!p) throw new HttpError(404, 'ไม่พบรูปนี้ในอัลบั้มของงาน');
+  const cfg = { ...ev.config, memory: { ...(ev.config.memory || {}), groupImage: p.view } };
+  await q('UPDATE events SET config=? WHERE id=?', [JSON.stringify(cfg), ev.id]);
+  res.json({ ok: true, groupImage: p.view, photoId: p.id });
 }));
 
 /* ---------- ทบทวนใบหน้า ---------- */
