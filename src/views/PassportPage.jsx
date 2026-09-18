@@ -6,8 +6,7 @@ import { SiteHeader, SiteFooter, Notice, Section } from '../components/EventShel
 import { Icon, Paw, PageLoader, Modal, Tag } from '../components/ui.jsx';
 import { EventStamp, SpecialStamp, STAMP_LABEL } from '../components/Stamp.jsx';
 import SaveImage from '../components/SaveImage.jsx';
-import PassportMemory, { MemoryPhoto } from '../components/PassportMemory.jsx';
-import { eventMemory } from '../lib/passport-memory.js';
+import PassportMemory from '../components/PassportMemory.jsx';
 import { api } from '../lib/api.js';
 import { useUser } from '../lib/auth.js';
 import { eventDate, parseDate } from '../lib/format.js';
@@ -256,7 +255,10 @@ function InviteBox({ code, friend }) {
       <div className="invite-link"><code>{url.replace(/^https?:\/\//, '')}</code><button type="button" className="button dark small" onClick={copy}>{copied ? 'ก๊อปแล้ว ✓' : 'ก๊อปลิงก์'}</button>{typeof navigator !== 'undefined' && !!navigator.share && <button type="button" className="button ghost small" onClick={share}>ส่งให้เพื่อน</button>}</div>
       {friend?.meta?.count > 0 && <p className="small-note">พามาแล้ว {friend.meta.count} คน{friend.meta.friends?.length ? ` — ${friend.meta.friends.join(', ')}` : ''}</p>}
     </div>
-    <SpecialStamp kind="friend" meta={friend?.meta} size={110} />
+    <div className={`invite-stamp ${friend ? 'earned' : 'locked'}`}>
+      <SpecialStamp kind="friend" meta={friend?.meta} size={110} />
+      <small>{friend ? 'แสตมป์ของคุณ ♡' : 'ตัวอย่างแสตมป์ · ยังไม่ได้'}</small>
+    </div>
   </div>;
 }
 
@@ -282,10 +284,7 @@ export default function PassportPage() {
   const makeImage = async () => { setBusy(true); try { setImg((await drawPassportImage(data)).toDataURL('image/png')); } catch (e) { setError(e.message); } finally { setBusy(false); } };
 
   if (!user || (!data && !error)) return <><SiteHeader /><PageLoader label="กำลังเปิดสมุด…" /></>;
-  const specials = data ? [...data.books.flatMap(b => b.events.flatMap(ev => (ev.extras || []).map(s => ({ ...s, ev })))), ...(data.friend ? [{ ...data.friend, ev: null }] : [])] : [];
   const upcoming = data ? data.books.flatMap(b => b.events).filter(ev => ev.phase === 'upcoming') : [];
-  const latest = data ? data.books.flatMap(b => b.events).filter(ev => ev.earned).reduce((best, ev) => !best || (parseDate(ev.earned.earned_at).getTime() || 0) > (parseDate(best.earned.earned_at).getTime() || 0) ? ev : best, null) : null;
-  const latestMemory = latest ? eventMemory(latest) : null;
 
   return <><SiteHeader /><main className="ev-page passport-page">
     {error && <Notice tone="error">{error}</Notice>}
@@ -308,13 +307,8 @@ export default function PassportPage() {
       {data.sticker.eligible && !data.sticker.given_at && <Notice>ครบ {data.sticker.at} ดวงแล้ว 🎉 รับ<strong>สติกเกอร์ Passport</strong>ได้ที่โต๊ะพี่ ๆ ในงานถัดไป — โชว์หน้านี้ให้ดูได้เลย</Notice>}
       {data.sticker.given_at && <p className="small-note">รับสติกเกอร์ Passport แล้วเมื่อ {fmt(data.sticker.given_at)} ♡</p>}
 
-      {latest && <section className="pc-photo-album" aria-label="ภาพความทรงจำหลังงาน"><div><span className="eyebrow">OUR PHOTO MEMORIES</span><h3>อีกหนึ่งวันดี ๆ<br />ที่เราได้เจอกัน</h3><p>{latest.title}</p><small>พื้นที่เก็บภาพความทรงจำหลังจบงาน</small></div><div className="pm-photo-layout">{latestMemory.group || latestMemory.portrait ? <>{latestMemory.group && <MemoryPhoto src={latestMemory.group} caption="วันของพวกเรา ♡" kind="group" />}{latestMemory.portrait && <MemoryPhoto src={latestMemory.portrait} caption="เธอกับเรา" kind="portrait" />}</> : <div className="pc-photo-pending"><Icon name="heart" size={32} /><strong>รอเก็บภาพวันดี ๆ ของเรา</strong><p>เมื่อรูปหลังงานพร้อม จะนำมาเก็บไว้ตรงนี้</p><small>รูปหมู่ และรูปคู่สำหรับผู้ที่มีภาพ</small></div>}</div></section>}
       {data.total === 0 && <div className="pc-empty"><span>♡</span><h3>ความทรงจำดวงแรก กำลังรอคุณอยู่</h3><p>มาเจอกันที่งาน แล้วเช็คอินเพื่อเริ่มต้นสมุดเล่มนี้</p><Link className="button ghost small" to="/events">ดูตารางงาน ↗</Link></div>}
 
-      {specials.length > 0 && <Section eyebrow="THE LITTLE TREASURES" title="แสตมป์พิเศษ" className="pc-treasures" aside={<span className="pc-book-count">{specials.length} ดวงพิเศษ ♡</span>}>
-        <p className="pc-tray-caption">เรื่องราวที่พิเศษขึ้นอีกนิด เก็บไว้ใกล้หัวใจ</p>
-        <div className="pc-velvet-tray">{specials.map((s, i) => <div key={i} className="pc-treasure"><div className="pc-pin-well"><SpecialStamp kind={s.kind} meta={s.meta} size={140} /></div><strong>{STAMP_LABEL[s.kind]}</strong><small>{s.ev ? s.ev.title : `พาเพื่อนมาแล้ว ${s.meta?.count || 0} คน`}</small></div>)}</div>
-      </Section>}
 
       <Section eyebrow="INVITE" title="พาเพื่อนมา"><InviteBox code={data.user.invite_code} friend={data.friend} /></Section>
 

@@ -18,8 +18,9 @@ export async function drawEventMemoryImage(ev) {
   const own = (kind) => `/api/passport/${encodeURIComponent(ev.slug)}/image/${kind}`;
   const sources = [m.group ? own('group') : null, m.portrait ? own('portrait') : null].filter(Boolean);
   if (!sources.length) sources.push(eventStampArt(ev) || ev.cover);
-  const [photos, stamp, logo] = await Promise.all([Promise.all(sources.map(loadImage)), loadImage(eventStampArt(ev)), loadImage('/images/bigcat-mark-pink.webp')]);
+  const [photos, stamp, logo, note] = await Promise.all([Promise.all(sources.map(loadImage)), loadImage(eventStampArt(ev)), loadImage('/images/bigcat-mark-pink.webp'), loadImage(m.noteImage ? own('note') : null)]);
   if (photos.some(im => !im)) throw new Error('โหลดภาพไม่สำเร็จ — ลองรีเฟรชหน้าแล้วกดอีกครั้ง');
+  if (m.noteImage && !note) throw new Error('โหลดข้อความจากน้องไม่สำเร็จ กรุณาลองอีกครั้ง');
   const box = (left, top, width, height, color, radius = 12) => {
     x.beginPath(); x.roundRect(left, top, width, height, radius); x.fillStyle = color; x.fill();
   };
@@ -42,31 +43,46 @@ export async function drawEventMemoryImage(ev) {
   const bg = x.createLinearGradient(0, 0, 1080, 1350); bg.addColorStop(0, '#ead8cc'); bg.addColorStop(1, '#f7eee1');
   x.fillStyle = bg; x.fillRect(0, 0, 1080, 1350);
   x.save(); x.shadowColor = '#65453226'; x.shadowBlur = 32; x.shadowOffsetY = 14;
-  box(36, 30, 1008, 1274, '#dcc5a4', 22); box(30, 22, 1008, 1274, '#fff9ed', 22); x.restore();
-  // Fine paper ruling and binding details keep the exported card part of the passport.
+  box(35, 35, 1010, 1280, '#bca078', 26);
+  box(32, 29, 1010, 1278, '#e6d5b8', 24);
+  box(29, 23, 1010, 1278, '#cdb58e', 24);
+  box(26, 18, 1010, 1278, '#fff9ed', 24); x.restore();
+  // Two upright landscape pages, joined at a horizontal fold.
   x.strokeStyle = '#b49b7220'; x.lineWidth = 1;
-  for (let y = 44; y < 1280; y += 8) { x.beginPath(); x.moveTo(48, y); x.lineTo(1020, y); x.stroke(); }
-  x.strokeStyle = '#d5b995'; x.beginPath(); x.moveTo(65, 65); x.lineTo(65, 1260); x.stroke();
-  if (logo) fit(logo, 95, 66, 85, 66);
-  x.fillStyle = '#94724d'; x.font = '19px Georgia'; x.textAlign = 'left'; x.fillText('MY BIGCAT PASSPORT', 205, 97); x.fillText('A DAY TO REMEMBER', 205, 125);
-  x.fillStyle = '#674735'; lines(m.heading, 95, 192, 715, 40, 2);
-  x.fillStyle = '#96734f'; lines(ev.title, 95, 296, 740, 25, 1);
-  x.font = `400 21px ${font}`; x.fillText(eventDate(ev).long, 95, 334, 740);
-  if (stamp) { x.save(); x.translate(903, 192); x.rotate(.12); fit(stamp, -85, -90, 170, 180); x.restore(); }
+  for (let y = 42; y < 1280; y += 8) { x.beginPath(); x.moveTo(46, y); x.lineTo(1016, y); x.stroke(); }
+  const fold = x.createLinearGradient(0, 610, 0, 710);
+  fold.addColorStop(0, '#96744900'); fold.addColorStop(.43, '#96744922'); fold.addColorStop(.5, '#64442160'); fold.addColorStop(.53, '#fffdf6'); fold.addColorStop(.62, '#96744922'); fold.addColorStop(1, '#96744900');
+  x.fillStyle = fold; x.fillRect(27, 610, 1008, 100);
+  x.strokeStyle = '#d7c3a5'; x.strokeRect(65, 53, 930, 562); x.strokeRect(65, 709, 930, 548);
+  if (logo) fit(logo, 92, 78, 65, 50);
+  x.fillStyle = '#94724d'; x.font = '18px Georgia'; x.textAlign = 'left'; x.fillText('MY BIGCAT PASSPORT', 182, 110);
+  x.fillStyle = '#674735'; lines(ev.title, 94, 177, 880, 36, 2);
+  x.fillStyle = '#96734f'; x.font = `400 21px ${font}`; x.fillText(eventDate(ev).long, 95, 265, 840);
+  if (stamp) { x.save(); x.translate(273, 431); x.rotate(-.07); fit(stamp, -150, -147, 300, 294); x.restore(); }
+  x.save(); x.shadowColor = '#684b3420'; x.shadowBlur = 12; x.shadowOffsetY = 5;
+  box(485, 303, 463, 280, '#fffcf4', 3); x.restore();
+  box(647, 289, 130, 28, '#e8c6bca0', 1);
+  x.fillStyle = '#a48663'; x.font = '17px Georgia'; x.fillText('A LITTLE NOTE FOR YOU', 513, 345);
+  if (note) fit(note, 510, 362, 412, 160);
+  else { x.fillStyle = '#765643'; lines(m.noteText || 'กำลังรวบรวมความทรงจำวันของเราอยู่นะ', 513, 390, 407, 25, 4); }
+  x.fillStyle = '#a07762'; x.textAlign = 'right'; x.font = `400 21px ${font}`;
+  if (note || m.noteText) x.fillText(`จาก ${m.author} ♡`, 918, 558);
+  x.textAlign = 'left'; x.font = '16px Georgia'; x.fillStyle = '#ac9474'; x.fillText('01  /  A DAY TO REMEMBER', 93, 601);
+  x.fillStyle = '#674735'; lines(m.heading, 94, 763, 880, 30, 2);
   const captions = [m.group && m.groupCaption, m.portrait && m.portraitCaption].filter(Boolean);
   photos.forEach((im, i) => {
-    const two = photos.length === 2, width = two ? 790 : 820, height = two ? 353 : 738;
-    const top = two ? 390 + i * 385 : 390;
-    x.save(); x.translate(two ? (i ? 568 : 510) : 540, top + height / 2); x.rotate(two ? (i ? .025 : -.025) : -.015);
+    const two = photos.length === 2, width = two ? 400 : 760, height = 327;
+    const top = two ? (i ? 848 : 826) : 830;
+    x.save(); x.translate(two ? (i ? 756 : 309) : 540, top + height / 2); x.rotate(two ? (i ? .04 : -.04) : -.015);
     x.shadowColor = '#684b3430'; x.shadowBlur = 18; x.shadowOffsetY = 8;
     box(-width / 2, -height / 2, width, height, '#fffefd', 3); x.shadowColor = 'transparent';
     box(-width / 2 + 18, -height / 2 + 18, width - 36, height - 76, '#f3eee7', 0);
     fit(im, -width / 2 + 18, -height / 2 + 18, width - 36, height - 76);
-    x.fillStyle = '#79563d'; x.textAlign = 'center'; x.font = `400 25px ${font}`; x.fillText(captions[i] || m.caption, 0, height / 2 - 22, width - 60);
+    x.fillStyle = '#79563d'; x.textAlign = 'center'; x.font = `400 22px ${font}`; x.fillText(captions[i] || m.caption, 0, height / 2 - 22, width - 60);
     x.globalAlpha = .76; box(-83, -height / 2 - 14, 166, 34, i ? '#c8dbe5' : '#e9c7c2', 1); x.restore();
   });
-  x.fillStyle = '#855c4b'; lines(m.caption, 100, 1202, 875, 26, 2);
-  x.textAlign = 'center'; x.font = '17px Georgia'; x.fillStyle = '#a28663'; x.fillText('LITTLE MOMENTS, BIG LOVE  ·  BIGCAT', 540, 1270);
+  x.fillStyle = '#855c4b'; lines(m.caption, 100, 1210, 875, 22, 1);
+  x.textAlign = 'left'; x.font = '16px Georgia'; x.fillStyle = '#a28663'; x.fillText('02  /  LITTLE MOMENTS, BIG LOVE', 93, 1246);
   return c;
 }
 
