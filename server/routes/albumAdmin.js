@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { q, one, parseJSON } from '../db.js';
 import { wrap, HttpError, getEvent } from '../lib.js';
 import { uploadMedia } from '../upload.js';
-import { importPhoto, deletePhoto, kick as kickAlbumScan, faceCrop, matchPhoto, albumPublished } from '../album.js';
+import { importPhoto, deletePhoto, kick as kickAlbumScan, faceCrop, matchPhoto, albumPublished, GROUP_MIN_FACES } from '../album.js';
 import { facesEnabled, faceProvider, MATCH_THRESHOLD } from '../faces.js';
 import { withUrls, usingS3 } from '../storage.js';
 import { requireAdmin } from './admin.js';
@@ -44,7 +44,7 @@ r.get('/albums/:slug', wrap(async (req, res) => {
   const groupPhotoId = ev.config.memory?.groupImage ? (photos.find(p => p.view === ev.config.memory.groupImage)?.id || null) : null;   // หา id ก่อนเซ็น URL
   res.json({
     event: { slug: ev.slug, title: ev.title, type: ev.type, status: ev.status, starts_at: ev.starts_at, published: albumPublished(ev.config), groupPhotoId, layout: ev.config.memory?.layout || 'auto' },
-    photos: await withUrls(photos), removals, facesEnabled, provider: faceProvider, threshold: MATCH_THRESHOLD, storage: usingS3 ? 's3' : 'disk',
+    photos: await withUrls(photos), removals, facesEnabled, provider: faceProvider, threshold: MATCH_THRESHOLD, groupMinFaces: GROUP_MIN_FACES, storage: usingS3 ? 's3' : 'disk',
   });
 }));
 
@@ -72,6 +72,7 @@ r.post('/albums/:slug/bulk', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
   const ids = (req.body?.ids || []).map(Number).filter(Boolean);
   const action = String(req.body?.action || '');
+  if (action === 'group-auto') { const r2 = await q('UPDATE event_photos SET group_ok=1 WHERE event_id=? AND faces>=?', [ev.id, GROUP_MIN_FACES]); return res.json({ ok: true, count: r2.affectedRows, threshold: GROUP_MIN_FACES }); }
   if (!ids.length) throw new HttpError(400, 'ยังไม่ได้เลือกรูป');
   const mine = (await q('SELECT id FROM event_photos WHERE event_id=? AND id IN (?)', [ev.id, ids])).map(p => p.id);
   if (!mine.length) throw new HttpError(404, 'ไม่พบรูปที่เลือก');

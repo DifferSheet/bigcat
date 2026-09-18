@@ -5,7 +5,7 @@ import { passportPrivateRoot } from '../upload.js';
 import { wrap, HttpError, getEvent } from '../lib.js';
 import { requireUser, parseCookies, setCookie } from '../auth.js';
 import { passportOf, attachInvite, INVITE_COOKIE_NAME, syncStamps } from '../passport.js';
-import { photosOfUser } from '../album.js';
+import { photosOfUser, GROUP_MIN_FACES } from '../album.js';
 import { withUrls, url as mediaUrl, localCopy } from '../storage.js';
 import { uploadPassportPortrait } from '../upload.js';
 
@@ -52,7 +52,7 @@ r.get('/passport/:slug/photos', requireUser, wrap(async (req, res) => {
   const mine = await photosOfUser(req.user.id, st.event_id);
   // รูปหมู่: เลือกจากรูปในอัลบั้มของงาน — เอารูปที่มีคนหลายคนขึ้นก่อน
   const marked = (await one('SELECT COUNT(*) AS n FROM event_photos WHERE event_id=? AND group_ok=1', [st.event_id])).n;
-  const album = await q(`SELECT id, thumb, view, faces FROM event_photos WHERE event_id=? AND ${marked ? 'group_ok=1' : '(faces IS NULL OR faces>=3)'} ORDER BY featured DESC, sort_order LIMIT 60`, [st.event_id]);
+  const album = await q(`SELECT id, thumb, view, faces FROM event_photos WHERE event_id=? AND ${marked ? 'group_ok=1' : 'faces>=?'} ORDER BY faces DESC, featured DESC, sort_order LIMIT 60`, marked ? [st.event_id] : [st.event_id, GROUP_MIN_FACES]);
   res.set('Cache-Control', 'private, no-store').json({
     photos: await withUrls(mine.map(p => ({ id: p.id, thumb: p.thumb, view: p.view, faces: p.faces, status: p.status }))),
     album: await withUrls(album.map(p => ({ id: p.id, thumb: p.thumb, view: p.view, faces: p.faces }))),

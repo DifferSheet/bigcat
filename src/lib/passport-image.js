@@ -2,34 +2,71 @@
 // แสตมป์ที่ได้ = วงกลมภาพ (ลายแอดมิน หรือภาพปก) ขอบสีงาน · งานที่พลาด = วงเทาจาง · แสตมป์พิเศษ = ตราสี
 import { eventStampArt, SPECIAL_STAMP_ART } from './stamp-art.js';
 import { eventMemory } from './passport-memory.js';
+import { eventDate } from './format.js';
 const W = 1080, H = 1920;
 const loadImage = (src) => new Promise((resolve) => { if (!src) return resolve(null); const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => resolve(im); im.onerror = () => resolve(null); im.src = src; });
 const TONE = { pink: '#df8190', yellow: '#e2b53c', sage: '#7fa66f' };
 
-// Export never includes a member's portrait unless they explicitly opt in.
-export async function drawEventMemoryImage(ev, { includePortrait = false } = {}) {
+// Preview exactly the photographs selected in this memory before saving/sharing.
+export async function drawEventMemoryImage(ev) {
   const m = eventMemory(ev), c = document.createElement('canvas');
   c.width = 1080; c.height = 1350;
   const x = c.getContext('2d');
-  await document.fonts.ready;
   const font = getComputedStyle(document.documentElement).getPropertyValue('--font-body').trim() || 'sans-serif';
-  x.fillStyle = '#f6ecdc'; x.fillRect(0, 0, c.width, c.height);
-  x.textAlign = 'center'; x.fillStyle = '#79563d'; x.font = '28px Georgia'; x.fillText('BIGCAT · OUR PHOTO MEMORIES', 540, 95);
-  x.font = `600 36px ${font}`; x.fillText(ev.title, 540, 165, 950);
+  await Promise.all([400, 600].map(weight => document.fonts.load(`${weight} 40px ${font}`)));
   // วาดด้วยรูปที่เสิร์ฟจากโดเมนเรา (ลิงก์ S3 เป็น cross-origin วาดลง canvas ไม่ได้)
   const own = (kind) => `/api/passport/${encodeURIComponent(ev.slug)}/image/${kind}`;
-  const sources = [m.group ? own('group') : null, includePortrait && m.portrait ? own('portrait') : null].filter(Boolean);
+  const sources = [m.group ? own('group') : null, m.portrait ? own('portrait') : null].filter(Boolean);
   if (!sources.length) sources.push(eventStampArt(ev) || ev.cover);
-  const photos = await Promise.all(sources.map(loadImage));
+  const [photos, stamp, logo] = await Promise.all([Promise.all(sources.map(loadImage)), loadImage(eventStampArt(ev)), loadImage('/images/bigcat-mark-pink.webp')]);
   if (photos.some(im => !im)) throw new Error('โหลดภาพไม่สำเร็จ — ลองรีเฟรชหน้าแล้วกดอีกครั้ง');
+  const box = (left, top, width, height, color, radius = 12) => {
+    x.beginPath(); x.roundRect(left, top, width, height, radius); x.fillStyle = color; x.fill();
+  };
+  const fit = (im, left, top, width, height) => {
+    const scale = Math.min(width / im.width, height / im.height);
+    x.drawImage(im, left + (width - im.width * scale) / 2, top + (height - im.height * scale) / 2, im.width * scale, im.height * scale);
+  };
+  const lines = (text, left, top, width, size, maxLines = 2) => {
+    x.font = `600 ${size}px ${font}`; x.textAlign = 'left';
+    const chars = Array.from(text || ''); let line = '', row = 0;
+    for (let i = 0; i < chars.length; i++) {
+      if (x.measureText(line + chars[i]).width > width) {
+        if (row === maxLines - 1) { x.fillText(line.slice(0, -1) + '…', left, top + row * size * 1.5); return; }
+        x.fillText(line, left, top + row++ * size * 1.5); line = '';
+      }
+      line += chars[i];
+    }
+    x.fillText(line, left, top + row * size * 1.5);
+  };
+  const bg = x.createLinearGradient(0, 0, 1080, 1350); bg.addColorStop(0, '#ead8cc'); bg.addColorStop(1, '#f7eee1');
+  x.fillStyle = bg; x.fillRect(0, 0, 1080, 1350);
+  x.save(); x.shadowColor = '#65453226'; x.shadowBlur = 32; x.shadowOffsetY = 14;
+  box(36, 30, 1008, 1274, '#dcc5a4', 22); box(30, 22, 1008, 1274, '#fff9ed', 22); x.restore();
+  // Fine paper ruling and binding details keep the exported card part of the passport.
+  x.strokeStyle = '#b49b7220'; x.lineWidth = 1;
+  for (let y = 44; y < 1280; y += 8) { x.beginPath(); x.moveTo(48, y); x.lineTo(1020, y); x.stroke(); }
+  x.strokeStyle = '#d5b995'; x.beginPath(); x.moveTo(65, 65); x.lineTo(65, 1260); x.stroke();
+  if (logo) fit(logo, 95, 66, 85, 66);
+  x.fillStyle = '#94724d'; x.font = '19px Georgia'; x.textAlign = 'left'; x.fillText('MY BIGCAT PASSPORT', 205, 97); x.fillText('A DAY TO REMEMBER', 205, 125);
+  x.fillStyle = '#674735'; lines(m.heading, 95, 192, 715, 40, 2);
+  x.fillStyle = '#96734f'; lines(ev.title, 95, 296, 740, 25, 1);
+  x.font = `400 21px ${font}`; x.fillText(eventDate(ev).long, 95, 334, 740);
+  if (stamp) { x.save(); x.translate(903, 192); x.rotate(.12); fit(stamp, -85, -90, 170, 180); x.restore(); }
+  const captions = [m.group && m.groupCaption, m.portrait && m.portraitCaption].filter(Boolean);
   photos.forEach((im, i) => {
-    const top = 245 + i * 460, height = photos.length === 1 ? 780 : 395;
-    x.fillStyle = '#fffdfa'; x.fillRect(100, top, 880, height + 50);
-    const scale = Math.min(820 / im.width, height / im.height);
-    x.drawImage(im, 540 - im.width * scale / 2, top + 15 + (height - im.height * scale) / 2, im.width * scale, im.height * scale);
-    x.fillStyle = '#ddc7a2b0'; x.fillRect(430, top - 14, 220, 38);
+    const two = photos.length === 2, width = two ? 790 : 820, height = two ? 353 : 738;
+    const top = two ? 390 + i * 385 : 390;
+    x.save(); x.translate(two ? (i ? 568 : 510) : 540, top + height / 2); x.rotate(two ? (i ? .025 : -.025) : -.015);
+    x.shadowColor = '#684b3430'; x.shadowBlur = 18; x.shadowOffsetY = 8;
+    box(-width / 2, -height / 2, width, height, '#fffefd', 3); x.shadowColor = 'transparent';
+    box(-width / 2 + 18, -height / 2 + 18, width - 36, height - 76, '#f3eee7', 0);
+    fit(im, -width / 2 + 18, -height / 2 + 18, width - 36, height - 76);
+    x.fillStyle = '#79563d'; x.textAlign = 'center'; x.font = `400 25px ${font}`; x.fillText(captions[i] || m.caption, 0, height / 2 - 22, width - 60);
+    x.globalAlpha = .76; box(-83, -height / 2 - 14, 166, 34, i ? '#c8dbe5' : '#e9c7c2', 1); x.restore();
   });
-  x.fillStyle = '#79563d'; x.font = `26px ${font}`; x.fillText(m.caption, 540, 1250, 940);
+  x.fillStyle = '#855c4b'; lines(m.caption, 100, 1202, 875, 26, 2);
+  x.textAlign = 'center'; x.font = '17px Georgia'; x.fillStyle = '#a28663'; x.fillText('LITTLE MOMENTS, BIG LOVE  ·  BIGCAT', 540, 1270);
   return c;
 }
 

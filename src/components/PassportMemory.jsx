@@ -6,6 +6,7 @@ import { eventMemory } from '../lib/passport-memory.js';
 import { drawEventMemoryImage } from '../lib/passport-image.js';
 import PortraitPicker from './PortraitPicker.jsx';
 import PhotoModal from './PhotoModal.jsx';
+import SaveImage from './SaveImage.jsx';
 import { Icon, Modal } from './ui.jsx';
 import { Notice } from './EventShell.jsx';
 import { api } from '../lib/api.js';
@@ -43,7 +44,6 @@ function TextEditor({ ev, m, onClose }) {
 }
 
 export default function PassportMemory({ ev, side, onOpen }) {
-  const [includePortrait, setIncludePortrait] = useState(false);
   const [share, setShare] = useState(false);
   const [image, setImage] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -64,8 +64,8 @@ export default function PassportMemory({ ev, side, onOpen }) {
   const m = eventMemory(ev);
   const state = ev.earned ? 'earned' : ev.phase === 'upcoming' ? 'locked' : 'missed';
   const makeImage = async () => {
-    setBusy(true); setError(''); setImage(null);
-    try { setImage((await drawEventMemoryImage(ev, { includePortrait })).toDataURL('image/png')); }
+    setShare(true); setBusy(true); setError(''); setImage(null);
+    try { setImage((await drawEventMemoryImage(ev)).toDataURL('image/png')); }
     catch { setError('สร้างภาพไม่สำเร็จ กรุณาลองอีกครั้ง'); }
     finally { setBusy(false); }
   };
@@ -87,7 +87,7 @@ export default function PassportMemory({ ev, side, onOpen }) {
         <button type="button" role="menuitem" onClick={() => { setMenu(false); setPick('portrait'); }}>{m.portrait ? 'เปลี่ยนรูปคู่' : 'เลือกรูปคู่ของฉัน'}</button>
         <button type="button" role="menuitem" onClick={() => { setMenu(false); setPick('group'); }}>{m.group ? 'เปลี่ยนรูปหมู่' : 'เลือกรูปหมู่'}</button>
         <button type="button" role="menuitem" onClick={() => { setMenu(false); setTexts(true); }}>แก้ข้อความในหน้านี้</button>
-        {(m.group || m.portrait) && <button type="button" role="menuitem" onClick={() => { setMenu(false); setShare(true); }}>บันทึกภาพหน้านี้ไว้แชร์</button>}
+        {(m.group || m.portrait) && <button type="button" role="menuitem" onClick={() => { setMenu(false); makeImage(); }}>บันทึกภาพหน้านี้ไว้แชร์</button>}
         {m.portrait && ev.memory?.portraitSource === 'auto' && <small>รูปคู่นี้ระบบเลือกให้จากอัลบั้ม{ev.memory.myPhotos > 1 ? ` · มีรูปคุณอีก ${ev.memory.myPhotos - 1} รูป` : ''}</small>}
       </div>}
     </div>}
@@ -100,6 +100,10 @@ export default function PassportMemory({ ev, side, onOpen }) {
     {pick && <PortraitPicker ev={ev} tab={pick} onClose={() => setPick(null)} onChanged={() => dispatchEvent(new CustomEvent('bigcat:passport-refresh'))} />}
     {(m.group || m.portrait) && <p className="pm-caption">{m.caption}</p>}
     {open != null && <PhotoModal list={shots} index={open} setIndex={setOpen} onClose={() => setOpen(null)} caption={(p, i) => `${p.label} · ${i + 1}/${shots.length}`} />}
-    {share && <div className="pm-share-panel"><strong>เลือกสิ่งที่อยากแบ่งปัน</strong>{m.portrait && <label><input type="checkbox" disabled={busy} checked={includePortrait} onChange={e => { setIncludePortrait(e.target.checked); setImage(null); }} /> รวมรูปคู่ของฉันในภาพแชร์</label>}<small>รูปคู่จะไม่ถูกใส่ลงภาพแชร์จนกว่าคุณจะเลือก</small><button className="button small ghost" type="button" disabled={busy} onClick={makeImage}>{busy ? 'กำลังเตรียมภาพ…' : 'สร้างภาพแชร์'}</button>{image && <a href={image} download={`bigcat-memory-${ev.slug}.png`}>ดาวน์โหลดภาพ PNG ↓</a>}{error && <p role="alert">{error}</p>}</div>}
+    {share && <Modal title="เก็บหน้านี้ไว้แชร์" onClose={() => setShare(false)}><div className="pm-share-preview">
+      {busy && <p role="status">กำลังจัดหน้าความทรงจำของคุณ…</p>}
+      {image && <SaveImage url={image} fileName={`bigcat-memory-${ev.slug}.png`} title={ev.title} alt="ภาพความทรงจำแนวตั้ง พร้อมรูปและแสตมป์จากหน้าสมุดนี้" />}
+      {error && <><Notice tone="error">{error}</Notice><button type="button" className="button ghost" onClick={makeImage}>ลองอีกครั้ง</button></>}
+    </div></Modal>}
   </div>;
 }

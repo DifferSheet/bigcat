@@ -10,6 +10,7 @@ import { code } from './lib.js';
 import * as faces from './faces.js';
 import * as store from './storage.js';
 const MAX_FACES = 3;     // รูปเดี่ยว/คู่/สามคน = ส่งจับคู่ · มากกว่านั้น = รูปหมู่ ไม่ส่ง
+export const GROUP_MIN_FACES = Number(process.env.GROUP_MIN_FACES || 20);   // นับเป็น «รูปหมู่» เมื่อมีคนตั้งแต่เท่านี้ขึ้นไป
 
 /* ---------- นำเข้ารูป: ต้นฉบับ(≤2400) · view 1400 · thumb 480 (webp) ---------- */
 export async function importPhoto(eventId, srcPath, { takenAt = null, remove = false } = {}) {
@@ -68,7 +69,11 @@ async function scanFile(p, file) {
   const det = await faces.detect(file);
   const n = det.faces.length;                          // นับทุกหน้า (รวมหน้าเล็กไกล ๆ) → รูปหมู่ = ข้าม
   const usable = det.faces.filter(faces.usable).length;
-  if (n < 1 || n > MAX_FACES || usable === 0) { await q("UPDATE event_photos SET scan='skipped', faces=? WHERE id=?", [n, p.id]); return; }
+  if (n < 1 || n > MAX_FACES || usable === 0) {
+    // รูปคนเยอะ = รูปหมู่ (ทำเครื่องหมายให้อัตโนมัติ · แอดมินกดเอาออก/เพิ่มเองได้ในหน้าอัลบั้ม)
+    await q("UPDATE event_photos SET scan='skipped', faces=?, group_ok=? WHERE id=?", [n, n >= GROUP_MIN_FACES ? 1 : 0, p.id]);
+    return;
+  }
   const idx = await faces.index(file, `p:${p.id}`, det);
   dropCrops((await q('SELECT id FROM photo_faces WHERE photo_id=?', [p.id])).map(r => r.id));
   await q('DELETE FROM photo_faces WHERE photo_id=?', [p.id]);

@@ -188,7 +188,10 @@ export function AlbumDetail({ slug }) {
 
     <div className="tabs-row">
       <div className="filter-tabs">{FILTERS.map(([k, label]) => <button key={k} className={filter === k ? 'active' : ''} onClick={() => setFilter(k)}>{label}</button>)}</div>
+      <span className="ab-tools">
+        <button type="button" className="link-button" onClick={async () => { setMsg(''); try { const r = await api(`/admin/albums/${slug}/bulk`, { method: 'POST', body: { action: 'group-auto' }, admin: true }); setMsg(`ทำเครื่องหมายรูปหมู่อัตโนมัติ ${r.count} รูป (คนตั้งแต่ ${r.threshold} คนขึ้นไป)`); load(); } catch (e) { setErr(e.message); } }}>ทำเครื่องหมายรูปหมู่อัตโนมัติ (คน ≥ {d.groupMinFaces || 20})</button>
       <label className="check-all"><input type="checkbox" checked={list.length > 0 && list.every(p => sel.includes(p.id))} onChange={e => setSel(e.target.checked ? list.map(p => p.id) : [])} /> เลือกทั้งหมดในมุมมองนี้</label>
+      </span>
     </div>
     {sel.length > 0 && <div className="bulk-bar"><span>เลือก {sel.length} รูป</span>
       <button className="button dark small" onClick={() => bulk('feature')}>ตั้งเป็นพรีวิว</button>
