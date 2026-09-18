@@ -27,11 +27,13 @@ const myStamp = async (userId, slug) => {
 };
 // รูปในสมุด (รูปคู่/รูปหมู่) แบบสตรีมผ่านโดเมนเรา — ใช้ตอนวาดภาพแชร์ด้วย canvas (ลิงก์ S3 ข้ามโดเมนวาดไม่ได้)
 r.get('/passport/:slug/image/:kind', requireUser, wrap(async (req, res) => {
+  if (!['group', 'portrait', 'note'].includes(req.params.kind)) throw new HttpError(404, 'ไม่พบรูป');
   const st = await myStamp(req.user.id, req.params.slug);
   const ev = await getEvent(req.params.slug);
   const meta = parseJSON(st.meta, {});
   let stored = null;
   if (req.params.kind === 'group') stored = meta.groupPhoto?.view || ev.config.memory?.groupImage || null;
+  else if (req.params.kind === 'note') stored = ev.config.memory?.noteImage || null;
   else if (meta.passportPortrait) {   // ไฟล์ส่วนตัวที่อัปโหลดเอง
     if (!/^[\w-]+\.(jpg|png|webp)$/.test(meta.passportPortrait)) throw new HttpError(404, 'ไม่พบรูป');
     return res.set('Cache-Control', 'private, no-store').sendFile(meta.passportPortrait, { root: passportPrivateRoot });
