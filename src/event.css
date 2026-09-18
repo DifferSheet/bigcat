@@ -272,12 +272,18 @@
 .gate-done p { color: #ffffffb3; }
 .gate-done .button { margin-top: 16px; color: #fff; border-color: #ffffff66; }
 .mini-tag.via { background: var(--sand-2); color: var(--muted); }
+.seasons { margin-bottom: 14px; }
+.season-row { display: flex; gap: 12px; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+.season-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.season-form input { padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); font-size: 14px; }
+.season-form .button { margin: 0; }
+.stamp-pick { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.stamp-pick img { width: 64px; height: 64px; object-fit: contain; border-radius: 50%; background: #fff; border: 1px solid var(--line); }
+.stamp-pick input { flex: 1; min-width: 180px; }
 .checkin-stats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 0 0 10px; }
 .checkin-stats strong { color: var(--ink); }
 
 /* ---------- Admin ---------- */
-.admin-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 18px; }
-.admin-head h1 { font-size: 32px; }
 .scan-box { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: var(--r-md); background: #fff; border: 1px solid var(--line); margin-bottom: 24px; flex-wrap: wrap; }
 .scan-box input { flex: 1; min-width: 220px; }
 .scan-box .button { margin: 0; }
@@ -304,7 +310,6 @@
 .checkin-card .checkin-meta { color: var(--muted-2); font-size: 14px; }
 .checkin-card .notice { margin: 6px 0 0; }
 .checkin-card .form-actions { margin-top: 14px; flex-wrap: wrap; }
-.admin-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 24px; align-items: start; }
 .admin-list { display: flex; flex-direction: column; gap: 8px; }
 .admin-item { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 14px 16px; border-radius: var(--r-md); background: var(--paper); border: 1.5px solid var(--line); }
 .admin-item.active { border-color: var(--ink); background: #fff; }
@@ -336,7 +341,6 @@
   .ev-hero-art { order: -1; }
   .ev-columns { grid-template-columns: 1fr; gap: 10px; }
   .ev-side { position: static; max-height: none; overflow: visible; }
-  .admin-layout { grid-template-columns: 1fr; }
   .admin-list { flex-direction: row; overflow-x: auto; padding-bottom: 6px; }
   .admin-item { min-width: 240px; }
 }
@@ -352,7 +356,6 @@
   .countdown span { min-width: 54px; }
   .countdown strong { font-size: 22px; }
   .ticket-lookup form { flex-direction: column; }
-  .admin-head { flex-direction: column; align-items: flex-start; }
 }
 @media print {
   .header, .footer, .form-actions, .skip-link { display: none !important; }
@@ -549,8 +552,6 @@
 .admin-login-card h1 { font-size: 26px; }
 .admin-login-card .booking-form { max-width: none; }
 .admin-login-card .button { justify-content: center; margin-top: 4px; }
-.admin-account { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 6px; }
-.admin-account .pw-form { flex-basis: 100%; margin-top: 4px; }
 .admin-search { width: min(360px, 100%); padding: 10px 14px; border-radius: var(--r-sm); border: 1px solid var(--line); background: #fff; font: inherit; font-size: 14px; }
 .admin-table .thumb.round { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
 .admin-table .thumb.placeholder { display: inline-grid; place-items: center; background: var(--pink); color: #fff; font-weight: 700; }
@@ -574,3 +575,55 @@
 .mini-tag.as-btn { cursor: pointer; border: 0; font: inherit; font-size: 10px; }
 .merit-percent.over { color: var(--ok-text); } .merit-percent small { display: block; font-size: 11px; font-weight: 600; }
 .mini-bar.full i { background: var(--ok); }
+
+/* ---------- อัลบั้มรูปงาน ---------- */
+.album-preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.album-preview-tile { position: relative; display: block; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--sand-2); }
+.album-preview-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.album-preview.locked .album-preview-tile img { filter: blur(3px) saturate(.8); transform: scale(1.06); }
+.album-preview-tile.more { display: flex; align-items: center; justify-content: center; background: var(--ink); color: #fff; font-family: var(--font-display); font-size: 22px; }
+.album-me { position: absolute; left: 6px; bottom: 6px; font-size: 11px; font-weight: 700; background: var(--pink); color: #fff; border-radius: var(--r-pill); padding: 2px 8px; }
+.album-page .album-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 10px 0 18px; }
+.album-page .album-head h1 { font-size: 30px; }
+.album-grid { columns: 4 220px; column-gap: 10px; }
+.album-tile { position: relative; display: block; width: 100%; margin: 0 0 10px; padding: 0; border: 0; border-radius: 12px; overflow: hidden; background: var(--sand-2); cursor: zoom-in; break-inside: avoid; }
+.album-tile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .25s; }
+.album-tile:hover img { transform: scale(1.03); }
+.album-tile.mine { outline: 3px solid var(--pink); outline-offset: -3px; }
+.album-locked { max-width: 720px; }
+dialog.lightbox.lb-top { position: fixed; inset: 0; margin: 0; width: 100%; max-width: 100%; height: 100%; max-height: 100%; padding: 16px; border: 0; background: #1d1a17f2; color: #fff; overflow: hidden; }
+dialog.lightbox.lb-top::backdrop { background: #1d1a17cc; }
+.lightbox { position: fixed; inset: 0; z-index: 60; background: #1d1a17ee; display: flex; align-items: center; justify-content: center; padding: 16px; animation: appear .2s ease; }
+.lightbox figure { margin: 0; max-width: min(1200px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.lightbox img { max-width: 100%; max-height: calc(100dvh - 130px); object-fit: contain; border-radius: 10px; }
+.lightbox figcaption { display: flex; flex-direction: column; align-items: center; gap: 8px; color: #fff; text-align: center; }
+.lightbox figcaption .muted { color: #ffffffaa; font-size: 13px; }
+.lb-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.lb-actions .button { margin: 0; }
+.lb-actions .button.ghost { color: #fff; border-color: #ffffff66; }
+.lb-actions .link-button { color: #ffffffb3; }
+.lb-close { position: absolute; top: 14px; right: 14px; color: #fff; }
+.lb-nav { position: absolute; top: 50%; transform: translateY(-50%); background: #ffffff22; color: #fff; border: 0; width: 44px; height: 44px; border-radius: 50%; font-size: 28px; line-height: 1; cursor: pointer; }
+.lb-nav.prev { left: 12px; }
+.lb-nav.next { right: 12px; }
+@media (max-width: 640px) {
+  .album-grid { columns: 2 140px; }
+  .lb-nav { display: none; }
+}
+.album-admin { margin: 0 0 14px; }
+.album-drop { display: flex; align-items: center; gap: 10px; padding: 16px; border: 2px dashed var(--line); border-radius: var(--r-md); background: #fff; cursor: pointer; font-size: 14px; color: var(--muted); margin: 10px 0; }
+.album-drop input { display: none; }
+.album-drop.busy { opacity: .7; cursor: progress; }
+.album-admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 60dvh; overflow: auto; padding: 2px; }
+.aa-tile { position: relative; margin: 0; border-radius: 10px; overflow: hidden; background: var(--sand-2); aspect-ratio: 1; }
+.aa-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.aa-tile.skipped img { opacity: .55; }
+.aa-badges { position: absolute; top: 5px; left: 5px; display: flex; gap: 3px; flex-wrap: wrap; }
+.aa-actions { position: absolute; inset: auto 0 0 0; display: none; gap: 2px; justify-content: space-around; background: #ffffffe6; padding: 3px 2px; }
+.aa-actions .link-button { font-size: 11px; padding: 4px 2px; }
+.aa-tile:hover .aa-actions, .aa-tile:focus-within .aa-actions { display: flex; }
+.removal-list { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: var(--r-md); background: #fbe6e6; margin: 8px 0; font-size: 13px; }
+.removal-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.removal-row img { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; }
+.removal-row .button { margin: 0; }
+.checkin-stats .danger { color: var(--danger); }

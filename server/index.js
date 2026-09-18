@@ -10,10 +10,17 @@ import { setIO, room, releaseExpiredHolds, eventDetail, HttpError } from './lib.
 import publicRoutes from './routes/public.js';
 import adminRoutes from './routes/admin.js';
 import shopRoutes from './routes/shop.js';
+import passportRoutes from './routes/passport.js';
+import albumRoutes from './routes/album.js';
+import { kick as kickAlbumScan } from './album.js';
+import { usingS3 } from './storage.js';
+import { faceProvider as faceProviderName } from './faces.js';
+import { backfillIfEmpty } from './passport.js';
 import shopAdminRoutes from './routes/shopAdmin.js';
+import albumAdminRoutes from './routes/albumAdmin.js';
 import { verifySignature, handleWebhookEvent, lineEnabled } from './line.js';
 import { slipEnabled } from './slip.js';
-import authRoutes, { me as meRoutes, attachUser, authProviders } from './auth.js';
+import authRoutes, { me as meRoutes, attachUser, authProviders, devLogin, devLoginEnabled } from './auth.js';
 
 const PORT = Number(process.env.PORT || 3001);
 const app = express();
@@ -33,16 +40,21 @@ app.post('/api/line/webhook', express.raw({ type: '*/*' }), async (req, res) => 
 });
 app.use(express.json());
 app.use('/api', attachUser);   // req.user จาก cookie session (null ถ้าไม่ได้ล็อกอิน)
-app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'uploads')));
+// ชื่อไฟล์อัปโหลดมี timestamp+รหัสสุ่ม ไม่ซ้ำ ไม่ถูกเขียนทับ → ให้ browser/Cloudflare เก็บได้ยาว ไม่ต้องกลับมาถาม EC2
+app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'uploads'), { maxAge: '365d', immutable: true }));
 app.get('/api/health', async (_req, res) => {
   try { await one('SELECT 1'); res.json({ ok: true, db: true }); } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 app.use('/api/auth', authRoutes);
+if (devLoginEnabled) { app.get('/api/dev/login', devLogin); console.log('⚠️  DEV_LOGIN เปิดอยู่ — /api/dev/login?u=<id> ใช้ได้บนเครื่องนี้'); }
 app.use('/api/me', meRoutes);
 app.use('/api', publicRoutes);
 app.use('/api', shopRoutes);
+app.use('/api', passportRoutes);
+app.use('/api', albumRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/shop', shopAdminRoutes);
+app.use('/api/admin', albumAdminRoutes);
 
 // พอร์ตนี้เป็น API อย่างเดียว — หน้าเว็บอยู่ที่ Next (:3100) · เปิด / ตรงนี้จะบอกทางไปแทนการเสิร์ฟ build เก่า
 app.get('/', (_req, res) => res.type('text/plain').send(`BIGCAT API · หน้าเว็บอยู่ที่ ${process.env.SITE_URL || 'http://localhost:' + (process.env.WEB_PORT || 3100)}`));
@@ -68,4 +80,6 @@ setInterval(() => releaseExpiredHolds().catch(console.error), 15000);
 
 await migrate();
 await (await import('./adminAuth.js')).ensureFirstAdmin();
-server.listen(PORT, () => console.log(`✓ BIGCAT API + Socket.IO on http://localhost:${PORT} · slip: ${slipEnabled ? process.env.SLIP_PROVIDER : 'off'} · LINE: ${lineEnabled ? 'on' : 'off'} · login: ${Object.entries(authProviders).filter(([, v]) => v).map(([k]) => k).join('+') || 'off'}`));
+backfillIfEmpty().catch(e => console.error('passport backfill:', e.message));
+kickAlbumScan();   // สแกนรูปที่ค้างจากรอบก่อน (ถ้ามี)
+server.listen(PORT, () => console.log(`✓ BIGCAT API + Socket.IO on http://localhost:${PORT} · slip: ${slipEnabled ? process.env.SLIP_PROVIDER : 'off'} · LINE: ${lineEnabled ? 'on' : 'off'} · ภาพ: ${usingS3 ? process.env.MEDIA_BUCKET : 'disk'} · ใบหน้า: ${faceProviderName} · login: ${Object.entries(authProviders).filter(([, v]) => v).map(([k]) => k).join('+') || 'off'}`));

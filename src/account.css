@@ -56,3 +56,134 @@
 .crop-zoom input[type=range] { flex: 1; accent-color: var(--pink); }
 .crop-hint { text-align: center; margin: 0; font-size: 13px; }
 .crop-body .form-actions { justify-content: center; margin-top: 4px; }
+
+/* ---------- Passport (สมุดแสตมป์) ---------- */
+.passport-page .paw-mark { display: block; width: 60px; margin: 30px auto 0; opacity: .5; }
+.passport-head { display: flex; align-items: center; gap: 18px; margin: 10px 0 20px; flex-wrap: wrap; }
+.passport-head .grow { flex: 1; min-width: 200px; }
+.passport-head h1 { font-size: 30px; }
+.passport-head .button { margin: 0; }
+.passport-book .ev-section-head { margin-bottom: 12px; }
+.stamp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.stamp-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 10px 14px; border-radius: var(--r-md); background: #fff; border: 1px solid var(--line); text-align: center; cursor: pointer; transition: transform .15s, box-shadow .15s; font: inherit; color: inherit; }
+button.stamp-slot:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); }
+.stamp-slot strong { font-size: 14px; line-height: 1.3; margin-top: 6px; }
+.stamp-slot small { color: var(--muted); font-size: 12px; }
+.stamp-slot.missed { background: var(--paper); }
+.stamp-slot.missed strong { color: var(--muted-3); }
+.stamp-slot.locked { border-style: dashed; background: transparent; }
+.stamp-slot .slot-extra, .stamp-slot .slot-unlock { font-size: 11px; font-weight: 700; color: #a3485a; background: var(--pink-tint); border-radius: var(--r-pill); padding: 1px 8px; margin-top: 2px; }
+.stamp-slot .slot-extra { color: #8a6a1c; background: #fff3cf; }
+.stamp { display: block; max-width: 100%; height: auto; }
+.stamp-missed { filter: grayscale(1); opacity: .35; }
+.stamp-special.foil { filter: drop-shadow(0 2px 4px #c99a2e55); }
+.stamp-art { position: relative; display: inline-block; }
+.stamp-art img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.stamp-art.foil { filter: drop-shadow(0 2px 5px #c99a2e66); }
+.stamp-badge { position: absolute; right: 2%; bottom: 6%; font-size: 12px; font-weight: 700; color: #fff; background: var(--ink); border-radius: var(--r-pill); padding: 2px 8px; box-shadow: 0 1px 3px #0003; }
+.stamp-detail { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.stamp-detail .stamp-earned-at { font-weight: 600; color: #a3485a; }
+.stamp-extras { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.unlock-box { width: 100%; margin-top: 8px; padding: 16px; border-radius: var(--r-md); background: var(--pink-wash); border: 1px solid var(--pink-pale); display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.unlock-box .eyebrow { color: #a3485a; }
+.unlock-box img { max-width: 100%; border-radius: 12px; }
+.unlock-box audio { width: 100%; }
+.unlock-text { font-family: var(--font-head); font-size: 18px; line-height: 1.6; white-space: pre-wrap; }
+.invite-box { display: flex; gap: 20px; align-items: center; padding: 20px 22px; border-radius: var(--r-md); background: #fff; border: 1px solid var(--line); flex-wrap: wrap; }
+.invite-copy { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 6px; }
+.invite-copy h3 { font-size: 20px; }
+.invite-link { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.invite-link code { padding: 8px 12px; border-radius: var(--r-sm); background: var(--sand-2); font-size: 13px; }
+.invite-link .button { margin: 0; }
+.invite-landing { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; max-width: 520px; }
+.invite-landing h1 { font-size: 26px; }
+.invite-pair { display: flex; gap: 0; }
+.invite-pair .stamp + .stamp { margin-left: -14px; }
+@media (max-width: 640px) {
+  .stamp-grid { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 10px; }
+  .passport-head h1 { font-size: 24px; }
+}
+
+/* ---------- แท็บในหน้าบัญชี ---------- */
+.account-tabs { display: flex; gap: 6px; margin: 4px 0 20px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.account-tabs button { display: inline-flex; align-items: center; gap: 7px; padding: 11px 16px; font-size: 14px; font-weight: 600; color: var(--muted); border-bottom: 2.5px solid transparent; white-space: nowrap; cursor: pointer; background: none; }
+.account-tabs button:hover { color: var(--ink); }
+.account-tabs button.active { color: var(--ink); border-bottom-color: var(--pink); }
+
+/* ---------- แท็บ «รูปของฉัน» (ใบหน้า opt-in) ---------- */
+.mp-wrap { display: flex; flex-direction: column; gap: 18px; }
+.mp-intro { display: flex; gap: 20px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; padding: 20px 22px; border-radius: var(--r-lg); background: var(--pink-wash); border: 1px solid var(--pink-pale); }
+.mp-intro > div:first-child { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 6px; }
+.mp-intro h2 { font-size: 24px; }
+.mp-intro p { margin: 0; }
+.mp-status { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+.mp-status strong { font-family: var(--font-display); font-size: 26px; color: var(--pink); }
+.mp-badge { font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: var(--r-pill); background: var(--sand-2); color: var(--muted); }
+.mp-badge.on { background: #e4efdc; color: var(--ok-text); }
+.mp-manage { display: flex; gap: 12px; }
+
+.mp-steps { display: flex; flex-direction: column; gap: 10px; }
+.mp-step { display: flex; gap: 14px; padding: 18px 20px; border-radius: var(--r-md); background: #fff; border: 1px solid var(--line); opacity: .72; transition: opacity .2s, border-color .2s; }
+.mp-step.now { opacity: 1; border-color: var(--ink); }
+.mp-step.done { opacity: 1; }
+.mp-num { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--sand-2); color: var(--muted); font-family: var(--font-display); font-size: 15px; }
+.mp-step.now .mp-num { background: var(--ink); color: #fff; }
+.mp-step.done .mp-num { background: #e4efdc; color: var(--ok-text); }
+.mp-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.mp-step-body h3 { font-size: 17px; }
+.mp-step-body .button { margin: 0; align-self: flex-start; }
+.mp-pick { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.mp-preview { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pink-pale); background: var(--sand-2); }
+.mp-preview.empty { display: grid; place-items: center; color: var(--muted-3); }
+.mp-pick-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mp-consent { display: flex; gap: 12px; align-items: flex-start; text-align: left; padding: 14px 16px; border-radius: var(--r-md); border: 1.5px solid var(--line); background: var(--paper); font-size: 14px; line-height: 1.6; cursor: pointer; width: 100%; }
+.mp-consent[aria-pressed="true"] { border-color: var(--ok-text); background: #f2f8ee; }
+.mp-tick { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); background: #fff; font-size: 13px; font-weight: 700; color: #fff; }
+.mp-tick.on { background: var(--ok-text); border-color: var(--ok-text); }
+
+.mp-events { display: flex; flex-direction: column; gap: 22px; }
+.mp-event-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.mp-event-head h3 { font-size: 20px; }
+.mp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.mp-photo { margin: 0; background: #fff; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; display: flex; flex-direction: column; }
+.mp-photo.busy { opacity: .5; pointer-events: none; }
+.mp-photo-open { position: relative; display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
+.mp-photo img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; transition: transform .25s; }
+.mp-photo-open:hover img { transform: scale(1.03); }
+.mp-photo { transition: outline-color .15s; outline: 3px solid transparent; outline-offset: -3px; }
+.mp-photo.on { outline-color: var(--pink); }
+.mp-check { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; background: #ffffffe6; border: 1.5px solid var(--line); display: grid; place-items: center; font-size: 14px; font-weight: 700; color: var(--pink); }
+.mp-photo.on .mp-check { background: var(--pink); color: #fff; border-color: var(--pink); }
+.mp-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mp-toolbar .button { margin: 0; }
+/* แถบคำสั่งลอยติดจอตลอดตอนเลือกรูป (เลื่อนลงไปไกลแค่ไหนก็ยังกดได้) */
+.mp-bulk { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 40; display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; justify-content: center; max-width: min(640px, calc(100% - 24px)); padding: 12px 18px; border-radius: var(--r-pill); background: var(--ink); color: #fff; font-size: 13px; box-shadow: 0 12px 30px #2a231c40; animation: appear .2s ease; }
+.mp-bulk .button { margin: 0; }
+.mp-bulk .link-button { color: #ffffffb3; }
+.mp-bulk .link-button.danger { color: #ffb3b3; }
+@media (max-width: 640px) {
+  .mp-bulk { border-radius: var(--r-md); padding: 10px 12px; gap: 8px; font-size: 12px; }
+}
+.mp-photo figcaption { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px 10px 10px; }
+.mp-photo-actions { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.mp-photo-actions .link-button { padding: 2px 0; font-size: 12px; }
+.pdpa-text { display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.7; max-height: 60dvh; overflow: auto; }
+.pdpa-text p { margin: 0; }
+.link-button.inline { display: inline; padding: 0; font-size: inherit; }
+.link-button.danger { color: var(--danger); }
+@media (max-width: 640px) {
+  .mp-intro { padding: 16px; }
+  .mp-status { align-items: flex-start; text-align: left; }
+  .mp-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+}
+
+/* ---------- เลือกรูปคู่ / รูปหมู่ ของงานในสมุด passport ---------- */
+.pp-tabs { margin-bottom: 14px; }
+.pp-body { display: flex; flex-direction: column; gap: 18px; }
+.pp-body section { display: flex; flex-direction: column; gap: 8px; }
+.pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; max-height: 42dvh; overflow: auto; padding: 2px; }
+.pp-tile { display: flex; flex-direction: column; gap: 3px; padding: 0; border: 3px solid transparent; border-radius: 12px; background: none; cursor: pointer; overflow: hidden; }
+.pp-tile img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 9px; display: block; }
+.pp-tile small { font-size: 11px; color: var(--muted); }
+.pp-tile.active { border-color: var(--pink); }
+.pp-tile:disabled { opacity: .5; cursor: progress; }

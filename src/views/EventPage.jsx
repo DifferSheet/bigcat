@@ -9,6 +9,7 @@ import { useEventSocket } from '../lib/socket.js';
 import { eventDate, typeLabel } from '../lib/format.js';
 
 // โมดูลเฉพาะประเภทงาน — โหลดเมื่อเปิดงานประเภทนั้นเท่านั้น
+const EventAlbum = dynamic(() => import('../modules/EventAlbum.jsx'), { ssr: false });
 const modules = {
   fanmeet: dynamic(() => import('../modules/SeatBooking.jsx'), { ssr: false, loading: () => <PageLoader label="กำลังโหลดผังที่นั่ง…" /> }),
   merit: dynamic(() => import('../modules/MeritGoals.jsx'), { ssr: false, loading: () => <PageLoader label="กำลังโหลดยอดทำบุญ…" /> }),
@@ -76,6 +77,7 @@ export default function EventPage({ slug, initialData = null }) {
         <div className="ev-main">
           <Section title="เกี่ยวกับงานนี้"><p className="ev-desc">{ev.description}</p></Section>
           <div id="module">{Module && <Module data={data} setData={setData} />}</div>
+          <EventAlbum ev={ev} />
           {ended && <Section eyebrow="RECAP" title="ขอบคุณที่มาเจอกัน"><p>งานนี้จบลงแล้ว ภาพบรรยากาศและสรุปยอดจะอัปเดตที่นี่ ติดตามงานถัดไปได้ที่หน้าตารางงาน</p></Section>}
         </div>
         <aside className="ev-side">

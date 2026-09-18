@@ -19,6 +19,9 @@ for k in "${OPTIONAL[@]}"; do
   v=$(grep -E "^${k}=" .env | head -1 | cut -d= -f2- || true)   # key ไม่มีในไฟล์ → grep คืน 1 → pipefail ต้องไม่ทำให้สคริปต์ตาย
   if [ -n "$v" ]; then lines+="${k}=${v}"$'\n'; fi   # (ห้ามใช้ [ ] && … เพราะ set -e จะหยุดเงียบ ๆ เมื่อค่าสุดท้ายว่าง)
 done
+# ค่าเฉพาะ prod (ไม่เอาจากเครื่อง): EC2 ใช้ IAM role `bigcat-app-role` → ห้ามส่ง AWS_ACCESS_KEY_* ขึ้นไป · local ใช้ FACE_PROVIDER=local ต่อไปได้
+PROD_FIXED=(FACE_PROVIDER=rekognition AWS_REGION=ap-southeast-1 REKOGNITION_COLLECTION=bigcat-faces MEDIA_BUCKET=bigcathouse-media)
+for kv in "${PROD_FIXED[@]}"; do lines+="${kv}"$'\n'; done
 
 echo "→ อัปเดต .env บน EC2 (สำรองเป็น .env.bak-<เวลา>)"
 # ฝังค่าลงในสคริปต์ฝั่ง remote โดยตรง (ส่งทาง stdin ทางเดียว — ห้ามใช้ pipe + heredoc พร้อมกัน ไม่งั้น bash -s กินสคริปต์เป็นข้อมูล)
@@ -40,7 +43,7 @@ open('.env', 'w').write(s)
 PY
 rm -f /tmp/.env.new
 chmod 600 .env
-echo "  .env: \$(grep -cE '^(LINE_|GOOGLE_|SLIP_)' .env) บรรทัด LINE_/GOOGLE_/SLIP_ · LINE_OA_ID=\$(grep -E '^LINE_OA_ID=' .env | cut -d= -f2) · SLIP_PROVIDER=\$(grep -E '^SLIP_PROVIDER=' .env | cut -d= -f2)"
+echo "  .env: \$(grep -cE '^(LINE_|GOOGLE_|SLIP_)' .env) บรรทัด LINE_/GOOGLE_/SLIP_ · LINE_OA_ID=\$(grep -E '^LINE_OA_ID=' .env | cut -d= -f2) · SLIP_PROVIDER=\$(grep -E '^SLIP_PROVIDER=' .env | cut -d= -f2) · FACE_PROVIDER=\$(grep -E '^FACE_PROVIDER=' .env | cut -d= -f2) · MEDIA_BUCKET=\$(grep -E '^MEDIA_BUCKET=' .env | cut -d= -f2)"
 
 echo "→ สร้างโปรเซส pm2 ใหม่ทั้งสองตัว"
 pm2 delete bigcat-api bigcat-web >/dev/null 2>&1 || true

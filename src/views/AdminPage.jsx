@@ -1,7 +1,8 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Link } from '../lib/nav.jsx';
-import { SiteHeader, SiteFooter, StatusPill, Notice } from '../components/EventShell.jsx';
+import { Link, useNavigate } from '../lib/nav.jsx';
+import { StatusPill, Notice } from '../components/EventShell.jsx';
+import AdminShell, { AREAS } from './admin/AdminShell.jsx';
 import { Icon, PageLoader, Modal, Tag } from '../components/ui.jsx';
 
 const PAGE = 20;
@@ -22,6 +23,8 @@ import dynamic from 'next/dynamic';
 const QrScanner = dynamic(() => import('../components/QrScanner.jsx'), { ssr: false });
 
 const ShopAdmin = dynamic(() => import('./ShopAdmin.jsx'), { ssr: false, loading: () => <PageLoader /> });
+const AlbumsOverview = dynamic(() => import('./admin/AlbumsAdmin.jsx').then(m => m.AlbumsOverview), { ssr: false, loading: () => <PageLoader /> });
+const AlbumDetail = dynamic(() => import('./admin/AlbumsAdmin.jsx').then(m => m.AlbumDetail), { ssr: false, loading: () => <PageLoader /> });
 const EventAdminForm = dynamic(() => import('./EventAdminForm.jsx'), { ssr: false, loading: () => <PageLoader /> });
 
 const STATUSES = ['upcoming', 'open', 'soldout', 'live', 'ended', 'hidden'];
@@ -61,21 +64,36 @@ function Members() {
       <div><span className="eyebrow">LINE</span><strong>{st.line}</strong><small>ผูกแจ้งเตือน {st.linked}</small></div>
       <div><span className="eyebrow">Google</span><strong>{st.google}</strong></div>
     </div>}
+    <Seasons />
     <div className="tabs-row"><input className="admin-search" value={qs} onChange={e => setQs(e.target.value)} placeholder="ค้นหาชื่อ / อีเมล / เบอร์" /><span className="muted">{data ? `${data.members.length} คน` : ''}</span></div>
     {error && <Notice tone="error">{error}</Notice>}
     {!data ? <PageLoader /> : data.members.length === 0 ? <p className="muted">ไม่พบสมาชิก</p> : <div className="table-wrap"><table className="admin-table members">
-      <thead><tr><th></th><th>สมาชิก</th><th>ติดต่อ</th><th>สมัคร / ล่าสุด</th><th>ซื้อ</th><th>บุญ</th><th>บัตร/ลงทะเบียน</th></tr></thead>
+      <thead><tr><th></th><th>สมาชิก</th><th>ติดต่อ</th><th>สมัคร / ล่าสุด</th><th>ซื้อ</th><th>บุญ</th><th>บัตร/ลงทะเบียน</th><th>Passport</th></tr></thead>
       <tbody>{data.members.map(m => <tr key={m.id}>
         <td>{m.avatar ? <img className="thumb round" src={m.avatar} alt="" referrerPolicy="no-referrer" /> : <span className="thumb round placeholder">{m.display_name.slice(0, 1)}</span>}</td>
-        <td><strong>{m.display_name}</strong><br /><small className="muted">{m.provider === 'line' ? 'LINE' : 'Google'}{m.lineLinked ? ' · แจ้งเตือน LINE ✓' : ''}</small></td>
+        <td><strong>{m.display_name}</strong><br /><small className="muted">สมาชิก #{m.id} · {m.provider === 'line' ? 'LINE' : 'Google'}{m.lineLinked ? ' · แจ้งเตือน LINE ✓' : ''}</small></td>
         <td><small>{m.email || '—'}<br />{m.phone || '—'}</small></td>
         <td><small>{fmt(m.created_at)}<br /><span className="muted">{m.last_login_at ? fmt(m.last_login_at) : '—'}</span></small></td>
         <td>{m.orders} <small className="muted">· {baht(m.spent)}</small></td>
         <td>{m.donations} <small className="muted">· {baht(m.donated)}</small></td>
         <td>{Number(m.bookings) + Number(m.registrations)}</td>
+        <td><small>{m.stamps} ดวง{m.friends > 0 ? ` · พามา ${m.friends}` : ''}{m.invited_by_name ? <><br /><span className="muted">ชวนโดย {m.invited_by_name}</span></> : null}</small>{Number(m.stamps) >= 3 && <><br /><button type="button" className={`mini-tag as-btn ${m.sticker_given_at ? 'ok' : 'warn'}`} title={m.sticker_given_at ? `มอบสติกเกอร์แล้ว ${fmt(m.sticker_given_at)} — กดเพื่อยกเลิก` : 'ครบ 3 ดวง — กดเมื่อมอบสติกเกอร์แล้ว'} onClick={() => api(`/admin/members/${m.id}/sticker`, { method: 'POST', admin: true }).then(() => setData(d => ({ ...d, members: d.members.map(x => x.id === m.id ? { ...x, sticker_given_at: x.sticker_given_at ? null : new Date().toISOString() } : x) })))}>{m.sticker_given_at ? 'สติกเกอร์ ✓' : 'รอรับสติกเกอร์'}</button></>}</td>
       </tr>)}</tbody>
     </table></div>}
   </div>;
+}
+
+// Passport: เล่ม (season) — งานที่วันจัดอยู่ในช่วง จะถูกจัดเข้าเล่มนั้นในหน้า /passport · ไม่ตั้ง = แยกเล่มตามปี พ.ศ.
+function Seasons() {
+  const [list, setList] = useState(null);
+  const [f, setF] = useState({ name: '', starts_on: '', ends_on: '' });
+  const [msg, setMsg] = useState('');
+  useEffect(() => { api('/admin/seasons', { admin: true }).then(setList).catch(() => setList([])); }, []);
+  const save = async (e) => { e.preventDefault(); setMsg(''); try { setList(await api('/admin/seasons', { method: 'POST', body: f, admin: true })); setF({ name: '', starts_on: '', ends_on: '' }); } catch (err) { setMsg(err.message); } };
+  return <details className="adv seasons"><summary>Passport · เล่มสะสม <small>({list ? list.length : '…'} เล่ม — ไม่ตั้ง = แยกตามปี)</small></summary>
+    {list?.map(s => <div key={s.id} className="season-row"><strong>{s.name}</strong><span className="muted">{String(s.starts_on).slice(0, 10)} → {String(s.ends_on).slice(0, 10)}</span><button type="button" className="link-button" onClick={() => setF({ id: s.id, name: s.name, starts_on: String(s.starts_on).slice(0, 10), ends_on: String(s.ends_on).slice(0, 10) })}>แก้</button><button type="button" className="link-button" onClick={() => api(`/admin/seasons/${s.id}`, { method: 'DELETE', admin: true }).then(setList)}>ลบ</button></div>)}
+    <form className="season-form" onSubmit={save}><input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="ชื่อเล่ม เช่น เข้าพรรษา 2569" /><input type="date" value={f.starts_on} onChange={e => setF({ ...f, starts_on: e.target.value })} /><input type="date" value={f.ends_on} onChange={e => setF({ ...f, ends_on: e.target.value })} /><button className="button dark small">{f.id ? 'บันทึก' : '+ เพิ่มเล่ม'}</button>{f.id && <button type="button" className="link-button" onClick={() => setF({ name: '', starts_on: '', ends_on: '' })}>ยกเลิก</button>}{msg && <span className="notice error">{msg}</span>}</form>
+  </details>;
 }
 
 // เลือกสมาชิกเพื่อผูกรายการ (ค้นชื่อ/อีเมล/เบอร์)
@@ -90,19 +108,6 @@ function MemberPicker({ title, onPick, onClose }) {
 }
 
 // เปลี่ยนรหัสผ่านแอดมิน + ออกจากระบบ
-function AdminAccount({ admin, onLogout }) {
-  const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ current: '', next: '' });
-  const [msg, setMsg] = useState('');
-  const save = async (e) => { e.preventDefault(); setMsg(''); try { await api('/admin/password', { method: 'PUT', body: f, admin: true }); setMsg('เปลี่ยนรหัสผ่านแล้ว ✓'); setF({ current: '', next: '' }); } catch (err) { setMsg(err.message); } };
-  return <div className="admin-account">
-    <span className="muted small">{admin?.display_name || admin?.username}</span>
-    <button className="link-button" onClick={() => setOpen(!open)}>เปลี่ยนรหัสผ่าน</button>
-    <button className="link-button" onClick={onLogout}>ออกจากระบบ</button>
-    {open && <form className="booking-form inline pw-form" onSubmit={save}><div className="two"><label>รหัสผ่านปัจจุบัน<input type="password" autoComplete="current-password" required value={f.current} onChange={e => setF({ ...f, current: e.target.value })} /></label><label>รหัสผ่านใหม่ (≥ 8 ตัว)<input type="password" autoComplete="new-password" required minLength={8} value={f.next} onChange={e => setF({ ...f, next: e.target.value })} /></label></div><div className="form-actions"><button className="button dark small">บันทึก</button>{msg && <span className="muted">{msg}</span>}</div></form>}
-  </div>;
-}
-
 // เครื่องมือเฉพาะงานทำบุญ: ยอดแยกหมวด, CSV, ขอบคุณทาง LINE, รายงานความโปร่งใส
 function MeritTools({ ev, onMsg }) {
   const [stats, setStats] = useState(null);
@@ -190,6 +195,7 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
       <button className="button ghost small" onClick={onEdit}>แก้ไขงาน</button>
       {confirmDel ? <span className="confirm-del"><span>ลบ <span className="tag-label">{ev.title}</span> ถาวร?</span><button className="button dark small danger" onClick={remove}>ลบเลย</button><button className="link-button" onClick={() => setConfirmDel(false)}>ไม่ลบ</button></span> : <button className="link-button" onClick={() => setConfirmDel(true)}>ลบงาน</button>}
       <Link className="button ghost small" to={`/events/${ev.slug}`}>ดูหน้าเว็บ ↗</Link>
+      <Link className="button ghost small" to={`/admin/albums/${ev.slug}`}><Icon name="camera" size={15} /> อัลบั้มรูป</Link>
       {ev.type !== 'fanmeet' && <Link className="button ghost small" to={`/events/${ev.slug}/gate`} title="เปิดบนมือถือ/iPad แล้ววางที่จุดเช็คอิน — ใช้เมื่อตั้ง เช็คอินหน้างาน = สแกน QR หน้างาน">จอ QR เช็คอิน</Link>}
       {ev.type === 'busking' && <Link className="button dark small" to={`/events/${ev.slug}/draw`}>จอสุ่ม Lucky Fan 🎲</Link>}
     </div>
@@ -204,7 +210,7 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
       {rows.donations && view === 'donations' && (() => { const groups = show(groupDonations(rows.donations), g => g.status === 'pending').filter(g => !search || [g.key, g.donor_name, g.member_name, g.dedication, g.message].join(' ').toLowerCase().includes(search.toLowerCase())); const pendingIds = groups.filter(g => g.status === 'pending').map(g => g.ids[0]); return <><thead><tr><th><input type="checkbox" aria-label="เลือกทั้งหมด" checked={pendingIds.length > 0 && pendingIds.every(id => sel.includes(id))} onChange={e => setSel(e.target.checked ? pendingIds : [])} /></th><th>รหัส</th><th>ผู้ร่วมบุญ</th><th>รายการ</th><th>ยอดรวม</th><th>สลิป / ผลตรวจ</th><th>สถานะ</th><th></th></tr></thead><tbody>{paged(groups).map(g => <tr key={g.key}><td>{g.status === 'pending' && <input type="checkbox" checked={sel.includes(g.ids[0])} onChange={() => toggleSel(g.ids[0])} aria-label={`เลือก ${g.key}`} />}</td><td className="code">{g.key}{g.line_user_id && <span className="mini-tag">LINE</span>}<br /><small className="muted">{fmt(g.created_at)}</small></td><td>{g.donor_name}{g.anonymous ? <button type="button" className="mini-tag warn as-btn" title="ผู้ใช้ติ๊ก 'ไม่แสดงชื่อบนกำแพง' — กดเพื่อยกเลิก" onClick={() => act(`/admin/donations/${g.ids[0]}/anonymous`, { anonymous: false })}>ไม่แสดงชื่อ ✕</button> : null}{g.dedication && <><br /><small>{g.dedication}</small></>}{g.message && <><br /><small>“{g.message}”</small></>}<br />{g.member_name ? <small className="member-link">👤 {g.member_name} <button type="button" className="link-button" onClick={() => assign(donTarget(g), null)}>ปลด</button></small> : <button type="button" className="link-button small" onClick={() => setAssignFor(donTarget(g))}>+ ผูกสมาชิก</button>}</td><td><ul className="don-items">{g.items.map(d => <li key={d.id}><span>{d.category}{d.units ? <small> · {d.units} {d.unit_name || 'หน่วย'}</small> : null}</span><b>{baht(d.amount)}</b></li>)}</ul>{g.items.length > 1 && <small className="muted">รวม {g.items.length} หมวด · โอนครั้งเดียว</small>}</td><td><strong>{baht(g.amount)}</strong></td><td>{g.slip_path ? <button type="button" className="slip-thumb" onClick={() => setSlipView(g)} aria-label={`ดูสลิป ${g.key}`}><img src={g.slip_path} alt="" loading="lazy" /><span>ดูสลิป</span></button> : '—'}{g.verify_note && <><br /><small className={g.verified_at ? 'ok-text' : ''}>{g.verify_note}</small></>}</td><td>{g.status}{g.verified_at && <span className="mini-tag ok">auto</span>}</td><td className="actions">{g.status === 'pending' && <><button className="button dark small" onClick={() => act(`/admin/donations/${g.ids[0]}/approve`)}>อนุมัติ</button><button className="link-button" onClick={() => act(`/admin/donations/${g.ids[0]}/reject`)}>ปฏิเสธ</button></>}</td></tr>)}</tbody><tfoot><tr><td colSpan={8}><Pager total={groups.length} page={page} setPage={setPage} /></td></tr></tfoot></>; })()}
       {(rows.registrations || (rows.attend && view === 'registrations')) && (() => { const regs = rows.registrations || rows.attend; const dups = regs.filter(r => r.duplicate_of).length; const via = { gate: 0, self: 0, staff: 0, geo: 0 }; regs.forEach(r => { if (r.checked_in_at) { via[r.checkin_via || 'self'] = (via[r.checkin_via || 'self'] || 0) + 1; if (r.checkin_lat != null) via.geo++; } }); const checked = regs.filter(r => r.checked_in_at).length; return <>{(dups > 0 || checked > 0) && <caption className="table-note">
         {checked > 0 && <span className="checkin-stats" title="ข้อมูลไว้ตัดสินใจวิธีเช็คอินครั้งหน้า"><span>เช็คอินแล้ว <strong>{checked}</strong>/{regs.length}</span><span>ผ่าน QR หน้างาน <strong>{via.gate}</strong></span><span>กดเอง <strong>{via.self}</strong></span><span>ทีมงานสแกน <strong>{via.staff}</strong></span><span>มีพิกัด <strong>{via.geo}</strong></span></span>}
-        {dups > 0 && <span className="dup-note">พบรายการที่น่าจะซ้ำ {dups} รายการ (ติดป้าย <Tag>ซ้ำ</Tag>) — ตรวจแล้วกด <Tag>ลบ</Tag> ที่รายการที่มาทีหลัง หมายเลขเดิมของคนอื่นไม่เปลี่ยน</span>}</caption>}<thead><tr><th>#</th><th>ชื่อ</th><th>โซเชียล</th><th>รหัส</th><th>เช็คอิน</th><th></th></tr></thead><tbody>{paged(show(regs, r => !r.checked_in_at)).map(r => <tr key={r.id}><td>{String(r.number).padStart(3, '0')}</td><td>{r.nickname || r.name}<br /><small>{r.name}{r.phone ? ` · ${r.phone}` : ''}</small><br />{r.member_name ? <small className="member-link">👤 {r.member_name} <button type="button" className="link-button" onClick={() => assign(regTarget(r), null)}>ปลด</button></small> : <button type="button" className="link-button small" onClick={() => setAssignFor(regTarget(r))}>+ ผูกสมาชิก</button>}</td><td>{r.social || '—'}{r.kind && r.kind !== 'attend' && <small> · {r.kind}</small>}</td><td className="code">{r.code}{r.lineLinked ? <span className="mini-tag">LINE</span> : null}{r.duplicate_of && <span className="mini-tag dup" title={`คนเดียวกับหมายเลข #${String(r.duplicate_of).padStart(3, '0')} (บัญชี/LINE/เบอร์/ชื่อตรงกัน)`}>ซ้ำ #{String(r.duplicate_of).padStart(3, '0')}</span>}</td><td>{r.checked_in_at ? <>✓ <span className="mini-tag via" title={`เช็คอินเมื่อ ${fmt(r.checked_in_at)}`}>{{ gate: 'QR หน้างาน', self: 'กดเอง', staff: 'ทีมงาน' }[r.checkin_via] || 'กดเอง'}</span>{r.checkin_lat != null && <a className="mini-tag via" href={`https://www.google.com/maps?q=${r.checkin_lat},${r.checkin_lng}`} target="_blank" rel="noreferrer" title={`พิกัดตอนเช็คอิน (คลาดเคลื่อน ±${r.checkin_acc ?? '?'} ม.)`}>📍 ±{r.checkin_acc ?? '?'}m</a>}</> : '—'}</td><td className="actions">{!r.checked_in_at ? <button className="button ghost small" onClick={() => act(`/admin/checkin/${r.code}`)}>เช็คอินให้</button> : <button className="link-button" title="คืนเป็นยังไม่เช็คอิน (กรณีกดพลาด)" onClick={() => act(`/admin/registrations/${r.id}/uncheckin`)}>ยกเลิกเช็คอิน</button>}<button type="button" className={`link-button ${delReg === r.id ? 'danger' : ''}`} title="ลบการลงทะเบียนนี้ (ซ้ำ/ลงเล่น)" onClick={() => del(r.id)} onBlur={() => setDelReg(null)}>{delReg === r.id ? 'ยืนยันลบ?' : 'ลบ'}</button></td></tr>)}</tbody><tfoot><tr><td colSpan={6}><Pager total={show(regs, r => !r.checked_in_at).length} page={page} setPage={setPage} /></td></tr></tfoot></>; })()}
+        {dups > 0 && <span className="dup-note">พบรายการที่น่าจะซ้ำ {dups} รายการ (ติดป้าย <Tag>ซ้ำ</Tag>) — ตรวจแล้วกด <Tag>ลบ</Tag> ที่รายการที่มาทีหลัง หมายเลขเดิมของคนอื่นไม่เปลี่ยน</span>}</caption>}<thead><tr><th>#</th><th>ชื่อ</th><th>โซเชียล</th><th>รหัส</th><th>เช็คอิน</th><th></th></tr></thead><tbody>{paged(show(regs, r => !r.checked_in_at)).map(r => <tr key={r.id}><td>{String(r.number).padStart(3, '0')}</td><td>{r.nickname || r.name}<br /><small>{r.name}{r.phone ? ` · ${r.phone}` : ''}</small><br />{r.member_name ? <small className="member-link">👤 {r.member_name} <button type="button" className="link-button" onClick={() => assign(regTarget(r), null)}>ปลด</button></small> : <button type="button" className="link-button small" onClick={() => setAssignFor(regTarget(r))}>+ ผูกสมาชิก</button>}</td><td>{r.social || '—'}{r.kind && r.kind !== 'attend' && <small> · {r.kind}</small>}</td><td className="code">{r.code}{r.lineLinked ? <span className="mini-tag">LINE</span> : null}{r.first_time && r.checked_in_at ? <span className="mini-tag ok" title="เช็คอินงานครั้งแรกในชีวิต">ใหม่</span> : null}{r.invited_by_name && <span className="mini-tag via" title="มาจากลิงก์ชวนเพื่อน">ชวนโดย {r.invited_by_name}</span>}{r.duplicate_of && <span className="mini-tag dup" title={`คนเดียวกับหมายเลข #${String(r.duplicate_of).padStart(3, '0')} (บัญชี/LINE/เบอร์/ชื่อตรงกัน)`}>ซ้ำ #{String(r.duplicate_of).padStart(3, '0')}</span>}</td><td>{r.checked_in_at ? <>✓ <span className="mini-tag via" title={`เช็คอินเมื่อ ${fmt(r.checked_in_at)}`}>{{ gate: 'QR หน้างาน', self: 'กดเอง', staff: 'ทีมงาน' }[r.checkin_via] || 'กดเอง'}</span>{r.checkin_lat != null && <a className="mini-tag via" href={`https://www.google.com/maps?q=${r.checkin_lat},${r.checkin_lng}`} target="_blank" rel="noreferrer" title={`พิกัดตอนเช็คอิน (คลาดเคลื่อน ±${r.checkin_acc ?? '?'} ม.)`}>📍 ±{r.checkin_acc ?? '?'}m</a>}</> : '—'}</td><td className="actions">{!r.checked_in_at ? <button className="button ghost small" onClick={() => act(`/admin/checkin/${r.code}`)}>เช็คอินให้</button> : <button className="link-button" title="คืนเป็นยังไม่เช็คอิน (กรณีกดพลาด)" onClick={() => act(`/admin/registrations/${r.id}/uncheckin`)}>ยกเลิกเช็คอิน</button>}<button type="button" className={`link-button ${delReg === r.id ? 'danger' : ''}`} title="ลบการลงทะเบียนนี้ (ซ้ำ/ลงเล่น)" onClick={() => del(r.id)} onBlur={() => setDelReg(null)}>{delReg === r.id ? 'ยืนยันลบ?' : 'ลบ'}</button></td></tr>)}</tbody><tfoot><tr><td colSpan={6}><Pager total={show(regs, r => !r.checked_in_at).length} page={page} setPage={setPage} /></td></tr></tfoot></>; })()}
     </table></div>}
     {assignFor && <MemberPicker title={`ผูกรายการ ${assignFor.key} (${assignFor.label}) กับสมาชิก`} onPick={m => assign(assignFor, m.id)} onClose={() => setAssignFor(null)} />}
     {slipView && <Modal title={`สลิป ${slipView.key} · ${baht(slipView.amount)}`} wide onClose={() => setSlipView(null)}>
@@ -241,67 +247,116 @@ function CheckinCard({ t, onConfirm, onClose, onNext }) {
   </Modal>;
 }
 
-export default function AdminPage() {
-  const mounted = useMounted();
-  const [authed, setAuthed] = useState(null);   // null = กำลังเช็ค session
-  const [admin, setAdmin] = useState(null);
-  const [area, setArea] = useState('events');
-  // เช็ค session cookie หลัง hydrate (HTML ฝั่ง server ตรงกับ client)
-  useEffect(() => { setArea(location.pathname.includes('/admin/shop') ? 'shop' : location.pathname.includes('/admin/members') ? 'members' : 'events'); api('/admin/me').then(r => { setAdmin(r.admin); setAuthed(true); }).catch(() => setAuthed(!!getAdminKey())); }, []);
-  const logout = async () => { await api('/admin/logout', { method: 'POST' }).catch(() => {}); setAdminKey(''); setAuthed(false); setAdmin(null); };
-  const [events, setEvents] = useState(null);
-  const [active, setActive] = useState(null);
+// พื้นที่สแกน/เช็คอิน (เมนู «สแกน QR») — ช่องพิมพ์รหัส · กล้องในเว็บ · การ์ดยืนยันหลังสแกน
+function ScanArea({ onCheckedIn }) {
   const [scan, setScan] = useState('');
-  const [scanResult, setScanResult] = useState(null);
-  const [form, setForm] = useState(null);   // null | 'new' | {…ข้อมูลเต็มของงานที่แก้}
-  const openEdit = async (slug) => { try { setForm(await api(`/admin/events/${slug}/full`, { admin: true })); } catch { /* แสดงใน EventAdmin */ } };
-  const refresh = () => api('/admin/overview', { admin: true }).then(list => { setEvents(list); setActive(a => a ? list.find(e => e.slug === a.slug) : list[0]); }).catch(e => { if (e.status === 401) { setAdminKey(''); setAuthed(false); } });
-  useEffect(() => { if (authed) refresh(); }, [authed]);
-
-  // รหัสบัตรจากช่องพิมพ์หรือ QR (QR บนบัตรเป็น URL /admin?checkin=รหัส)
-  const codeOf = (raw) => { const m = String(raw || '').match(/(?:checkin=|\/ticket\/)([A-Za-z0-9]{6,12})/) || String(raw || '').trim().match(/^([A-Za-z0-9]{6,12})$/); return m ? m[1].toUpperCase() : ''; };
-  const checkin = async (e) => {
-    e.preventDefault(); setScanResult(null);
-    try { setScanResult({ ok: true, ...(await api(`/admin/checkin/${codeOf(scan) || scan.trim()}`, { method: 'POST', admin: true })) }); setScan(''); refresh(); }
-    catch (err) { setScanResult({ ok: false, error: err.message }); }
-  };
-  // สแกนจากมือถือ → การ์ดยืนยันก่อนเช็คอิน (กันสแกนผิดใบ/ก่อนวันงาน)
-  const [pending, setPending] = useState(null);   // ข้อมูลบัตรที่รอกดยืนยัน
+  const [result, setResult] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const [pending, setPending] = useState(null);
   const preview = async (raw) => {
     const code = codeOf(raw);
-    setScanning(false); setScanResult(null);
-    if (!code) return setScanResult({ ok: false, error: `QR นี้ไม่ใช่บัตรของเว็บเรา (${String(raw).slice(0, 40)})` });
+    setScanning(false); setResult(null);
+    if (!code) return setResult({ ok: false, error: `QR นี้ไม่ใช่บัตรของเว็บเรา (${String(raw).slice(0, 40)})` });
     try { setPending(await api(`/admin/checkin/${code}`, { admin: true })); }
-    catch (err) { setScanResult({ ok: false, error: err.message }); }
+    catch (err) { setResult({ ok: false, error: err.message }); }
   };
-  const confirmCheckin = async () => {
-    const code = pending.code;
-    try { setScanResult({ ok: true, ...(await api(`/admin/checkin/${code}`, { method: 'POST', admin: true })) }); refresh(); }
-    catch (err) { setScanResult({ ok: false, error: err.message }); }
+  const submit = async (e) => {
+    e.preventDefault(); setResult(null);
+    const code = codeOf(scan) || scan.trim();
+    if (!code) return;
+    try { setResult({ ok: true, ...(await api(`/admin/checkin/${code}`, { method: 'POST', admin: true })) }); setScan(''); onCheckedIn?.(); }
+    catch (err) { setResult({ ok: false, error: err.message }); }
+  };
+  const confirm = async () => {
+    try { setResult({ ok: true, ...(await api(`/admin/checkin/${pending.code}`, { method: 'POST', admin: true })) }); onCheckedIn?.(); }
+    catch (err) { setResult({ ok: false, error: err.message }); }
     setPending(null);
   };
-  // เปิดจากกล้องมือถือ: /admin?checkin=รหัส — ล็อกอินแล้วค่อยดึงข้อมูลบัตร แล้วลบ query ออกกันรีเฟรชซ้ำ
+  // เปิดจากกล้องมือถือ: /admin/scan?checkin=รหัส (หรือ /admin?checkin=…) → ดึงข้อมูลบัตรแล้วลบ query กันรีเฟรชซ้ำ
   useEffect(() => {
-    if (!authed) return;
     const code = new URLSearchParams(location.search).get('checkin');
     if (!code) return;
     history.replaceState(null, '', location.pathname);
     preview(code);
-  }, [authed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return <div className="ad-scan">
+    <div className="ad-card ad-scan-card">
+      <span className="eyebrow">CHECK-IN</span>
+      <h2>เช็คอินหน้างาน</h2>
+      <p className="muted">สแกน QR บนบัตรด้วยกล้อง หรือพิมพ์รหัสบัตร 8 ตัว — ระบบจะโชว์ชื่อให้ตรวจก่อนยืนยันทุกครั้ง</p>
+      <form className="scan-box" onSubmit={submit}>
+        <Icon name="check" />
+        <input id="ad-scan" value={scan} onChange={e => setScan(e.target.value)} placeholder="พิมพ์/สแกนรหัสบัตร" autoCapitalize="characters" />
+        <button className="button dark small">เช็คอิน</button>
+        <button type="button" className="button ghost small" onClick={() => { setResult(null); setScanning(true); }}><Icon name="camera" size={16} /> เปิดกล้อง</button>
+      </form>
+      {result && <Notice tone={result.ok ? 'info' : 'error'}>{result.ok ? `${result.already ? 'เช็คอินไปแล้ว' : 'เช็คอินสำเร็จ'}: ${result.name}${result.seats ? ` (${result.seats.join(', ')})` : result.number ? ` #${result.number}` : ''}` : result.error}</Notice>}
+      <p className="small-note">จอ QR สำหรับให้แฟน ๆ สแกนเอง อยู่ในหน้ากิจกรรมของงานนั้น (ปุ่ม <Tag>จอ QR เช็คอิน</Tag>)</p>
+    </div>
+    {scanning && <Modal title="สแกน QR บนบัตร" onClose={() => setScanning(false)}><QrScanner onScan={preview} onError={(msg) => { setScanning(false); setResult({ ok: false, error: msg }); }} /><p>หรือใช้แอปกล้องของมือถือสแกน — QR บนบัตรจะเปิดหน้านี้พร้อมการ์ดยืนยันให้เอง</p></Modal>}
+    {pending && <CheckinCard t={pending} onConfirm={confirm} onClose={() => setPending(null)} onNext={() => { setPending(null); setScanning(true); }} />}
+  </div>;
+}
 
-  return <><SiteHeader /><main className="ev-page">
-    {!mounted || authed === null ? <PageLoader /> : !authed ? <Login onDone={(a) => { setAdmin(a); setAuthed(true); }} /> : <>
-      <div className="admin-head"><div><span className="eyebrow">STAFF DASHBOARD</span><h1>{area === 'shop' ? 'จัดการร้านค้า' : area === 'members' ? 'สมาชิก' : 'จัดการกิจกรรม'}</h1><AdminAccount admin={admin} onLogout={logout} /></div>{area === 'events' && <button className="button dark small" onClick={() => setForm('new')}>+ เพิ่มกิจกรรม</button>}<div className="area-tabs">{[['events', 'กิจกรรม', '/admin'], ['shop', 'ร้านค้า', '/admin/shop'], ['members', 'สมาชิก', '/admin/members']].map(([k, l, path]) => <button key={k} className={area === k ? 'active' : ''} onClick={() => { setArea(k); history.replaceState(null, '', path); }}>{l}</button>)}</div></div>
-      {area === 'shop' ? <ShopAdmin /> : area === 'members' ? <Members /> : form ? <div className="admin-panel"><EventAdminForm initial={form === 'new' ? null : form} onCancel={() => setForm(null)} onSaved={async (slug) => { setForm(null); const list = await api('/admin/overview', { admin: true }); setEvents(list); setActive(list.find(e => e.slug === slug) || list[0]); }} /></div> : <>
-      <form className="scan-box" onSubmit={checkin}><Icon name="check" /><input id="ad-scan" value={scan} onChange={e => setScan(e.target.value)} placeholder="เช็คอินหน้างาน: พิมพ์/สแกนรหัสบัตร" /><button className="button dark small">เช็คอิน</button><button type="button" className="button ghost small" onClick={() => { setScanResult(null); setScanning(true); }}><Icon name="camera" size={16} /> สแกน QR</button>{scanResult && <span className={`notice ${scanResult.ok ? '' : 'error'}`}>{scanResult.ok ? `${scanResult.already ? 'เช็คอินไปแล้ว' : 'เช็คอินสำเร็จ'}: ${scanResult.name}${scanResult.seats ? ` (${scanResult.seats.join(', ')})` : scanResult.number ? ` #${scanResult.number}` : ''}` : scanResult.error}</span>}</form>
-      {scanning && <Modal title="สแกน QR บนบัตร" onClose={() => setScanning(false)}><QrScanner onScan={preview} onError={(msg) => { setScanning(false); setScanResult({ ok: false, error: msg }); }} /><p>หรือใช้แอปกล้องของมือถือสแกน — QR บนบัตรจะเปิดหน้านี้พร้อมการ์ดยืนยันให้เอง</p></Modal>}
-      {pending && <CheckinCard t={pending} onConfirm={confirmCheckin} onClose={() => setPending(null)} onNext={() => { setPending(null); setScanning(true); }} />}
-      {!events ? <PageLoader /> : <div className="admin-layout">
-        <aside className="admin-list">{events.map(ev => { const pending = Number(ev.pendingBookings) + Number(ev.pendingDonations); return <button key={ev.slug} className={`admin-item ${active?.slug === ev.slug ? 'active' : ''}`} onClick={() => setActive(ev)}><span className="eyebrow">{typeLabel[ev.type]} · {eventDate(ev).long}</span><strong>{ev.title}</strong><span className="admin-item-meta"><StatusPill status={ev.status} />{pending > 0 && <span className="badge-count">{pending} รอตรวจ</span>}</span></button>; })}</aside>
-        {active && <EventAdmin key={active.slug + active.status} ev={active} refresh={refresh} onEdit={() => openEdit(active.slug)} onDeleted={async () => { const list = await api('/admin/overview', { admin: true }); setEvents(list); setActive(list[0] || null); }} />}
-      </div>}
-      </>}
-    </>}
-  </main><SiteFooter /></>;
+// รหัสบัตรจากช่องพิมพ์หรือ QR (QR บนบัตรเป็น URL /ticket/รหัส · ของเดิมเป็น /admin?checkin=รหัส)
+const codeOf = (raw) => { const m = String(raw || '').match(/(?:checkin=|\/ticket\/)([A-Za-z0-9]{6,12})/) || String(raw || '').trim().match(/^([A-Za-z0-9]{6,12})$/); return m ? m[1].toUpperCase() : ''; };
+
+const AREA_TITLE = { events: 'กิจกรรม', albums: 'อัลบั้มรูป', shop: 'ร้านค้า', members: 'สมาชิก', scan: 'สแกน QR เช็คอิน' };
+
+// area มาจาก URL (/admin/events · /admin/events/:slug · /admin/shop · /admin/members · /admin/scan)
+export default function AdminPage({ area = 'events', slug = null }) {
+  const mounted = useMounted();
+  const navigate = useNavigate();
+  const [authed, setAuthed] = useState(null);   // null = กำลังเช็ค session
+  const [admin, setAdmin] = useState(null);
+  useEffect(() => { api('/admin/me').then(r => { setAdmin(r.admin); setAuthed(true); }).catch(() => setAuthed(!!getAdminKey())); }, []);
+  const logout = async () => { await api('/admin/logout', { method: 'POST' }).catch(() => {}); setAdminKey(''); setAuthed(false); setAdmin(null); };
+  const [events, setEvents] = useState(null);
+  const refresh = () => api('/admin/overview', { admin: true }).then(setEvents).catch(e => { if (e.status === 401) { setAdminKey(''); setAuthed(false); } });
+  useEffect(() => { if (authed && area === 'events') refresh(); }, [authed, area]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const editing = slug === 'new' || (slug && slug.endsWith('/edit'));
+  const activeSlug = slug === 'new' ? null : slug?.replace(/\/edit$/, '') || null;
+  const active = events?.find(e => e.slug === activeSlug) || null;
+  const [form, setForm] = useState(null);       // ข้อมูลเต็มของงานที่กำลังแก้ (null = ยังโหลดไม่เสร็จ)
+  useEffect(() => {
+    if (!editing) return setForm(null);
+    if (slug === 'new') return setForm('new');
+    setForm(null);
+    api(`/admin/events/${activeSlug}/full`, { admin: true }).then(setForm).catch(() => navigate(`/admin/events/${activeSlug}`));
+  }, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const title = area === 'events' && active ? active.title : AREA_TITLE[area] || 'หน้าจัดการ';
+  const actions = area === 'events' && !editing
+    ? <Link className="button dark small" to="/admin/events/new">+ เพิ่มกิจกรรม</Link>
+    : null;
+
+  if (!mounted || authed === null) return <div className="ad-boot"><PageLoader /></div>;
+  if (!authed) return <div className="ad-boot"><Login onDone={(a) => { setAdmin(a); setAuthed(true); }} /></div>;
+
+  return <AdminShell area={area} title={title} admin={admin} onLogout={logout} actions={actions}>
+    {area === 'albums' ? (slug ? <AlbumDetail slug={slug} /> : <AlbumsOverview />)
+      : area === 'shop' ? <ShopAdmin />
+      : area === 'members' ? <Members />
+        : area === 'scan' ? <ScanArea onCheckedIn={() => { if (events) refresh(); }} />
+          : editing ? <div className="ad-card ad-form">
+            <Link className="link-button" to={activeSlug ? `/admin/events/${activeSlug}` : '/admin/events'}>← กลับไปที่{activeSlug ? 'งานนี้' : 'รายการกิจกรรม'}</Link>
+            {form ? <EventAdminForm initial={form === 'new' ? null : form} onCancel={() => navigate(activeSlug ? `/admin/events/${activeSlug}` : '/admin/events')} onSaved={async (saved) => { await refresh(); navigate(`/admin/events/${saved}`); }} /> : <PageLoader />}
+          </div>
+            : !events ? <PageLoader />
+              : <div className="ad-events">
+                <aside className="admin-list">
+                  {events.map(ev => { const p = Number(ev.pendingBookings) + Number(ev.pendingDonations); return <Link key={ev.slug} to={`/admin/events/${ev.slug}`} className={`admin-item ${active?.slug === ev.slug ? 'active' : ''}`}>
+                    <span className="eyebrow">{typeLabel[ev.type]} · {eventDate(ev).long}</span>
+                    <strong>{ev.title}</strong>
+                    <span className="admin-item-meta"><StatusPill status={ev.status} />{p > 0 && <span className="mini-tag warn">{p} รอตรวจ</span>}{Number(ev.registrations) > 0 && <span className="mini-tag">{ev.registrations} ลงทะเบียน</span>}</span>
+                  </Link>; })}
+                </aside>
+                <section className="ad-event-panel">
+                  {active
+                    ? <EventAdmin key={active.slug + active.status} ev={active} refresh={refresh} onEdit={() => navigate(`/admin/events/${active.slug}/edit`)} onDeleted={async () => { await refresh(); navigate('/admin/events'); }} />
+                    : <div className="ad-empty"><Icon name="calendar" size={32} /><p>เลือกกิจกรรมจากรายการด้านซ้ายเพื่อจัดการ</p></div>}
+                </section>
+              </div>}
+  </AdminShell>;
 }

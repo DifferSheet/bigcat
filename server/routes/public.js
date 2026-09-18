@@ -5,12 +5,15 @@ import { wrap, HttpError, code, getEvent, shapeEvent, eventDetail, seatsOf, dona
 import { verifySlip, slipEnabled } from '../slip.js';
 import { ownerFields, authProviders } from '../auth.js';
 import { lineEnabled, lineOaId, notifyStaff, push, msg } from '../line.js';
+import { syncStamps, attachInvite } from '../passport.js';
+import { parseCookies, setCookie } from '../auth.js';
 
 import { upload } from '../upload.js';
 export { upload };   // (ย้ายไป server/upload.js — คง re-export ให้ route อื่นที่ import จากที่นี่)
 
 const r = Router();
 const clean = (v, max = 200) => String(v ?? '').trim().slice(0, max);
+const ANON_DONOR = 'ผู้ไม่ประสงค์ออกนาม';   // ชื่อที่บันทึกเมื่อผู้ร่วมบุญไม่กรอกชื่อ
 
 // ค่าที่ frontend ต้องรู้ (ไม่มีความลับ)
 r.get('/config', (_req, res) => res.json({ slipEnabled, lineEnabled, lineOaId, authProviders, siteUrl: process.env.SITE_URL || '' }));
@@ -132,7 +135,7 @@ r.post('/events/:slug/donations', upload.single('slip'), wrap(async (req, res) =
     lines.push({ category, units, amount });
   }
   const amount = lines.reduce((s, l) => s + l.amount, 0);
-  const donor = clean(req.body.name, 120) || 'ผู้ไม่ประสงค์ออกนาม';
+  const donor = clean(req.body.name, 120) || ANON_DONOR;
   if (!req.file) throw new HttpError(400, 'กรุณาแนบสลิปโอนเงิน');
   const verify = await verifySlip(req.file.path, { expectedAmount: amount });   // ตรวจครั้งเดียวกับยอดรวม
   const groupCode = code(8);
@@ -147,7 +150,7 @@ r.post('/events/:slug/donations', upload.single('slip'), wrap(async (req, res) =
     await q('INSERT INTO donations SET ?', [{ ...common, code: i === 0 ? groupCode : code(8), category_id: l.category.id, amount: l.amount, units: l.units, trans_ref: i === 0 ? (verify.transRef || null) : null }]);
   }
   const detail = lines.map(l => `${l.category.name}${l.units ? ` ${l.units} ${l.category.unit_name}` : ''} ฿${l.amount}`).join(' · ');
-  if (verify.ok) emit(ev.slug, 'donations', await donationSummary(ev.id));
+  if (verify.ok) { emit(ev.slug, 'donations', await donationSummary(ev.id)); if (req.user) syncStamps(req.user.id).catch(() => {}); }
   else notifyStaff(msg.staffNew('ยอดทำบุญ', ev.title, `${donor} · ฿${amount}\n${detail}\n${verify.note}`)).catch(() => {});
   res.json({ code: groupCode, status: verify.ok ? 'approved' : 'pending', autoApproved: verify.ok, note: verify.note, amount, items: lines.map(l => ({ category: l.category.name, units: l.units, amount: l.amount })) });
 }));
@@ -166,12 +169,16 @@ r.post('/events/:slug/polls/:key/vote', wrap(async (req, res) => {
 r.get('/donations/:code', wrap(async (req, res) => {
   const codeUp = req.params.code.toUpperCase();
   // แถวหลัก + แถวอื่นในกลุ่มเดียวกัน (ทำบุญหลายหมวดครั้งเดียว) → ตอบเป็นรายการเดียวพร้อม items และยอดรวม
-  const rows = await q(`SELECT d.code, d.group_code, d.donor_name, d.dedication, d.message, d.anonymous, d.amount, d.units, d.status, d.verified_at, d.line_user_id IS NOT NULL AS lineLinked, d.created_at, c.name AS category, c.unit_name, e.title, e.slug, e.cover, e.starts_at, e.place, e.tone
+  const rows = await q(`SELECT d.code, d.group_code, d.user_id, d.donor_name, d.dedication, d.message, d.anonymous, d.amount, d.units, d.status, d.verified_at, d.line_user_id IS NOT NULL AS lineLinked, d.created_at, c.name AS category, c.unit_name, e.title, e.slug, e.cover, e.starts_at, e.place, e.tone
     FROM donations d JOIN donation_categories c ON c.id=d.category_id JOIN events e ON e.id=d.event_id WHERE d.code=? OR d.group_code=? ORDER BY d.id`, [codeUp, codeUp]);
   const main = rows.find(r => r.code === codeUp) || rows[0];
   if (!main) throw new HttpError(404, 'ไม่พบรายการนี้');
   const items = rows.map(r => ({ category: r.category, units: r.units, unit_name: r.unit_name, amount: r.amount }));
-  res.json({ ...main, code: codeUp, amount: rows.reduce((s, r) => s + r.amount, 0), category: items.map(i => i.category).join(' · '), items });
+  // ทำบุญโดยไม่ใส่ชื่อ แต่เจ้าของรายการล็อกอินมาเปิดเอง → ใบอนุโมทนาใช้ชื่อบัญชีของเขา (กำแพงสาธารณะยังไม่แสดงชื่อเหมือนเดิม)
+  const { user_id, ...pub } = main;
+  const mine = !!(req.user && user_id && user_id === req.user.id);
+  const certificateName = mine && (!main.donor_name || main.donor_name === ANON_DONOR) ? req.user.display_name : null;
+  res.json({ ...pub, code: codeUp, amount: rows.reduce((s, r) => s + r.amount, 0), category: items.map(i => i.category).join(' · '), items, mine, ...(certificateName ? { certificate_name: certificateName } : {}) });
 }));
 
 /* ---------- Busking: ลงทะเบียน / เช็คอิน / Lucky Fan / ขอเพลง ---------- */
@@ -186,6 +193,7 @@ r.post('/events/:slug/registrations', wrap(async (req, res) => {
     const dup = await one('SELECT code, number FROM registrations WHERE event_id=? AND user_id=? AND kind=?', [ev.id, req.user.id, clean(req.body.kind, 20) || 'attend']);
     if (dup) return res.json({ ...dup, existing: true });
   }
+  if (req.user) await attachInvite(req, res, { parseCookies, setCookie }).catch(() => {});   // มาจากลิงก์ชวนเพื่อน → จำคนชวน
   const reg = await tx(async ({ q, one }) => {
     const n = await one('SELECT COALESCE(MAX(number),0)+1 AS next FROM registrations WHERE event_id=? FOR UPDATE', [ev.id]);
     const c = code(8);
@@ -227,6 +235,8 @@ r.post('/registrations/:code/checkin', wrap(async (req, res) => {
     const num = (v, max) => (Number.isFinite(Number(v)) && Math.abs(Number(v)) <= max ? Number(v) : null);
     await q('UPDATE registrations SET checked_in_at=UTC_TIMESTAMP(), checkin_via=?, checkin_lat=?, checkin_lng=?, checkin_acc=? WHERE id=?', [mode, num(g.lat, 90), num(g.lng, 180), g.acc != null ? Math.min(Math.round(Number(g.acc)) || 0, 99999) : null, reg.id]);
     emit(ev.slug, 'registrations', await registrationSummary(reg.event_id));
+    const owner = await one('SELECT user_id FROM registrations WHERE id=?', [reg.id]);
+    if (owner?.user_id) syncStamps(owner.user_id).catch(() => {});   // แสตมป์ passport
   }
   res.json({ ok: true, already, number: reg.number, name: reg.nickname || reg.name });
 }));

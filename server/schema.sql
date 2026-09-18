@@ -273,3 +273,69 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_session_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Passport: แสตมป์ที่สมาชิกสะสมจากการมางาน/ร่วมบุญ/ถูกสุ่ม — เพิ่ม 16 ก.ย. 2026 (ดู server/passport.js)
+CREATE TABLE IF NOT EXISTS stamps (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  event_id INT NOT NULL DEFAULT 0,            -- 0 = แสตมป์ที่ไม่ผูกงาน (พามาเจอ)
+  kind VARCHAR(16) NOT NULL,                  -- checkin · merit · lucky · tier · dayone · first · friend
+  meta JSON NULL,
+  earned_at DATETIME NOT NULL,
+  UNIQUE KEY uq_stamp (user_id, event_id, kind),
+  INDEX ix_stamp_event (event_id)
+);
+CREATE TABLE IF NOT EXISTS seasons (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(80) NOT NULL,
+  starts_on DATE NOT NULL,
+  ends_on DATE NOT NULL,
+  cover VARCHAR(300) NULL
+);
+
+-- อัลบั้มรูปงาน + ค้นหาใบหน้า (18 ก.ย. 2026 · ดู server/album.js, server/faces.js)
+CREATE TABLE IF NOT EXISTS event_photos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event_id INT NOT NULL,
+  orig VARCHAR(300) NOT NULL,                 -- ไฟล์ต้นฉบับ (ย่อไม่เกิน 2400px) สำหรับดาวน์โหลด
+  view VARCHAR(300) NOT NULL,                 -- 1400px สำหรับดูเต็มจอ
+  thumb VARCHAR(300) NOT NULL,                -- 480px สำหรับกริด
+  width INT NOT NULL, height INT NOT NULL,
+  faces INT NULL,                             -- จำนวนหน้าที่นับได้ (NULL = ยังไม่สแกน)
+  scan ENUM('pending','done','skipped','failed') NOT NULL DEFAULT 'pending',   -- skipped = ไม่ใช่รูปเดี่ยว/คู่ ไม่ส่งจับคู่
+  featured TINYINT(1) NOT NULL DEFAULT 0,     -- โชว์เป็นพรีวิวให้คนที่ไม่ได้เช็คอิน
+  sort_order INT NOT NULL DEFAULT 0,
+  taken_at DATETIME NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX ix_photo_event (event_id, sort_order)
+);
+CREATE TABLE IF NOT EXISTS photo_faces (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  photo_id INT NOT NULL,
+  face_ref VARCHAR(64) NOT NULL,              -- local: uuid · rekognition: FaceId
+  box JSON NOT NULL,                          -- {x,y,w,h} สัดส่วน 0–1
+  score FLOAT NOT NULL,
+  descriptor JSON NULL,                       -- local provider เท่านั้น (128 ค่า)
+  user_id INT NULL,                           -- จับคู่กับสมาชิก
+  similarity FLOAT NULL,
+  status ENUM('auto','confirmed','rejected') NOT NULL DEFAULT 'auto',
+  INDEX ix_face_photo (photo_id), INDEX ix_face_user (user_id),
+  CONSTRAINT fk_face_photo FOREIGN KEY (photo_id) REFERENCES event_photos(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS user_faces (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  face_ref VARCHAR(64) NOT NULL,
+  descriptor JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX ix_uface_user (user_id)
+);
+CREATE TABLE IF NOT EXISTS photo_removals (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  photo_id INT NOT NULL,
+  user_id INT NOT NULL,
+  reason VARCHAR(300) NULL,
+  status ENUM('open','done','declined') NOT NULL DEFAULT 'open',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_removal_photo FOREIGN KEY (photo_id) REFERENCES event_photos(id) ON DELETE CASCADE
+);

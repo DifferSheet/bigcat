@@ -127,8 +127,8 @@ export async function drawMeritCertificate(item, { onLayout } = {}) {
   draw('ขอบคุณที่ร่วมสร้างความสุข', { y: 159, height: 46, size: 27, maxLines: 1 });
   draw('ใบอนุโมทนาบัตร', { y: 263, height: 136, size: 86, min: 60, family: HEAD, gold: true, maxLines: 1 });
   draw('ขอมอบให้', { y: 475, height: 60, size: 34, maxLines: 1 });
-  // ใบเป็นของเจ้าตัว → ชื่อจริงเสมอ (ไม่แสดงชื่อ = เฉพาะกำแพงสาธารณะ)
-  draw(item.donor_name || 'ผู้ไม่ประสงค์ออกนาม', { y: 538, height: 126, size: 78, min: 24, family: HEAD, color: '#603b13' });
+  // ใบเป็นของเจ้าตัว → ชื่อจริงเสมอ (ไม่แสดงชื่อ = เฉพาะกำแพงสาธารณะ) · ไม่ได้ใส่ชื่อแต่เจ้าของล็อกอินเปิดเอง → ชื่อบัญชี (certificate_name)
+  draw(item.certificate_name || item.donor_name || 'ผู้ไม่ประสงค์ออกนาม', { y: 538, height: 126, size: 78, min: 24, family: HEAD, color: '#603b13' });
   draw(item.dedication ? `ในนาม / อุทิศให้ ${item.dedication}` : '', { y: 667, height: 47, size: 25, min: 16, maxLines: 1 });
   draw(item.title, { y: 741, height: 84, size: 34, min: 20 });
   const detail = item.items?.length ? item.items.map(i => `${i.category}${i.units ? ` ${i.units} ${i.unit_name || ''}` : ''}`).join(' · ') : [item.units ? `${item.units} ${item.unit_name || ''}` : '', item.category].filter(Boolean).join(' · ');

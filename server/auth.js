@@ -110,8 +110,11 @@ r.get('/:provider/callback', wrap(async (req, res) => {
   const prof = await p.profile(await tokRes.json());
   let user = await one('SELECT * FROM users WHERE provider=? AND provider_id=?', [name, prof.provider_id]);
   if (user) {
-    // อัปเดตชื่อ/รูปให้ตามผู้ให้บริการ แต่ไม่ทับอีเมล/เบอร์ที่ผู้ใช้กรอกเองแล้ว
-    await q('UPDATE users SET ?, last_login_at=NOW() WHERE id=?', [{ display_name: prof.display_name, avatar: prof.avatar, email: user.email || prof.email, line_user_id: user.line_user_id || prof.line_user_id }, user.id]);
+    // ล็อกอินซ้ำ: ห้ามทับสิ่งที่สมาชิกตั้งเอง — ชื่อไม่แตะเลย · รูปอัปเดตจากผู้ให้บริการเฉพาะตอนที่ยังไม่เคยเปลี่ยนรูปเอง
+    const row = { last_login_at: new Date(), email: user.email || prof.email, line_user_id: user.line_user_id || prof.line_user_id };
+    if (!user.display_name) row.display_name = prof.display_name;
+    if (!user.avatar_custom && prof.avatar) row.avatar = prof.avatar;
+    await q('UPDATE users SET ? WHERE id=?', [row, user.id]);
   } else {
     const ins = await q('INSERT INTO users SET ?', [{ provider: name, provider_id: prof.provider_id, display_name: prof.display_name, avatar: prof.avatar, email: prof.email, line_user_id: prof.line_user_id, last_login_at: new Date() }]);
     user = { id: ins.insertId };
@@ -130,6 +133,18 @@ r.post('/logout', wrap(async (req, res) => {
 export default r;
 
 /* ---------- /api/me ---------- */
+// ── เฉพาะเครื่อง dev ─────────────────────────────────────────────────────────────
+// เข้าสู่ระบบเป็นสมาชิกคนหนึ่งเพื่อทดสอบหน้าเว็บบนเครื่อง (OAuth จริงใช้ในเครื่องไม่ได้)
+// เปิดได้เมื่อใส่ DEV_LOGIN=1 ใน .env ของเครื่อง และ NODE_ENV ไม่ใช่ production เท่านั้น — สคริปต์ sync ไม่ส่งค่านี้ขึ้น EC2
+export const devLoginEnabled = process.env.DEV_LOGIN === '1' && process.env.NODE_ENV !== 'production';
+export const devLogin = wrap(async (req, res) => {
+  if (!devLoginEnabled) throw new HttpError(404, 'ไม่พบหน้านี้');
+  const u = await one('SELECT id FROM users WHERE id=?', [Number(req.query.u) || 0]);
+  if (!u) throw new HttpError(404, 'ไม่พบสมาชิกคนนี้');
+  await createSession(res, u.id);
+  res.redirect(String(req.query.next || '/account'));
+});
+
 export const me = express.Router();
 me.get('/', (req, res) => res.json({ user: publicUser(req.user), providers: authProviders }));
 me.put('/', requireUser, wrap(async (req, res) => {
@@ -145,9 +160,10 @@ me.put('/', requireUser, wrap(async (req, res) => {
 }));
 // ประวัติของฉัน — ทุกอย่างที่ทำตอนล็อกอินอยู่ (รายการที่ทำก่อนสมัครไม่ขึ้นที่นี่ ใช้ «บัตรของฉัน» ค้นด้วยรหัสได้เหมือนเดิม)
 // เปลี่ยนรูปประจำตัว (อัปโหลดเอง แทนรูปจาก LINE/Google)
+// อัปโหลดรูปเอง = ตั้งธงไว้ ไม่ให้การล็อกอินครั้งหน้าดึงรูปจาก LINE/Google มาทับ
 me.put('/avatar', requireUser, upload.single('avatar'), wrap(async (req, res) => {
   if (!req.file) throw new HttpError(400, 'กรุณาเลือกรูป');
-  await q('UPDATE users SET avatar=? WHERE id=?', [`/uploads/${req.file.filename}`, req.user.id]);
+  await q('UPDATE users SET avatar=?, avatar_custom=1 WHERE id=?', [`/uploads/${req.file.filename}`, req.user.id]);
   res.json({ user: publicUser(await one('SELECT * FROM users WHERE id=?', [req.user.id])) });
 }));
 
