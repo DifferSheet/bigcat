@@ -13,6 +13,7 @@ const r = Router();
 import { syncStamps } from '../passport.js';
 import { importPhoto, deletePhoto, kick as kickAlbumScan, scanPhoto } from '../album.js';
 import { facesEnabled, faceProvider } from '../faces.js';
+import { withUrls, usingS3 } from '../storage.js';
 import { requireAdmin, login, logout, me as adminMe, changePassword } from '../adminAuth.js';
 export { requireAdmin };
 r.post('/login', login);
@@ -475,7 +476,7 @@ r.get('/events/:slug/album', wrap(async (req, res) => {
     FROM event_photos p WHERE p.event_id=? ORDER BY p.sort_order, p.id`, [ev.id]);
   const removals = await q('SELECT r.id, r.photo_id, r.reason, r.status, r.created_at, u.display_name FROM photo_removals r JOIN users u ON u.id=r.user_id JOIN event_photos p ON p.id=r.photo_id WHERE p.event_id=? ORDER BY r.status, r.created_at DESC', [ev.id]);
   const faceUsers = (await one('SELECT COUNT(DISTINCT user_id) AS n FROM user_faces')).n;
-  res.json({ photos, removals, faceUsers, facesEnabled, provider: faceProvider, pending: photos.filter(p => p.scan === 'pending').length });
+  res.json({ photos: await withUrls(photos), removals: await withUrls(removals, []), faceUsers, facesEnabled, provider: faceProvider, storage: usingS3 ? 's3' : 'disk', pending: photos.filter(p => p.scan === 'pending').length });
 }));
 r.post('/events/:slug/album/:id/featured', wrap(async (req, res) => { await q('UPDATE event_photos SET featured=1-featured WHERE id=?', [Number(req.params.id)]); res.json({ ok: true }); }));
 r.post('/events/:slug/album/:id/rescan', wrap(async (req, res) => { await q("UPDATE event_photos SET scan='pending' WHERE id=?", [Number(req.params.id)]); kickAlbumScan(); res.json({ ok: true }); }));

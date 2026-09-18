@@ -120,3 +120,5 @@ build บน runner arm64 → rsync โฟลเดอร์ `release/` ไป `
 * สิทธิ์ดูอัลบั้ม: เช็คอินงานนั้น (registration/booking ที่ผูกบัญชี) หรือแอดมิน · คนอื่นเห็นพรีวิว 3 รูป (`featured` หรือ 3 รูปแรก)
 * Passport: รูปคู่ = ไฟล์ที่อัปโหลดเอง > รูปที่เลือกจากอัลบั้ม > อัตโนมัติจากการจับคู่ (รูป 2 หน้าก่อน) — `PUT /api/passport/:slug/portrait`
 * คำขอเอารูปออก (`photo_removals`) ดูในหน้าจัดการ → ลบรูป/ไม่ลบ
+* ที่เก็บรูป (`server/storage.js`): ไม่ตั้ง `MEDIA_BUCKET` = ดิสก์ (`server/uploads/albums/`, rsync ตอน deploy ไม่แตะ) · ตั้งแล้ว = S3 (`s3:<key>` ใน DB, เสิร์ฟด้วย presigned URL อายุ `MEDIA_URL_TTL` 6 ชม.) — bucket ต้องปิด public access · EC2 ใช้ IAM role `bigcat-app-role` ไม่ต้องมี access key
+* ย้ายรูปเดิมขึ้น S3: `node server/migrate-album-s3.js [--dry] [--keep]` (ดูขั้นตอนเปิด AWS ที่ `tools/aws/README.md`)

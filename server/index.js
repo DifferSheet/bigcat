@@ -13,6 +13,8 @@ import shopRoutes from './routes/shop.js';
 import passportRoutes from './routes/passport.js';
 import albumRoutes from './routes/album.js';
 import { kick as kickAlbumScan } from './album.js';
+import { usingS3 } from './storage.js';
+import { faceProvider as faceProviderName } from './faces.js';
 import { backfillIfEmpty } from './passport.js';
 import shopAdminRoutes from './routes/shopAdmin.js';
 import { verifySignature, handleWebhookEvent, lineEnabled } from './line.js';
@@ -76,4 +78,4 @@ await migrate();
 await (await import('./adminAuth.js')).ensureFirstAdmin();
 backfillIfEmpty().catch(e => console.error('passport backfill:', e.message));
 kickAlbumScan();   // สแกนรูปที่ค้างจากรอบก่อน (ถ้ามี)
-server.listen(PORT, () => console.log(`✓ BIGCAT API + Socket.IO on http://localhost:${PORT} · slip: ${slipEnabled ? process.env.SLIP_PROVIDER : 'off'} · LINE: ${lineEnabled ? 'on' : 'off'} · login: ${Object.entries(authProviders).filter(([, v]) => v).map(([k]) => k).join('+') || 'off'}`));
+server.listen(PORT, () => console.log(`✓ BIGCAT API + Socket.IO on http://localhost:${PORT} · slip: ${slipEnabled ? process.env.SLIP_PROVIDER : 'off'} · LINE: ${lineEnabled ? 'on' : 'off'} · ภาพ: ${usingS3 ? process.env.MEDIA_BUCKET : 'disk'} · ใบหน้า: ${faceProviderName} · login: ${Object.entries(authProviders).filter(([, v]) => v).map(([k]) => k).join('+') || 'off'}`));

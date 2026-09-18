@@ -11,6 +11,7 @@ import { requireUser } from '../auth.js';
 import { upload } from '../upload.js';
 import { canViewAlbum, photosOfUser, registerUserFace, forgetUserFaces } from '../album.js';
 import { facesEnabled, faceProvider } from '../faces.js';
+import { withUrls } from '../storage.js';
 
 const r = Router();
 const PREVIEW = 3;
@@ -22,13 +23,13 @@ r.get('/events/:slug/album', wrap(async (req, res) => {
   const base = { total, access: full ? 'full' : 'preview', facesEnabled, provider: faceProvider };
   if (!full) {
     const preview = await q('SELECT id, thumb, width, height FROM event_photos WHERE event_id=? ORDER BY featured DESC, sort_order LIMIT ?', [ev.id, PREVIEW]);
-    return res.json({ ...base, photos: preview, me: null });
+    return res.set('Cache-Control', 'private, no-store').json({ ...base, photos: await withUrls(preview), me: null });
   }
   const photos = await q('SELECT id, thumb, view, orig, width, height, faces, featured, taken_at FROM event_photos WHERE event_id=? ORDER BY sort_order, id', [ev.id]);
   const mineRows = req.user ? await photosOfUser(req.user.id, ev.id) : [];
   const mine = new Map(mineRows.map(m => [m.id, { similarity: m.similarity, status: m.status, box: parseJSON(m.box, null) }]));
   const me = req.user ? { consented: !!req.user.face_consent_at, registered: !!(await one('SELECT 1 AS ok FROM user_faces WHERE user_id=? LIMIT 1', [req.user.id])), matches: mineRows.length } : null;
-  res.set('Cache-Control', 'private, no-store').json({ ...base, photos: photos.map(p => ({ ...p, mine: mine.get(p.id) || null })), me });
+  res.set('Cache-Control', 'private, no-store').json({ ...base, photos: await withUrls(photos.map(p => ({ ...p, mine: mine.get(p.id) || null }))), me });
 }));
 
 // ยืนยัน/ปฏิเสธการจับคู่ของตัวเอง

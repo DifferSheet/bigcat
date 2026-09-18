@@ -1,32 +1,40 @@
 // อัลบั้มรูปงาน — เก็บไฟล์ 3 ขนาด · คิวสแกนหน้าหลังบ้าน · จับคู่กับสมาชิกที่ยินยอม
 // ไฟล์อยู่ที่ server/uploads/albums/<eventId>/ (เสิร์ฟผ่าน /uploads เหมือนรูปอื่น — สิทธิ์การ «เห็นรายการ» คุมที่ API ไม่ใช่ที่ไฟล์)
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import sharp from 'sharp';
 import { q, one, parseJSON } from './db.js';
 import { code } from './lib.js';
 import * as faces from './faces.js';
-
-const ROOT = path.join(process.cwd(), 'server', 'uploads', 'albums');
+import * as store from './storage.js';
 const MAX_FACES = 3;     // รูปเดี่ยว/คู่/สามคน = ส่งจับคู่ · มากกว่านั้น = รูปหมู่ ไม่ส่ง
 
 /* ---------- นำเข้ารูป: ต้นฉบับ(≤2400) · view 1400 · thumb 480 (webp) ---------- */
 export async function importPhoto(eventId, srcPath, { takenAt = null, remove = false } = {}) {
-  const dir = path.join(ROOT, String(eventId));
-  fs.mkdirSync(dir, { recursive: true });
   const base = `${Date.now().toString(36)}-${code(6).toLowerCase()}`;
-  const img = sharp(srcPath).rotate();
-  const meta = await img.metadata();
-  const rel = (f) => `/uploads/albums/${eventId}/${f}`;
-  const orig = await sharp(srcPath).rotate().resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 88, mozjpeg: true }).toFile(path.join(dir, `${base}.jpg`));
-  await sharp(srcPath).rotate().resize({ width: 1400, height: 1400, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toFile(path.join(dir, `${base}-v.webp`));
-  await sharp(srcPath).rotate().resize({ width: 480, height: 480, fit: 'inside', withoutEnlargement: true }).webp({ quality: 76 }).toFile(path.join(dir, `${base}-t.webp`));
-  const exifDate = meta.exif ? exifTaken(meta.exif) : null;
-  const next = (await one('SELECT COALESCE(MAX(sort_order),0)+1 AS n FROM event_photos WHERE event_id=?', [eventId])).n;
-  const ins = await q('INSERT INTO event_photos SET ?', [{ event_id: eventId, orig: rel(`${base}.jpg`), view: rel(`${base}-v.webp`), thumb: rel(`${base}-t.webp`), width: orig.width, height: orig.height, taken_at: takenAt || exifDate, sort_order: next }]);
-  if (remove) fs.rm(srcPath, { force: true }, () => {});
-  kick();
-  return ins.insertId;
+  const key = (f) => `albums/${eventId}/${f}`;
+  const tmp = path.join(os.tmpdir(), `bigcat-${crypto.randomUUID()}`);
+  fs.mkdirSync(tmp, { recursive: true });
+  try {
+    const meta = await sharp(srcPath).metadata();
+    const big = path.join(tmp, `${base}.jpg`), mid = path.join(tmp, `${base}-v.webp`), small = path.join(tmp, `${base}-t.webp`);
+    const orig = await sharp(srcPath).rotate().resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 88, mozjpeg: true }).toFile(big);
+    await sharp(srcPath).rotate().resize({ width: 1400, height: 1400, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toFile(mid);
+    await sharp(srcPath).rotate().resize({ width: 480, height: 480, fit: 'inside', withoutEnlargement: true }).webp({ quality: 76 }).toFile(small);
+    const [origStored, viewStored, thumbStored] = await Promise.all([
+      store.put(key(`${base}.jpg`), big, 'image/jpeg'),
+      store.put(key(`${base}-v.webp`), mid, 'image/webp'),
+      store.put(key(`${base}-t.webp`), small, 'image/webp'),
+    ]);
+    const exifDate = meta.exif ? exifTaken(meta.exif) : null;
+    const next = (await one('SELECT COALESCE(MAX(sort_order),0)+1 AS n FROM event_photos WHERE event_id=?', [eventId])).n;
+    const ins = await q('INSERT INTO event_photos SET ?', [{ event_id: eventId, orig: origStored, view: viewStored, thumb: thumbStored, width: orig.width, height: orig.height, taken_at: takenAt || exifDate, sort_order: next }]);
+    if (remove) fs.rm(srcPath, { force: true }, () => {});
+    kick();
+    return ins.insertId;
+  } finally { fs.rm(tmp, { recursive: true, force: true }, () => {}); }
 }
 // วันที่ถ่ายจาก EXIF (DateTimeOriginal) — ไว้เรียงลำดับ · หาไม่เจอก็ไม่เป็นไร
 function exifTaken(buf) {
@@ -46,7 +54,10 @@ async function drain() {
 }
 export async function scanPhoto(p) {
   if (!faces.facesEnabled) { await q("UPDATE event_photos SET scan='skipped', faces=NULL WHERE id=?", [p.id]); return; }
-  const file = path.join(process.cwd(), 'server', p.orig.replace(/^\/uploads\//, 'uploads/'));
+  const copy = await store.localCopy(p.orig);   // S3 → โหลดมาไว้ temp ชั่วคราว
+  try { await scanFile(p, copy.file); } finally { copy.done(); }
+}
+async function scanFile(p, file) {
   const det = await faces.detect(file);
   const n = det.faces.length;                          // นับทุกหน้า (รวมหน้าเล็กไกล ๆ) → รูปหมู่ = ข้าม
   const usable = det.faces.filter(faces.usable).length;
@@ -135,5 +146,5 @@ export async function deletePhoto(id) {
   const refs = (await q('SELECT face_ref FROM photo_faces WHERE photo_id=?', [id])).map(r => r.face_ref);
   await faces.forget(refs).catch(() => {});
   await q('DELETE FROM event_photos WHERE id=?', [id]);
-  for (const f of [p.orig, p.view, p.thumb]) fs.rm(path.join(process.cwd(), 'server', f.replace(/^\/uploads\//, 'uploads/')), { force: true }, () => {});
+  for (const f of [p.orig, p.view, p.thumb]) await store.remove(f).catch(() => {});
 }

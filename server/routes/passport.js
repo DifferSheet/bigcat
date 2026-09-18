@@ -6,6 +6,7 @@ import { wrap, HttpError } from '../lib.js';
 import { requireUser, parseCookies, setCookie } from '../auth.js';
 import { passportOf, attachInvite, INVITE_COOKIE_NAME, syncStamps } from '../passport.js';
 import { photosOfUser } from '../album.js';
+import { withUrls, url as mediaUrl } from '../storage.js';
 import { uploadPassportPortrait } from '../upload.js';
 
 const r = Router();
@@ -27,7 +28,7 @@ const myStamp = async (userId, slug) => {
 r.get('/passport/:slug/photos', requireUser, wrap(async (req, res) => {
   const st = await myStamp(req.user.id, req.params.slug);
   const photos = await photosOfUser(req.user.id, st.event_id);
-  res.set('Cache-Control', 'private, no-store').json({ photos: photos.map(p => ({ id: p.id, thumb: p.thumb, view: p.view, faces: p.faces, status: p.status })), current: parseJSON(st.meta, {}) });
+  res.set('Cache-Control', 'private, no-store').json({ photos: await withUrls(photos.map(p => ({ id: p.id, thumb: p.thumb, view: p.view, faces: p.faces, status: p.status }))), current: parseJSON(st.meta, {}) });
 }));
 r.put('/passport/:slug/portrait', requireUser, uploadPassportPortrait.single('portrait'), wrap(async (req, res) => {
   const st = await myStamp(req.user.id, req.params.slug);
@@ -51,7 +52,9 @@ r.get('/passport', requireUser, wrap(async (req, res) => {
   await syncStamps(req.user.id);   // กันตกหล่น (ถูก ~4 query)
   const inviter = await attachInvite(req, res, { parseCookies, setCookie });
   const fresh = inviter ? await one('SELECT * FROM users WHERE id=?', [req.user.id]) : req.user;
-  res.set('Cache-Control', 'private, no-store').json(await passportOf(fresh));
+  const data = await passportOf(fresh);
+  for (const b of data.books) for (const ev of b.events) if (ev.memory?.portraitImage) ev.memory.portraitImage = await mediaUrl(ev.memory.portraitImage);
+  res.set('Cache-Control', 'private, no-store').json(data);
 }));
 
 // เปิดลิงก์ชวน /i/:code → หน้าเว็บเรียกอันนี้: จำคนชวนไว้ 30 วัน (cookie) · ถ้าล็อกอินอยู่และยังไม่เคยมางาน ผูกทันที
