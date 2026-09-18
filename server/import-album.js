@@ -14,7 +14,9 @@ if (!ev) { console.log('ไม่พบงาน', slug); process.exit(1); }
 const files = fs.readdirSync(dir).filter(f => /\.(jpe?g|png|webp|heic)$/i.test(f)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).slice(0, limit);
 console.log(`→ ${ev.title}: นำเข้า ${files.length} รูป`);
 let n = 0;
-for (const f of files) { await importPhoto(ev.id, path.join(dir, f)); if (++n % 20 === 0) console.log(`  ${n}/${files.length}`); }
+let dups = 0;
+for (const f of files) { const r = await importPhoto(ev.id, path.join(dir, f)); if (r.duplicate) dups++; if (++n % 20 === 0) console.log(`  ${n}/${files.length}`); }
+if (dups) console.log(`  (ข้ามไฟล์ซ้ำ ${dups})`);
 console.log(`✓ นำเข้า ${n} รูป · กำลังสแกนหน้าหลังบ้าน`);
 if (rest.includes('--wait')) {
   kick();

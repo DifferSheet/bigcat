@@ -23,6 +23,8 @@ import dynamic from 'next/dynamic';
 const QrScanner = dynamic(() => import('../components/QrScanner.jsx'), { ssr: false });
 
 const ShopAdmin = dynamic(() => import('./ShopAdmin.jsx'), { ssr: false, loading: () => <PageLoader /> });
+const AlbumsOverview = dynamic(() => import('./admin/AlbumsAdmin.jsx').then(m => m.AlbumsOverview), { ssr: false, loading: () => <PageLoader /> });
+const AlbumDetail = dynamic(() => import('./admin/AlbumsAdmin.jsx').then(m => m.AlbumDetail), { ssr: false, loading: () => <PageLoader /> });
 const EventAdminForm = dynamic(() => import('./EventAdminForm.jsx'), { ssr: false, loading: () => <PageLoader /> });
 
 const STATUSES = ['upcoming', 'open', 'soldout', 'live', 'ended', 'hidden'];
@@ -79,46 +81,6 @@ function Members() {
       </tr>)}</tbody>
     </table></div>}
   </div>;
-}
-
-// อัลบั้มรูปงาน — อัปโหลดทีเดียวหลายร้อยรูป (ส่งเป็นชุดละ 40) → server คัดรูปเดี่ยว/คู่แล้วจับคู่ใบหน้าหลังบ้าน · พรีวิว · ลบ · คำขอเอารูปออก
-function AlbumAdmin({ ev }) {
-  const [open, setOpen] = useState(false);
-  const [d, setD] = useState(null);
-  const [prog, setProg] = useState(null);   // { done, total }
-  const [msg, setMsg] = useState('');
-  const load = () => api(`/admin/events/${ev.slug}/album`, { admin: true }).then(setD).catch(e => setMsg(e.message));
-  useEffect(() => { if (open) load(); }, [open, ev.slug]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (!open || !d?.pending) return; const t = setTimeout(load, 3000); return () => clearTimeout(t); }, [open, d]); // eslint-disable-line react-hooks/exhaustive-deps
-  const upload = async (files) => {
-    const list = Array.from(files || []).filter(f => f.type.startsWith('image/'));
-    if (!list.length) return;
-    setMsg(''); setProg({ done: 0, total: list.length });
-    try {
-      for (let i = 0; i < list.length; i += 40) {
-        const fd = new FormData(); list.slice(i, i + 40).forEach(f => fd.append('photos', f));
-        await api(`/admin/events/${ev.slug}/album`, { method: 'POST', body: fd, admin: true });
-        setProg({ done: Math.min(list.length, i + 40), total: list.length });
-      }
-    } catch (e) { setMsg(e.message); }
-    setProg(null); load();
-  };
-  const act = async (path, method = 'POST') => { setMsg(''); try { await api(path, { method, admin: true }); load(); } catch (e) { setMsg(e.message); } };
-  const st = d ? { total: d.photos.length, done: d.photos.filter(p => p.scan === 'done').length, skipped: d.photos.filter(p => p.scan === 'skipped').length, pending: d.pending, failed: d.photos.filter(p => p.scan === 'failed').length, matched: d.photos.filter(p => p.matched > 0).length } : null;
-  return <details className="adv album-admin" open={open} onToggle={e => setOpen(e.target.open)}><summary>อัลบั้มรูปงาน <small>{st ? `(${st.total} รูป · จับคู่ใบหน้าแล้ว ${st.matched}${st.pending ? ` · กำลังสแกน ${st.pending}` : ''})` : '(กดเพื่อจัดการ)'}</small></summary>
-    {msg && <Notice tone="error">{msg}</Notice>}
-    <label className={`album-drop ${prog ? 'busy' : ''}`}><input type="file" accept="image/*" multiple disabled={!!prog} onChange={e => { upload(e.target.files); e.target.value = ''; }} /><Icon name="upload" /><span>{prog ? `กำลังอัปโหลด ${prog.done}/${prog.total}…` : 'เลือกรูปทั้งหมดของงานทีเดียว (ลากมาวางได้) — ระบบย่อรูป คัดรูปเดี่ยว/คู่ และจับคู่ใบหน้าให้เอง'}</span></label>
-    {d && <>
-      <p className="checkin-stats"><span>ทั้งหมด <strong>{st.total}</strong></span><span>รูปเดี่ยว/คู่ (จับคู่ได้) <strong>{st.done}</strong></span><span>รูปหมู่/ไม่มีหน้า <strong>{st.skipped}</strong></span>{st.pending > 0 && <span>กำลังสแกน <strong>{st.pending}</strong></span>}{st.failed > 0 && <span className="danger">ล้มเหลว <strong>{st.failed}</strong></span>}<span>มีสมาชิกในรูป <strong>{st.matched}</strong></span><span>สมาชิกที่ลงทะเบียนใบหน้า <strong>{d.faceUsers}</strong></span><span className="muted">ตัวจับคู่: {d.facesEnabled ? d.provider : 'ปิด'} · ที่เก็บรูป: {d.storage === 's3' ? 'S3' : 'ดิสก์เซิร์ฟเวอร์'}</span>{st.failed > 0 && <button type="button" className="link-button" onClick={() => act(`/admin/events/${ev.slug}/album/rescan-all`)}>สแกนใหม่ทั้งหมด</button>}</p>
-      {d.removals.filter(r => r.status === 'open').length > 0 && <div className="removal-list"><strong>คำขอเอารูปออก</strong>{d.removals.filter(r => r.status === 'open').map(r => { const p = d.photos.find(x => x.id === r.photo_id); return <div key={r.id} className="removal-row">{p && <img src={p.thumb} alt="" />}<span>{r.display_name}{r.reason ? ` — ${r.reason}` : ''} <small className="muted">{fmt(r.created_at)}</small></span><button className="button dark small" onClick={() => act(`/admin/album/removals/${r.id}/done`)}>ลบรูป</button><button className="link-button" onClick={() => act(`/admin/album/removals/${r.id}/declined`)}>ไม่ลบ</button></div>; })}</div>}
-      <div className="album-admin-grid">{d.photos.map(p => <figure key={p.id} className={`aa-tile ${p.scan}`} title={p.matched_names || ''}>
-        <img src={p.thumb} alt="" loading="lazy" />
-        <span className="aa-badges">{p.scan === 'pending' ? <b className="mini-tag">สแกน…</b> : p.scan === 'done' ? <b className="mini-tag ok">{p.faces === 1 ? 'เดี่ยว' : p.faces === 2 ? 'คู่' : `${p.faces} คน`}</b> : p.scan === 'failed' ? <b className="mini-tag dup">ล้มเหลว</b> : <b className="mini-tag via">{p.faces ? `หมู่ ${p.faces}` : 'ไม่มีหน้า'}</b>}{p.matched > 0 && <b className="mini-tag warn">👤 {p.matched}</b>}{!!p.featured && <b className="mini-tag ok">พรีวิว</b>}</span>
-        <span className="aa-actions"><button type="button" className="link-button" onClick={() => act(`/admin/events/${ev.slug}/album/${p.id}/featured`)}>{p.featured ? 'เอาออกจากพรีวิว' : 'ใช้เป็นพรีวิว'}</button><button type="button" className="link-button" onClick={() => act(`/admin/events/${ev.slug}/album/${p.id}/rescan`)}>สแกนใหม่</button><button type="button" className="link-button danger" onClick={() => act(`/admin/events/${ev.slug}/album/${p.id}`, 'DELETE')}>ลบ</button></span>
-      </figure>)}</div>
-      <p className="small-note">พรีวิว = รูปที่คนไม่ได้เช็คอินเห็นได้ 3 รูป (ไม่ตั้งใช้ 3 รูปแรก) · รูปหมู่ (4 คนขึ้นไป) และรูปไม่มีหน้าจะไม่ถูกส่งจับคู่ใบหน้า</p>
-    </>}
-  </details>;
 }
 
 // Passport: เล่ม (season) — งานที่วันจัดอยู่ในช่วง จะถูกจัดเข้าเล่มนั้นในหน้า /passport · ไม่ตั้ง = แยกเล่มตามปี พ.ศ.
@@ -233,12 +195,12 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
       <button className="button ghost small" onClick={onEdit}>แก้ไขงาน</button>
       {confirmDel ? <span className="confirm-del"><span>ลบ <span className="tag-label">{ev.title}</span> ถาวร?</span><button className="button dark small danger" onClick={remove}>ลบเลย</button><button className="link-button" onClick={() => setConfirmDel(false)}>ไม่ลบ</button></span> : <button className="link-button" onClick={() => setConfirmDel(true)}>ลบงาน</button>}
       <Link className="button ghost small" to={`/events/${ev.slug}`}>ดูหน้าเว็บ ↗</Link>
+      <Link className="button ghost small" to={`/admin/albums/${ev.slug}`}><Icon name="camera" size={15} /> อัลบั้มรูป</Link>
       {ev.type !== 'fanmeet' && <Link className="button ghost small" to={`/events/${ev.slug}/gate`} title="เปิดบนมือถือ/iPad แล้ววางที่จุดเช็คอิน — ใช้เมื่อตั้ง เช็คอินหน้างาน = สแกน QR หน้างาน">จอ QR เช็คอิน</Link>}
       {ev.type === 'busking' && <Link className="button dark small" to={`/events/${ev.slug}/draw`}>จอสุ่ม Lucky Fan 🎲</Link>}
     </div>
     {msg && <Notice tone={msgTone === 'ok' ? 'info' : 'error'}>{msg}</Notice>}
     {ev.type === 'merit' && <MeritTools ev={ev} onMsg={setMsg} />}
-    <AlbumAdmin ev={ev} />
     {rows?.attend && <div className="view-switch"><button className={view === 'donations' ? 'active' : ''} onClick={() => setView('donations')}>ยอดร่วมบุญ ({rows.donations.length})</button><button className={view === 'registrations' ? 'active' : ''} onClick={() => setView('registrations')}>ไปวัดด้วย ({rows.attend.length})</button></div>}
     {rows?.donations && view === 'donations' && <input className="admin-search" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="ค้นหารหัส / ชื่อผู้ร่วมบุญ / สมาชิก" style={{ marginBottom: 10 }} />}
     <div className="tabs-row"><div className="filter-tabs"><button className={tab === 'pending' ? 'active' : ''} onClick={() => setTab('pending')}>{view === 'registrations' && rows?.attend ? 'ยังไม่เช็คอิน' : 'รอตรวจ'}</button><button className={tab === 'all' ? 'active' : ''} onClick={() => setTab('all')}>ทั้งหมด</button></div>
@@ -339,7 +301,7 @@ function ScanArea({ onCheckedIn }) {
 // รหัสบัตรจากช่องพิมพ์หรือ QR (QR บนบัตรเป็น URL /ticket/รหัส · ของเดิมเป็น /admin?checkin=รหัส)
 const codeOf = (raw) => { const m = String(raw || '').match(/(?:checkin=|\/ticket\/)([A-Za-z0-9]{6,12})/) || String(raw || '').trim().match(/^([A-Za-z0-9]{6,12})$/); return m ? m[1].toUpperCase() : ''; };
 
-const AREA_TITLE = { events: 'กิจกรรม', shop: 'ร้านค้า', members: 'สมาชิก', scan: 'สแกน QR เช็คอิน' };
+const AREA_TITLE = { events: 'กิจกรรม', albums: 'อัลบั้มรูป', shop: 'ร้านค้า', members: 'สมาชิก', scan: 'สแกน QR เช็คอิน' };
 
 // area มาจาก URL (/admin/events · /admin/events/:slug · /admin/shop · /admin/members · /admin/scan)
 export default function AdminPage({ area = 'events', slug = null }) {
@@ -373,7 +335,8 @@ export default function AdminPage({ area = 'events', slug = null }) {
   if (!authed) return <div className="ad-boot"><Login onDone={(a) => { setAdmin(a); setAuthed(true); }} /></div>;
 
   return <AdminShell area={area} title={title} admin={admin} onLogout={logout} actions={actions}>
-    {area === 'shop' ? <ShopAdmin />
+    {area === 'albums' ? (slug ? <AlbumDetail slug={slug} /> : <AlbumsOverview />)
+      : area === 'shop' ? <ShopAdmin />
       : area === 'members' ? <Members />
         : area === 'scan' ? <ScanArea onCheckedIn={() => { if (events) refresh(); }} />
           : editing ? <div className="ad-card ad-form">

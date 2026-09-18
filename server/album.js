@@ -13,6 +13,10 @@ const MAX_FACES = 3;     // รูปเดี่ยว/คู่/สามค�
 
 /* ---------- นำเข้ารูป: ต้นฉบับ(≤2400) · view 1400 · thumb 480 (webp) ---------- */
 export async function importPhoto(eventId, srcPath, { takenAt = null, remove = false } = {}) {
+  // กันอัปซ้ำ: ไฟล์เดิมของงานเดิม (ลายนิ้วมือ sha1 ของไฟล์ต้นทาง) → คืน id เดิม ไม่สร้างรูปใหม่
+  const sha = crypto.createHash('sha1').update(fs.readFileSync(srcPath)).digest('hex');
+  const dup = await one('SELECT id FROM event_photos WHERE event_id=? AND sha=?', [eventId, sha]);
+  if (dup) { if (remove) fs.rm(srcPath, { force: true }, () => {}); return { id: dup.id, duplicate: true }; }
   const base = `${Date.now().toString(36)}-${code(6).toLowerCase()}`;
   const key = (f) => `albums/${eventId}/${f}`;
   const tmp = path.join(os.tmpdir(), `bigcat-${crypto.randomUUID()}`);
@@ -30,10 +34,11 @@ export async function importPhoto(eventId, srcPath, { takenAt = null, remove = f
     ]);
     const exifDate = meta.exif ? exifTaken(meta.exif) : null;
     const next = (await one('SELECT COALESCE(MAX(sort_order),0)+1 AS n FROM event_photos WHERE event_id=?', [eventId])).n;
-    const ins = await q('INSERT INTO event_photos SET ?', [{ event_id: eventId, orig: origStored, view: viewStored, thumb: thumbStored, width: orig.width, height: orig.height, taken_at: takenAt || exifDate, sort_order: next }]);
+    const bytes = [big, mid, small].reduce((n, f) => n + (fs.statSync(f).size || 0), 0);
+    const ins = await q('INSERT INTO event_photos SET ?', [{ event_id: eventId, orig: origStored, view: viewStored, thumb: thumbStored, width: orig.width, height: orig.height, taken_at: takenAt || exifDate, sort_order: next, sha, bytes }]);
     if (remove) fs.rm(srcPath, { force: true }, () => {});
     kick();
-    return ins.insertId;
+    return { id: ins.insertId, duplicate: false };
   } finally { fs.rm(tmp, { recursive: true, force: true }, () => {}); }
 }
 // วันที่ถ่ายจาก EXIF (DateTimeOriginal) — ไว้เรียงลำดับ · หาไม่เจอก็ไม่เป็นไร
@@ -52,6 +57,8 @@ async function drain() {
     catch (e) { console.error(`album scan #${p.id}:`, e.message); await q("UPDATE event_photos SET scan='failed' WHERE id=?", [p.id]); }
   }
 }
+const dropCrops = (faceIds) => { for (const id of faceIds) for (const s of [200]) fs.rm(path.join(CROP_DIR, `${id}-${s}.webp`), { force: true }, () => {}); };
+
 export async function scanPhoto(p) {
   if (!faces.facesEnabled) { await q("UPDATE event_photos SET scan='skipped', faces=NULL WHERE id=?", [p.id]); return; }
   const copy = await store.localCopy(p.orig);   // S3 → โหลดมาไว้ temp ชั่วคราว
@@ -63,6 +70,7 @@ async function scanFile(p, file) {
   const usable = det.faces.filter(faces.usable).length;
   if (n < 1 || n > MAX_FACES || usable === 0) { await q("UPDATE event_photos SET scan='skipped', faces=? WHERE id=?", [n, p.id]); return; }
   const idx = await faces.index(file, `p:${p.id}`, det);
+  dropCrops((await q('SELECT id FROM photo_faces WHERE photo_id=?', [p.id])).map(r => r.id));
   await q('DELETE FROM photo_faces WHERE photo_id=?', [p.id]);
   for (const f of idx.faces) await q('INSERT INTO photo_faces SET ?', [{ photo_id: p.id, face_ref: f.ref, box: JSON.stringify(f.box), score: f.score, descriptor: f.descriptor ? JSON.stringify(f.descriptor) : null }]);
   await q("UPDATE event_photos SET scan='done', faces=? WHERE id=?", [idx.faces.length, p.id]);
@@ -130,6 +138,8 @@ export async function forgetUserFaces(userId, { revokeConsent = false } = {}) {
 }
 
 /* ---------- สิทธิ์ดูอัลบั้ม: เช็คอินงานนั้น (ลงทะเบียน/บัตร) หรือแอดมิน ---------- */
+export const albumPublished = (cfg) => (cfg?.album?.published ?? true);   // ค่าเริ่มต้น = เผยแพร่ (อัลบั้มเก่าไม่หายไป) · อัลบั้มใหม่ตั้งเป็นยังไม่เผยแพร่ตอนอัปรูปแรก
+
 export async function canViewAlbum(user, eventId) {
   if (!user) return false;
   const r = await one('SELECT 1 AS ok FROM registrations WHERE event_id=? AND user_id=? AND checked_in_at IS NOT NULL LIMIT 1', [eventId, user.id]);
@@ -145,10 +155,36 @@ export async function photosOfUser(userId, eventId = null) {
     ORDER BY (p.faces=2) DESC, f.similarity DESC`, eventId ? [userId, eventId] : [userId]);
 }
 
+// ตัดเฉพาะใบหน้าจากรูป (ใช้ในหน้าทบทวนใบหน้าของแอดมิน) — คืน buffer webp
+const CROP_DIR = path.join(os.tmpdir(), 'bigcat-face-crops');
+export async function faceCrop(faceId, size = 200) {
+  const cached = path.join(CROP_DIR, `${faceId}-${size}.webp`);
+  if (fs.existsSync(cached)) return fs.readFileSync(cached);
+  const f = await one('SELECT f.box, p.view FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id WHERE f.id=?', [faceId]);
+  if (!f) return null;
+  const box = parseJSON(f.box, null); if (!box) return null;
+  const copy = await store.localCopy(f.view);
+  try {
+    const im = sharp(copy.file).rotate();
+    const { width, height } = await im.metadata();
+    const pad = 0.45;   // เผื่อรอบหน้าให้เห็นทรงผม/บริบท
+    const left = Math.max(0, Math.round((box.x - box.w * pad) * width));
+    const top = Math.max(0, Math.round((box.y - box.h * pad) * height));
+    const w = Math.min(width - left, Math.round(box.w * (1 + pad * 2) * width));
+    const h = Math.min(height - top, Math.round(box.h * (1 + pad * 2) * height));
+    const buf = await im.extract({ left, top, width: Math.max(8, w), height: Math.max(8, h) }).resize(size, size, { fit: 'cover' }).webp({ quality: 80 }).toBuffer();
+    fs.mkdirSync(CROP_DIR, { recursive: true });
+    fs.writeFile(cached, buf, () => {});
+    return buf;
+  } finally { copy.done(); }
+}
+
 export async function deletePhoto(id) {
   const p = await one('SELECT * FROM event_photos WHERE id=?', [id]);
   if (!p) return;
-  const refs = (await q('SELECT face_ref FROM photo_faces WHERE photo_id=?', [id])).map(r => r.face_ref);
+  const rows = await q('SELECT id, face_ref FROM photo_faces WHERE photo_id=?', [id]);
+  dropCrops(rows.map(r => r.id));
+  const refs = rows.map(r => r.face_ref);
   await faces.forget(refs).catch(() => {});
   await q('DELETE FROM event_photos WHERE id=?', [id]);
   for (const f of [p.orig, p.view, p.thumb]) await store.remove(f).catch(() => {});

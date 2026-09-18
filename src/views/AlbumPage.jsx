@@ -38,6 +38,7 @@ export default function AlbumPage({ slug }) {
     </div>
     {msg && <Notice tone="error">{msg}</Notice>}
     {!a ? <PageLoader label="กำลังเปิดอัลบั้ม…" />
+      : a.access === 'unpublished' ? <Notice tone="muted">ทีมงานกำลังคัดรูปของงานนี้อยู่ — อีกไม่นานจะเปิดให้คนที่เช็คอินเข้ามาดูนะคะ</Notice>
       : a.access !== 'full' ? <div className="album-locked">
         <div className="album-preview locked">{a.photos.map(p => <span key={p.id} className="album-preview-tile"><img src={p.thumb} alt="" /></span>)}</div>
         <Notice tone="muted">อัลบั้ม {a.total} รูปนี้เปิดให้เฉพาะคนที่<strong>เช็คอินหน้างาน</strong> {!user ? <><Link to={`/login?next=/events/${slug}/album`}>เข้าสู่ระบบ</Link>ด้วยบัญชีที่ใช้ลงทะเบียนงานนี้</> : 'บัญชีนี้ยังไม่มีการเช็คอินงานนี้ — ถ้าลงทะเบียนโดยไม่ได้ล็อกอิน ให้พี่ ๆ ผูกบัตรกับบัญชีในหน้าจัดการได้'}</Notice>

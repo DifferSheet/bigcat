@@ -9,7 +9,7 @@ import { q, one, parseJSON } from '../db.js';
 import { wrap, HttpError, getEvent } from '../lib.js';
 import { requireUser } from '../auth.js';
 import { upload } from '../upload.js';
-import { canViewAlbum, photosOfUser, registerUserFace, forgetUserFaces } from '../album.js';
+import { canViewAlbum, photosOfUser, registerUserFace, forgetUserFaces, albumPublished } from '../album.js';
 import { facesEnabled, faceProvider } from '../faces.js';
 import { withUrls } from '../storage.js';
 
@@ -19,6 +19,8 @@ const PREVIEW = 3;
 r.get('/events/:slug/album', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
   const total = (await one('SELECT COUNT(*) AS n FROM event_photos WHERE event_id=?', [ev.id])).n;
+  // อัลบั้มที่ยังไม่เผยแพร่ = ทีมกำลังคัดรูป ยังไม่มีใครเห็น (แม้แต่คนที่เช็คอิน)
+  if (!albumPublished(ev.config)) return res.set('Cache-Control', 'private, no-store').json({ total: 0, access: 'unpublished', photos: [], me: null, facesEnabled, provider: faceProvider });
   const full = await canViewAlbum(req.user, ev.id);
   const base = { total, access: full ? 'full' : 'preview', facesEnabled, provider: faceProvider };
   if (!full) {
@@ -46,7 +48,7 @@ r.post('/events/:slug/album/:id/:verdict', requireUser, wrap(async (req, res) =>
 
 r.post('/events/:slug/album/:id/remove', requireUser, wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
-  if (!(await canViewAlbum(req.user, ev.id))) throw new HttpError(403, 'เฉพาะผู้ที่เช็คอินงานนี้');
+  if (!albumPublished(ev.config) || !(await canViewAlbum(req.user, ev.id))) throw new HttpError(403, 'เฉพาะผู้ที่เช็คอินงานนี้');
   const p = await one('SELECT id FROM event_photos WHERE id=? AND event_id=?', [Number(req.params.id), ev.id]);
   if (!p) throw new HttpError(404, 'ไม่พบรูป');
   const dup = await one("SELECT id FROM photo_removals WHERE photo_id=? AND user_id=? AND status='open'", [p.id, req.user.id]);

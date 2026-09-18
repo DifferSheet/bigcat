@@ -17,6 +17,7 @@ import { usingS3 } from './storage.js';
 import { faceProvider as faceProviderName } from './faces.js';
 import { backfillIfEmpty } from './passport.js';
 import shopAdminRoutes from './routes/shopAdmin.js';
+import albumAdminRoutes from './routes/albumAdmin.js';
 import { verifySignature, handleWebhookEvent, lineEnabled } from './line.js';
 import { slipEnabled } from './slip.js';
 import authRoutes, { me as meRoutes, attachUser, authProviders } from './auth.js';
@@ -51,6 +52,7 @@ app.use('/api', passportRoutes);
 app.use('/api', albumRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/shop', shopAdminRoutes);
+app.use('/api/admin', albumAdminRoutes);
 
 // พอร์ตนี้เป็น API อย่างเดียว — หน้าเว็บอยู่ที่ Next (:3100) · เปิด / ตรงนี้จะบอกทางไปแทนการเสิร์ฟ build เก่า
 app.get('/', (_req, res) => res.type('text/plain').send(`BIGCAT API · หน้าเว็บอยู่ที่ ${process.env.SITE_URL || 'http://localhost:' + (process.env.WEB_PORT || 3100)}`));

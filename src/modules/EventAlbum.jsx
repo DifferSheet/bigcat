@@ -11,7 +11,7 @@ export default function EventAlbum({ ev }) {
   const { user } = useUser();
   const [a, setA] = useState(null);
   useEffect(() => { api(`/events/${ev.slug}/album`).then(setA).catch(() => setA({ total: 0 })); }, [ev.slug, user?.id]);
-  if (!a || !a.total) return null;
+  if (!a || a.access === 'unpublished' || !a.total) return null;   // ยังไม่เผยแพร่ = ไม่ต้องขึ้นหัวข้อนี้เลย
   const full = a.access === 'full';
   return <Section eyebrow="PHOTO ALBUM" title="ภาพบรรยากาศวันงาน" aside={<span className="ev-summary"><strong>{a.total}</strong> รูป{full && a.me?.matches > 0 ? <> · มีคุณ <strong>{a.me.matches}</strong> รูป</> : null}</span>}>
     <div className={`album-preview ${full ? '' : 'locked'}`}>

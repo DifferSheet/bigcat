@@ -10,9 +10,10 @@ import { api } from '../../lib/api.js';
 
 export const AREAS = [
   { key: 'events', label: 'กิจกรรม', href: '/admin/events', icon: 'calendar' },
+  { key: 'albums', label: 'อัลบั้ม', href: '/admin/albums', icon: 'camera' },
   { key: 'shop', label: 'ร้านค้า', href: '/admin/shop', icon: 'bag' },
   { key: 'members', label: 'สมาชิก', href: '/admin/members', icon: 'user' },
-  { key: 'scan', label: 'สแกน QR', href: '/admin/scan', icon: 'camera' },
+  { key: 'scan', label: 'สแกน QR', href: '/admin/scan', icon: 'check' },
 ];
 
 function PasswordModal({ onClose }) {
