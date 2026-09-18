@@ -87,11 +87,16 @@ export async function matchPhoto(photoId) {
 export async function matchUser(userId) {
   const mine = await q('SELECT face_ref, descriptor FROM user_faces WHERE user_id=?', [userId]);
   if (!mine.length) return 0;
-  const pf = await q('SELECT id, face_ref, descriptor, user_id, status FROM photo_faces');
+  // เทียบเฉพาะใบหน้าในอัลบั้มของงานที่คนนี้เช็คอิน (สิทธิ์ดูอัลบั้มก็จำกัดแบบเดียวกัน)
+  const pf = await q(`SELECT f.id, f.face_ref, f.descriptor, f.user_id, f.status FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id
+    WHERE p.event_id IN (SELECT event_id FROM registrations WHERE user_id=? AND checked_in_at IS NOT NULL
+                         UNION SELECT event_id FROM bookings WHERE user_id=? AND status='checked_in')`, [userId, userId]);
   const pool = pf.map(f => ({ ref: f.face_ref, descriptor: parseJSON(f.descriptor, null), id: f.id, user_id: f.user_id, status: f.status }));
+  if (!pool.length) return 0;
+  const allowed = new Set(pool.map(p => p.ref));
   let n = 0;
   for (const uf of mine) {
-    const hits = await faces.similar({ ref: uf.face_ref, descriptor: parseJSON(uf.descriptor, null) }, pool);
+    const hits = (await faces.similar({ ref: uf.face_ref, descriptor: parseJSON(uf.descriptor, null) }, pool)).filter(h => allowed.has(h.ref));
     for (const h of hits) {
       const f = pool.find(p => p.ref === h.ref);
       if (!f || f.status === 'rejected' || (f.status === 'confirmed' && f.user_id && f.user_id !== userId)) continue;
