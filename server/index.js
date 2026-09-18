@@ -40,7 +40,8 @@ app.post('/api/line/webhook', express.raw({ type: '*/*' }), async (req, res) => 
 });
 app.use(express.json());
 app.use('/api', attachUser);   // req.user จาก cookie session (null ถ้าไม่ได้ล็อกอิน)
-app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'uploads')));
+// ชื่อไฟล์อัปโหลดมี timestamp+รหัสสุ่ม ไม่ซ้ำ ไม่ถูกเขียนทับ → ให้ browser/Cloudflare เก็บได้ยาว ไม่ต้องกลับมาถาม EC2
+app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'uploads'), { maxAge: '365d', immutable: true }));
 app.get('/api/health', async (_req, res) => {
   try { await one('SELECT 1'); res.json({ ok: true, db: true }); } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });

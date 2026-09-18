@@ -16,4 +16,11 @@ export default {
     ];
   },
   images: { formats: ['image/avif', 'image/webp'] },
+  // รูปใน public/ — Next ส่ง max-age=0 เป็นค่าเริ่มต้น ทำให้ Cloudflare ต้อง revalidate กับ EC2 ทุก request
+  // ตั้ง 1 วัน (ชื่อไฟล์คงที่ เปลี่ยนรูปชื่อเดิมจะเห็นภายใน 1 วัน หรือกด Purge Cache ใน Cloudflare)
+  async headers() {
+    return [
+      { source: '/images/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }] },
+    ];
+  },
 };
