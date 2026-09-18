@@ -104,22 +104,59 @@ button.stamp-slot:hover { transform: translateY(-2px); box-shadow: var(--shadow-
   .passport-head h1 { font-size: 24px; }
 }
 
-/* ---------- รูปของฉันในอัลบั้มงาน (ใบหน้า opt-in) ---------- */
-.face-section { grid-column: 1 / -1; }
-.face-box { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border-radius: var(--r-md); background: #fff; border: 1px solid var(--line); }
-.face-copy p { margin: 0 0 6px; }
-.face-form { gap: 12px; }
-.face-form .check span { font-size: 14px; }
-.link-button.inline { display: inline; padding: 0; font-size: inherit; }
-.link-button.danger { color: var(--danger); }
+/* ---------- แท็บในหน้าบัญชี ---------- */
+.account-tabs { display: flex; gap: 6px; margin: 4px 0 20px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.account-tabs button { display: inline-flex; align-items: center; gap: 7px; padding: 11px 16px; font-size: 14px; font-weight: 600; color: var(--muted); border-bottom: 2.5px solid transparent; white-space: nowrap; cursor: pointer; background: none; }
+.account-tabs button:hover { color: var(--ink); }
+.account-tabs button.active { color: var(--ink); border-bottom-color: var(--pink); }
+
+/* ---------- แท็บ «รูปของฉัน» (ใบหน้า opt-in) ---------- */
+.mp-wrap { display: flex; flex-direction: column; gap: 18px; }
+.mp-intro { display: flex; gap: 20px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; padding: 20px 22px; border-radius: var(--r-lg); background: var(--pink-wash); border: 1px solid var(--pink-pale); }
+.mp-intro > div:first-child { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 6px; }
+.mp-intro h2 { font-size: 24px; }
+.mp-intro p { margin: 0; }
+.mp-status { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+.mp-status strong { font-family: var(--font-display); font-size: 26px; color: var(--pink); }
+.mp-badge { font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: var(--r-pill); background: var(--sand-2); color: var(--muted); }
+.mp-badge.on { background: #e4efdc; color: var(--ok-text); }
+.mp-manage { display: flex; gap: 12px; }
+
+.mp-steps { display: flex; flex-direction: column; gap: 10px; }
+.mp-step { display: flex; gap: 14px; padding: 18px 20px; border-radius: var(--r-md); background: #fff; border: 1px solid var(--line); opacity: .72; transition: opacity .2s, border-color .2s; }
+.mp-step.now { opacity: 1; border-color: var(--ink); }
+.mp-step.done { opacity: 1; }
+.mp-num { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--sand-2); color: var(--muted); font-family: var(--font-display); font-size: 15px; }
+.mp-step.now .mp-num { background: var(--ink); color: #fff; }
+.mp-step.done .mp-num { background: #e4efdc; color: var(--ok-text); }
+.mp-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.mp-step-body h3 { font-size: 17px; }
+.mp-step-body .button { margin: 0; align-self: flex-start; }
+.mp-pick { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.mp-preview { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pink-pale); background: var(--sand-2); }
+.mp-preview.empty { display: grid; place-items: center; color: var(--muted-3); }
+.mp-pick-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mp-consent { display: flex; gap: 12px; align-items: flex-start; text-align: left; padding: 14px 16px; border-radius: var(--r-md); border: 1.5px solid var(--line); background: var(--paper); font-size: 14px; line-height: 1.6; cursor: pointer; width: 100%; }
+.mp-consent[aria-pressed="true"] { border-color: var(--ok-text); background: #f2f8ee; }
+.mp-tick { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); background: #fff; font-size: 13px; font-weight: 700; color: #fff; }
+.mp-tick.on { background: var(--ok-text); border-color: var(--ok-text); }
+
+.mp-events { display: flex; flex-direction: column; gap: 22px; }
+.mp-event-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.mp-event-head h3 { font-size: 20px; }
+.mp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.mp-photo { margin: 0; background: #fff; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; display: flex; flex-direction: column; }
+.mp-photo.busy { opacity: .5; pointer-events: none; }
+.mp-photo img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.mp-photo figcaption { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px 10px 10px; }
+.mp-photo-actions { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.mp-photo-actions .link-button { padding: 2px 0; font-size: 12px; }
 .pdpa-text { display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.7; max-height: 60dvh; overflow: auto; }
 .pdpa-text p { margin: 0; }
-.pm-portrait-tools { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 4px 14px; flex-wrap: wrap; margin-top: 4px; }
-.pm-portrait-tools small { width: 100%; text-align: center; font-size: 10px; }
-.pp-body { display: flex; flex-direction: column; gap: 18px; }
-.pp-body section { display: flex; flex-direction: column; gap: 8px; }
-.pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; max-height: 40dvh; overflow: auto; }
-.pp-tile { display: flex; flex-direction: column; gap: 3px; padding: 0; border: 3px solid transparent; border-radius: 12px; background: none; cursor: pointer; overflow: hidden; }
-.pp-tile img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 9px; display: block; }
-.pp-tile small { font-size: 11px; color: var(--muted); }
-.pp-tile.active { border-color: var(--pink); }
+.link-button.inline { display: inline; padding: 0; font-size: inherit; }
+.link-button.danger { color: var(--danger); }
+@media (max-width: 640px) {
+  .mp-intro { padding: 16px; }
+  .mp-status { align-items: flex-start; text-align: left; }
+  .mp-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+}

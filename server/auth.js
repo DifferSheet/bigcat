@@ -130,6 +130,18 @@ r.post('/logout', wrap(async (req, res) => {
 export default r;
 
 /* ---------- /api/me ---------- */
+// ── เฉพาะเครื่อง dev ─────────────────────────────────────────────────────────────
+// เข้าสู่ระบบเป็นสมาชิกคนหนึ่งเพื่อทดสอบหน้าเว็บบนเครื่อง (OAuth จริงใช้ในเครื่องไม่ได้)
+// เปิดได้เมื่อใส่ DEV_LOGIN=1 ใน .env ของเครื่อง และ NODE_ENV ไม่ใช่ production เท่านั้น — สคริปต์ sync ไม่ส่งค่านี้ขึ้น EC2
+export const devLoginEnabled = process.env.DEV_LOGIN === '1' && process.env.NODE_ENV !== 'production';
+export const devLogin = wrap(async (req, res) => {
+  if (!devLoginEnabled) throw new HttpError(404, 'ไม่พบหน้านี้');
+  const u = await one('SELECT id FROM users WHERE id=?', [Number(req.query.u) || 0]);
+  if (!u) throw new HttpError(404, 'ไม่พบสมาชิกคนนี้');
+  await createSession(res, u.id);
+  res.redirect(String(req.query.next || '/account'));
+});
+
 export const me = express.Router();
 me.get('/', (req, res) => res.json({ user: publicUser(req.user), providers: authProviders }));
 me.put('/', requireUser, wrap(async (req, res) => {

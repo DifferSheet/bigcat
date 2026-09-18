@@ -123,5 +123,7 @@ build บน runner arm64 → rsync โฟลเดอร์ `release/` ไป `
 * **สถานะเผยแพร่** (`config.album.published`): อัลบั้มใหม่เริ่มที่ยังไม่เผยแพร่ (แฟนไม่เห็นเลยแม้เช็คอินแล้ว) · อัลบั้มเดิมก่อนมีฟีเจอร์นี้ถือว่าเผยแพร่แล้ว
 * **ทบทวนใบหน้า**: ใบหน้าที่ระบบยังไม่รู้ว่าใคร → ทีมผูกกับสมาชิกได้เฉพาะคนที่เช็คอินงานนั้น (สถานะ `confirmed`) หรือกด «ไม่ใช่คน» (`rejected`) · เจ้าตัวกด «ไม่ใช่ฉัน» ถอนได้เสมอ · ภาพหน้าตัดมาจากรูป view แล้วแคชที่ temp
 * คำขอเอารูปออก (`photo_removals`) ดูในหน้าจัดการ → ลบรูป/ไม่ลบ
+* หน้าบัญชีสมาชิกแบ่ง 3 แท็บ (`/account` · `?tab=photos` · `?tab=history`) — แท็บ «รูปของฉัน» = ลงทะเบียนใบหน้าแบบ 3 ขั้น (เลือกรูป → ยอมรับข้อกำหนด → ค้นหา) แล้วดู/ยืนยัน/ปฏิเสธรูปที่ระบบจับคู่ · ดึงเข้า Passport · ดาวน์โหลด · เปลี่ยนรูปหน้า/ลบข้อมูลใบหน้า (`GET /api/me/photos`)
+* dev: ใส่ `DEV_LOGIN=1` ใน `.env` ของเครื่อง แล้วเปิด `/api/dev/login?u=<user id>&next=/account` เพื่อเข้าสู่ระบบเป็นสมาชิกคนนั้นบนเครื่อง (OAuth จริงใช้บน localhost ไม่ได้) — ปิดอัตโนมัติเมื่อ `NODE_ENV=production` และสคริปต์ sync ไม่ส่งค่านี้ขึ้น EC2
 * ที่เก็บรูป (`server/storage.js`): ไม่ตั้ง `MEDIA_BUCKET` = ดิสก์ (`server/uploads/albums/`, rsync ตอน deploy ไม่แตะ) · ตั้งแล้ว = S3 (`s3:<key>` ใน DB, เสิร์ฟด้วย presigned URL อายุ `MEDIA_URL_TTL` 6 ชม.) — bucket ต้องปิด public access · EC2 ใช้ IAM role `bigcat-app-role` ไม่ต้องมี access key
 * ย้ายรูปเดิมขึ้น S3: `node server/migrate-album-s3.js [--dry] [--keep]` (ดูขั้นตอนเปิด AWS ที่ `tools/aws/README.md`)

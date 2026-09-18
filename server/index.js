@@ -20,7 +20,7 @@ import shopAdminRoutes from './routes/shopAdmin.js';
 import albumAdminRoutes from './routes/albumAdmin.js';
 import { verifySignature, handleWebhookEvent, lineEnabled } from './line.js';
 import { slipEnabled } from './slip.js';
-import authRoutes, { me as meRoutes, attachUser, authProviders } from './auth.js';
+import authRoutes, { me as meRoutes, attachUser, authProviders, devLogin, devLoginEnabled } from './auth.js';
 
 const PORT = Number(process.env.PORT || 3001);
 const app = express();
@@ -45,6 +45,7 @@ app.get('/api/health', async (_req, res) => {
   try { await one('SELECT 1'); res.json({ ok: true, db: true }); } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 app.use('/api/auth', authRoutes);
+if (devLoginEnabled) { app.get('/api/dev/login', devLogin); console.log('⚠️  DEV_LOGIN เปิดอยู่ — /api/dev/login?u=<id> ใช้ได้บนเครื่องนี้'); }
 app.use('/api/me', meRoutes);
 app.use('/api', publicRoutes);
 app.use('/api', shopRoutes);

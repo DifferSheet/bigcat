@@ -62,6 +62,23 @@ r.get('/me/face', requireUser, wrap(async (req, res) => {
   const matches = await q(`SELECT p.event_id, e.slug, e.title, COUNT(*) AS n FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id JOIN events e ON e.id=p.event_id WHERE f.user_id=? AND f.status<>'rejected' GROUP BY p.event_id, e.slug, e.title`, [req.user.id]);
   res.set('Cache-Control', 'private, no-store').json({ enabled: facesEnabled, provider: faceProvider, consented_at: req.user.face_consent_at || null, registered_at: registered?.created_at || null, matches });
 }));
+// รูปที่มีฉันทั้งหมด (ทุกงานที่เช็คอิน) — ใช้ในแท็บ «รูปของฉัน» ของหน้าบัญชี
+r.get('/me/photos', requireUser, wrap(async (req, res) => {
+  const rows = await q(`SELECT p.id, p.thumb, p.view, p.orig, p.width, p.height, p.faces, p.event_id, f.similarity, f.status,
+      e.slug, e.title, e.starts_at, e.cover, JSON_UNQUOTE(JSON_EXTRACT(e.config, '$.album.published')) AS published
+    FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id JOIN events e ON e.id=p.event_id
+    WHERE f.user_id=? AND f.status<>'rejected' ORDER BY e.starts_at DESC, (p.faces=2) DESC, f.similarity DESC`, [req.user.id]);
+  const shown = rows.filter(r2 => r2.published !== 'false');   // อัลบั้มที่ทีมยังไม่เผยแพร่ ไม่ต้องโผล่
+  const events = [];
+  for (const p of shown) {
+    let g = events.find(x => x.slug === p.slug);
+    if (!g) { g = { slug: p.slug, title: p.title, starts_at: p.starts_at, photos: [] }; events.push(g); }
+    g.photos.push({ id: p.id, thumb: p.thumb, view: p.view, orig: p.orig, faces: p.faces, similarity: p.similarity, status: p.status });
+  }
+  for (const g of events) await withUrls(g.photos);
+  res.set('Cache-Control', 'private, no-store').json({ total: shown.length, events });
+}));
+
 r.post('/me/face', requireUser, upload.single('selfie'), wrap(async (req, res) => {
   if (!facesEnabled) throw new HttpError(400, 'ระบบค้นหาใบหน้ายังไม่เปิดใช้');
   if (!req.file) throw new HttpError(400, 'แนบรูปหน้าของคุณ 1 รูป');
