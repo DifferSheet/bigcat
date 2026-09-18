@@ -225,8 +225,7 @@ function PassportReader({ books, name, onClose }) {
     <header className="pc-reader-header">
       <div className="pc-reader-identity"><span className="eyebrow">MY BIGCAT PASSPORT</span><h2 id="pc-reader-title" title={`สมุดของ ${name}`}>สมุดของ {name}</h2></div>
       {!detail && <div className="pc-reader-controls" inert={phase !== 'ready'}>
-        <label className="pc-reader-chapter"><span>เก็บแล้ว {book.events.filter(ev => ev.earned).length}/{book.events.length} ดวง</span><select aria-label="เลือกบทในสมุด" value={chapter} onChange={e => { setChapter(Number(e.target.value)); setPage(0); }}>{(books.length ? books : [book]).map((b, i) => <option key={b.key || i} value={i}>{String(i + 1).padStart(2, '0')} · {b.name}</option>)}</select></label>
-        <div className="pc-filters" role="group" aria-label="กรองแสตมป์">{[['all', 'ทั้งหมด'], ['earned', 'สะสมแล้ว'], ['locked', 'รอเก็บ']].map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} aria-controls="pc-reader-pages" onClick={() => { setFilter(value); setPage(0); }}>{label}</button>)}</div>
+        <label className="pc-reader-chapter"><select aria-label="เลือกบทในสมุด" value={chapter} onChange={e => { setChapter(Number(e.target.value)); setPage(0); }}>{(books.length ? books : [book]).map((b, i) => <option key={b.key || i} value={i}>{String(i + 1).padStart(2, '0')} · {b.name}</option>)}</select></label>
       </div>}
       <button type="button" className="button ghost small pc-reader-close" onClick={() => closeBook.current()}>ปิดสมุด ×</button>
     </header>

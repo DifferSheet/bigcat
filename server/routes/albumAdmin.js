@@ -76,6 +76,8 @@ r.post('/albums/:slug/bulk', wrap(async (req, res) => {
   const mine = (await q('SELECT id FROM event_photos WHERE event_id=? AND id IN (?)', [ev.id, ids])).map(p => p.id);
   if (!mine.length) throw new HttpError(404, 'ไม่พบรูปที่เลือก');
   if (action === 'feature' || action === 'unfeature') await q('UPDATE event_photos SET featured=? WHERE id IN (?)', [action === 'feature' ? 1 : 0, mine]);
+  else if (action === 'group') await q('UPDATE event_photos SET group_ok=1 WHERE id IN (?)', [mine]);
+  else if (action === 'ungroup') await q('UPDATE event_photos SET group_ok=0 WHERE id IN (?)', [mine]);
   else if (action === 'rescan') { await q("UPDATE event_photos SET scan='pending' WHERE id IN (?)", [mine]); kickAlbumScan(); }
   else if (action === 'delete') { for (const id of mine) await deletePhoto(id); }
   else throw new HttpError(400, 'คำสั่งไม่ถูกต้อง');

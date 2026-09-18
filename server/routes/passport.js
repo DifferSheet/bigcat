@@ -51,12 +51,24 @@ r.get('/passport/:slug/photos', requireUser, wrap(async (req, res) => {
   const st = await myStamp(req.user.id, req.params.slug);
   const mine = await photosOfUser(req.user.id, st.event_id);
   // รูปหมู่: เลือกจากรูปในอัลบั้มของงาน — เอารูปที่มีคนหลายคนขึ้นก่อน
-  const album = await q(`SELECT id, thumb, view, faces FROM event_photos WHERE event_id=? ORDER BY (faces IS NULL OR faces>=3) DESC, featured DESC, sort_order LIMIT 60`, [st.event_id]);
+  const marked = (await one('SELECT COUNT(*) AS n FROM event_photos WHERE event_id=? AND group_ok=1', [st.event_id])).n;
+  const album = await q(`SELECT id, thumb, view, faces FROM event_photos WHERE event_id=? AND ${marked ? 'group_ok=1' : '(faces IS NULL OR faces>=3)'} ORDER BY featured DESC, sort_order LIMIT 60`, [st.event_id]);
   res.set('Cache-Control', 'private, no-store').json({
     photos: await withUrls(mine.map(p => ({ id: p.id, thumb: p.thumb, view: p.view, faces: p.faces, status: p.status }))),
     album: await withUrls(album.map(p => ({ id: p.id, thumb: p.thumb, view: p.view, faces: p.faces }))),
     current: parseJSON(st.meta, {}),
   });
+}));
+
+// ข้อความในหน้าสมุดของฉัน (หัวข้อ · คำบรรยายใต้รูปแต่ละใบ · บรรทัดปิดท้าย) — ส่งค่าว่างเพื่อกลับไปใช้ข้อความเริ่มต้น
+const TEXT_KEYS = ['heading', 'groupCaption', 'portraitCaption', 'caption'];
+r.put('/passport/:slug/texts', requireUser, wrap(async (req, res) => {
+  const st = await myStamp(req.user.id, req.params.slug);
+  const texts = {};
+  for (const k of TEXT_KEYS) { const v = String(req.body?.[k] ?? '').trim().slice(0, 120); if (v) texts[k] = v; }
+  if (Object.keys(texts).length) await q("UPDATE stamps SET meta=JSON_SET(COALESCE(meta, JSON_OBJECT()), '$.texts', CAST(? AS JSON)) WHERE id=?", [JSON.stringify(texts), st.id]);
+  else await q("UPDATE stamps SET meta=JSON_REMOVE(COALESCE(meta, JSON_OBJECT()), '$.texts') WHERE id=?", [st.id]);
+  res.json({ ok: true, texts });
 }));
 
 // รูปหมู่ของงานนี้ในสมุดของฉัน — เลือกจากอัลบั้ม หรือไม่ส่ง id = กลับไปใช้รูปที่แอดมินตั้งไว้

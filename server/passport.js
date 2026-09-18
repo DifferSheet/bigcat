@@ -131,6 +131,7 @@ export async function passportOf(user) {
         // รูปหมู่: ที่สมาชิกเลือกเอง > ที่แอดมินตั้งให้ทั้งงาน
         groupImage: earned.meta?.groupPhoto?.view || cfg.memory?.groupImage || null,
         groupSource: earned.meta?.groupPhoto ? 'chosen' : cfg.memory?.groupImage ? 'event' : null,
+        texts: earned.meta?.texts || null,   // ข้อความที่สมาชิกตั้งเองในหน้านี้
         myPhotos: (await q('SELECT COUNT(*) AS n FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id WHERE f.user_id=? AND f.status<>\'rejected\' AND p.event_id=?', [user.id, e.id]))[0].n,
       } : null,
       stamp: cfg.stamp || null,                      // { image } ลายแสตมป์ของงาน (แอดมินอัปโหลด) — ไม่มี = วาดจากปก

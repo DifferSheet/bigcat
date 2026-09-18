@@ -33,7 +33,7 @@
 .pc-medallion span { display: block; font: italic 16px Georgia, serif; margin-top: 6px; }
 .pc-nameplate { position: relative; display: block; max-width: 90%; min-width: 140px; padding: 8px 17px; border: 1px solid #ab8243; border-radius: 5px; background: linear-gradient(115deg, #ddbc7e, #f8e3b8 45%, #c29a59); box-shadow: inset 0 1px #fffae6, 0 3px 5px #97672e22; font: 600 17px var(--font-head); line-height: 1.2; overflow-wrap: anywhere; }
 .pc-book-footer { margin-top: 14px; }
-.pc-ribbon { position: absolute; bottom: -38px; left: 40px; width: 36px; height: 65px; padding-top: 23px; color: #9b5e60; background: linear-gradient(90deg, #cf9197, #edbcc0 45%, #dba6ad); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 83%, 0 100%); z-index: -1; }
+.pc-ribbon { position: absolute; top: calc(100% + 3px); left: 40px; width: 36px; height: 48px; padding-top: 10px; color: #9b5e60; background: linear-gradient(#80523655, transparent 9px), linear-gradient(90deg, #cf9197, #edbcc0 45%, #dba6ad); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 83%, 0 100%); z-index: -1; pointer-events: none; }
 .pc-open-page { position: absolute; right: 0; top: 70px; width: 48%; height: 410px; padding: 34px 17px; text-align: center; border: 1px solid #d8c4a6; border-radius: 3px 18px 18px 3px; background: linear-gradient(90deg, #d8c2a0, #fff8eb 17%, #f7ecda); box-shadow: 4px 4px 0 #d4b589, 8px 9px 14px #70523422; transform: rotate(8deg); color: #997d5b; }
 .pc-open-page > span { font-size: 10px; letter-spacing: .2em; }
 .pc-open-page > div { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; margin-top: 30px; }
@@ -178,7 +178,8 @@
 #passport-books > .pc-chapter:first-child { margin-top: 24px; }
 .pc-paper:first-child { border-radius: 8px 0 0 8px; }
 .pc-paper:nth-child(2) { border-radius: 0 18px 18px 0; }
-.pc-photo-album { display: grid; grid-template-columns: .85fr 1.15fr; align-items: center; gap: 40px; padding: 34px 30px; margin-bottom: 42px; background: linear-gradient(120deg, #f5e9e1, #faf3e7); border-radius: 20px; }
+.pc-photo-album { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); align-items: center; gap: 40px; padding: 34px 30px; margin-bottom: 42px; background: linear-gradient(120deg, #f5e9e1, #faf3e7); border-radius: 20px; }
+.pc-photo-album > * { min-width: 0; }
 .pc-photo-album h3 { font: 500 28px/1.6 var(--font-head); margin: 15px 0; }
 .pc-photo-album p { font-size: 14px; margin: 10px 0; }
 .pc-photo-album small { color: #977b60; font-size: 12px; }
@@ -328,10 +329,11 @@ button.pc-cover { font-family: inherit; cursor: pointer; }
 .pc-stage > .pc-cover:hover, .pc-stage > .pc-cover:focus-visible { transform: rotate(-4deg); }
 .pc-cover { container-type: inline-size; }
 .pc-stage > .pc-cover, .pc-book-flight .pc-flight-cover { padding: 6% 5%; }
-.pc-cover .pc-cover-logo { width: 17cqw; margin-bottom: 2cqw; }
+.pc-cover .pc-cover-logo { width: 17cqw; height: auto; flex-shrink: 0; margin-bottom: 2cqw; }
 .pc-cover .pc-book-title { font-size: 8cqw; }
 .pc-cover .pc-book-subtitle, .pc-cover .pc-book-footer { font-size: 2cqw; margin-top: 2cqw; }
-.pc-cover-art { width: 94%; height: 46cqw; flex: 0 0 auto; margin: 1cqw 0 2cqw; display: grid; place-items: center; }
+.pc-cover-art { width: 94%; height: 0; min-height: 0; flex: 1 1 0; margin: 1cqw 0 2cqw; display: grid; place-items: center; }
+.pc-cover .pc-book-title, .pc-cover .pc-book-subtitle, .pc-cover .pc-book-footer { flex-shrink: 0; }
 .pc-cover-art img { display: block; width: 100% !important; height: 100% !important; max-width: 100%; max-height: 100% !important; min-width: 0; min-height: 0; object-fit: contain; filter: drop-shadow(0 2px 1px #80552c25); }
 .pc-cover .pc-nameplate { min-width: 0; flex-shrink: 0; font-size: 4cqw; padding: 2cqw 4cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pc-stage { height: auto; aspect-ratio: 1.12; }
@@ -345,7 +347,7 @@ button.pc-cover { font-family: inherit; cursor: pointer; }
  .passport-page { --pc-page-ratio: .72; }
  .pc-stage { aspect-ratio: .65; }
  .pc-stage .pc-open-page { top: 60px; }
- .pc-cover-art { width: 100%; height: 64cqw; margin-block: 5cqw 4cqw; }
+ .pc-cover-art { width: 100%; margin-block: 5cqw 4cqw; }
  .pc-cover .pc-book-subtitle, .pc-cover .pc-book-footer { font-size: 2.8cqw; margin-top: 5cqw; }
  .pc-cover .pc-cover-logo { width: 24cqw; margin-bottom: 4cqw; }
  .pc-reader .pc-spread { aspect-ratio: var(--pc-page-ratio); }
@@ -379,24 +381,24 @@ button.pc-cover { font-family: inherit; cursor: pointer; }
 .pm-stamp { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 0; border: 0; background: none; color: #977353; cursor: pointer; min-width: 0; }
 .pm-stamp .stamp { width: min(100%, 164px) !important; height: auto !important; aspect-ratio: 1; transform: rotate(-7deg); }
 .pm-stamp small { font: 11px var(--font-body); }
-.pm-letter { position: relative; padding: 20px 14px 14px; background: #fffdf6; box-shadow: 0 4px 10px #66482f12; border: 1px solid #e9ddca; transform: rotate(1deg); min-width: 0; max-height: 100%; overflow: auto; }
+.pm-letter { position: relative; padding: 22px 14px 14px; background: #fffdf6; box-shadow: 0 4px 10px #66482f12; border: 1px solid #e9ddca; transform: rotate(1deg); min-width: 0; max-height: 100%; overflow: visible; margin-top: 10px; }
 .pm-letter img { width: 100%; height: 135px; object-fit: contain; }
 .pm-letter p { font-size: 12px; line-height: 1.85; white-space: pre-wrap; overflow-wrap: anywhere; }
 .pm-letter details { font-size: 11px; }
 .pm-letter summary { cursor: pointer; padding-block: 8px; }
 .pm-signature { display: block; text-align: right; font: italic 14px var(--font-head); margin-top: 12px; color: #b17d76; }
-.pm-tape { position: absolute; z-index: 1; top: -9px; left: calc(50% - 25px); width: 50px; height: 20px; background: #d9c6a3b3; transform: rotate(-4deg); pointer-events: none; }
+.pm-tape { position: absolute; z-index: 2; top: -10px; left: calc(50% - 25px); width: 50px; height: 20px; background: #d9c6a3b3; transform: rotate(-4deg); pointer-events: none; }
 .pm-detail-link { border: 0; background: none; color: #96704e; font: 11px var(--font-body); text-decoration: underline; padding: 6px 0; cursor: pointer; }
-.pm-photo-layout { display: grid; align-items: center; justify-items: center; grid-template-columns: 1fr; min-height: 0; flex: 1; gap: 16px; padding: 10px 8px; }
-.pm-polaroid { position: relative; margin: 0; background: #fffdf9; padding: 9px 9px 5px; box-shadow: 0 5px 10px #624c3326; width: 94%; transform: rotate(-2deg); min-width: 0; }
+.pm-photo-layout { display: grid; align-items: center; justify-items: center; grid-template-columns: minmax(0, 1fr); min-height: 0; flex: 1; gap: 16px; padding: 10px 8px; }
+.pm-polaroid { position: relative; margin: 0; background: #fffdf9; padding: 9px 9px 5px; box-shadow: 0 5px 10px #624c3326; width: 94%; max-width: 100%; transform: rotate(-2deg); min-width: 0; }
 .pm-polaroid a { display: block; }
-.pm-polaroid img { width: 100%; height: clamp(110px, 20vh, 190px); object-fit: contain; background: #f3eee7; display: block; }
+.pm-polaroid img { width: 100%; height: auto; max-height: clamp(130px, 26vh, 230px); object-fit: cover; display: block; }
 .pm-polaroid figcaption { text-align: center; font: 11px/1.6 var(--font-head); color: #967354; padding: 7px 0; }
-.pm-two-photos .pm-photo-layout { grid-template-columns: 1.15fr .85fr; gap: 5px; }
+.pm-two-photos .pm-photo-layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 5px; }
 .pm-two-photos .pm-portrait { transform: rotate(5deg) translateY(20px); }
 .pm-two-photos .pm-group { transform: rotate(-5deg) translateY(-15px); }
 .pm-playful .pm-tape { background: #e5bec3b8; transform: rotate(9deg); }
-.pm-special.pm-two-photos .pm-photo-layout { grid-template-columns: .8fr 1.2fr; }
+.pm-special.pm-two-photos .pm-photo-layout { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); }
 .pm-special .pm-portrait { transform: rotate(2deg); }
 .pm-merit .pm-polaroid { transform: none; border: 1px solid #c5a56c; }
 .pm-merit .pm-tape { background: #c9aa67b8; }
@@ -471,3 +473,6 @@ button.pc-cover { font-family: inherit; cursor: pointer; }
 .pm-gear-menu small { display: block; padding: 6px 11px 2px; font-size: 11px; line-height: 1.5; color: #9a8067; }
 .pm-photo-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
 .pm-photo-open img { display: block; }
+
+.pm-text-form label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; }
+.pm-text-form input { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); font-size: 14px; }

@@ -9,7 +9,14 @@ import { eventDate, typeLabel, parseDate } from '../../lib/format.js';
 
 const mb = (b) => (!b ? '—' : b > 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.round(b / 1e6)} MB`);
 const fmt = (d) => { const x = parseDate(d); return x ? x.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) : ''; };
-const CHUNK = 8;   // อัปทีละ 8 ไฟล์ — ล้มก็ลองใหม่เฉพาะชุดที่ล้ม
+const CHUNK = 8;
+const LAYOUTS = [
+  { key: 'auto', name: 'อัตโนมัติ', note: 'เลือกให้ตามประเภทงานและรูปที่มี' },
+  { key: 'warm', name: 'อบอุ่น', note: 'รูปหมู่ใหญ่ รูปคู่รอง' },
+  { key: 'playful', name: 'สนุก', note: 'สองรูปเอียงเล็กน้อย' },
+  { key: 'special', name: 'พิเศษ', note: 'รูปคู่เด่นกว่ารูปหมู่' },
+  { key: 'merit', name: 'ทำบุญ', note: 'จัดตรง เรียบ ขอบทอง' },
+];   // อัปทีละ 8 ไฟล์ — ล้มก็ลองใหม่เฉพาะชุดที่ล้ม
 
 /* ---------- ภาพรวม ---------- */
 export function AlbumsOverview() {
@@ -117,6 +124,7 @@ export function AlbumDetail({ slug }) {
     try { const r = await api(`/admin/albums/${slug}/bulk`, { method: 'POST', body: { ids: sel, action }, admin: true }); setSel([]); setMsg(`ทำกับ ${r.count} รูปแล้ว`); load(); }
     catch (e) { setErr(e.message); }
   };
+  const mark = async (id, on) => { setMsg(''); try { await api(`/admin/albums/${slug}/bulk`, { method: 'POST', body: { ids: [id], action: on ? 'group' : 'ungroup' }, admin: true }); load(); } catch (e) { setErr(e.message); } };
   const setGroup = async (id) => { setMsg(''); try { await api(`/admin/albums/${slug}/group-photo`, { method: 'POST', body: { id }, admin: true }); setMsg(id ? 'ตั้งเป็นรูปหมู่ของงานแล้ว — จะไปโชว์ในสมุด Passport ของทุกคนที่ได้แสตมป์งานนี้' : 'เอารูปหมู่ออกแล้ว'); load(); } catch (e) { setErr(e.message); } };
   const setLayout = async (layout) => { setMsg(''); try { await api(`/admin/albums/${slug}/layout`, { method: 'POST', body: { layout }, admin: true }); setMsg('เปลี่ยนเทมเพลตหน้าในสมุด Passport แล้ว'); load(); } catch (e) { setErr(e.message); } };
   const publish = async (next) => { try { await api(`/admin/albums/${slug}/publish`, { method: 'POST', body: { published: next }, admin: true }); load(); } catch (e) { setErr(e.message); } };
@@ -124,8 +132,8 @@ export function AlbumDetail({ slug }) {
 
   if (err && !d) return <Notice tone="error">{err}</Notice>;
   if (!d) return <PageLoader />;
-  const FILTERS = [['all', 'ทั้งหมด'], ['matched', 'มีสมาชิก'], ['single', 'เดี่ยว/คู่'], ['group', 'รูปหมู่'], ['featured', 'พรีวิว'], ['unknown', 'หน้าที่ยังไม่รู้จัก']];
-  const keep = (p) => filter === 'all' || (filter === 'matched' ? p.matched > 0 : filter === 'single' ? p.scan === 'done' : filter === 'group' ? p.scan === 'skipped' : filter === 'featured' ? !!p.featured : p.unknown > 0);
+  const FILTERS = [['all', 'ทั้งหมด'], ['matched', 'มีสมาชิก'], ['single', 'เดี่ยว/คู่'], ['nomatch', 'ไม่ได้จับคู่'], ['group', 'รูปหมู่ที่เลือกไว้'], ['featured', 'พรีวิว'], ['unknown', 'หน้าที่ยังไม่รู้จัก']];
+  const keep = (p) => filter === 'all' || (filter === 'matched' ? p.matched > 0 : filter === 'single' ? p.scan === 'done' : filter === 'nomatch' ? p.scan === 'skipped' : filter === 'group' ? !!p.group_ok : filter === 'featured' ? !!p.featured : p.unknown > 0);
   const list = d.photos.filter(keep);
   const stat = { done: d.photos.filter(p => p.scan === 'done').length, skipped: d.photos.filter(p => p.scan === 'skipped').length, pending: d.photos.filter(p => p.scan === 'pending').length, failed: d.photos.filter(p => p.scan === 'failed').length, matched: d.photos.filter(p => p.matched > 0).length, bytes: d.photos.reduce((n, p) => n + Number(p.bytes || 0), 0) };
 
@@ -135,20 +143,20 @@ export function AlbumDetail({ slug }) {
         <h2>{d.event.title}</h2>
         <p className="muted">{eventDate(d.event).long} · {d.photos.length} รูป · {mb(stat.bytes)}</p></div>
       <div className="ab-head-actions">
-        <label className="ab-layout">เทมเพลตในสมุด Passport
-          <select value={d.event.layout} onChange={e => setLayout(e.target.value)}>
-            <option value="auto">อัตโนมัติ (ตามประเภทงานและรูปที่มี)</option>
-            <option value="warm">อบอุ่น — รูปหมู่เด่น</option>
-            <option value="playful">สนุก — สองรูปเอียงเล็กน้อย</option>
-            <option value="special">พิเศษ — รูปคู่เด่น</option>
-            <option value="merit">ทำบุญ — จัดตรง เรียบ</option>
-          </select>
-        </label>
+
         <button type="button" className={`button ${d.event.published ? 'ghost' : 'dark'} small`} onClick={() => publish(!d.event.published)}>{d.event.published ? 'ซ่อนอัลบั้ม' : 'เผยแพร่อัลบั้ม'}</button>
         <Link className="button ghost small" to={`/events/${slug}/album`} target="_blank">ดูแบบที่แฟนเห็น ↗</Link>
         {d.facesEnabled && <button type="button" className="button ghost small" onClick={() => setFaces(true)}>ทบทวนใบหน้า</button>}
       </div>
     </div>
+    <section className="ab-layouts">
+      <span className="eyebrow">เทมเพลตหน้าในสมุด Passport</span>
+      <div className="ab-layout-row">{LAYOUTS.map(l => <button key={l.key} type="button" className={`ab-layout-card ${d.event.layout === l.key ? 'active' : ''}`} onClick={() => setLayout(l.key)}>
+        <span className={`ab-layout-preview ly-${l.key}`} aria-hidden="true"><i /><i /></span>
+        <strong>{l.name}</strong><small>{l.note}</small>
+      </button>)}</div>
+    </section>
+
     <Notice tone={d.event.published ? 'info' : 'muted'}>{d.event.published
       ? <>อัลบั้มนี้เปิดให้คนที่<strong>เช็คอินงานนี้</strong>ดูได้แล้ว · คนอื่นเห็นพรีวิว {d.photos.filter(p => p.featured).length || 3} รูป</>
       : <>ยังไม่เผยแพร่ — คัดรูปให้เรียบร้อยแล้วกด <Tag>เผยแพร่อัลบั้ม</Tag> แฟน ๆ ถึงจะเห็น</>}</Notice>
@@ -185,6 +193,8 @@ export function AlbumDetail({ slug }) {
     {sel.length > 0 && <div className="bulk-bar"><span>เลือก {sel.length} รูป</span>
       <button className="button dark small" onClick={() => bulk('feature')}>ตั้งเป็นพรีวิว</button>
       <button className="button ghost small" onClick={() => bulk('unfeature')}>เอาออกจากพรีวิว</button>
+      <button className="button ghost small" onClick={() => bulk('group')}>ทำเครื่องหมายรูปหมู่</button>
+      <button className="button ghost small" onClick={() => bulk('ungroup')}>เอาออกจากรูปหมู่</button>
       <button className="button ghost small" onClick={() => bulk('rescan')}>สแกนใหม่</button>
       <button className="link-button danger" onClick={() => bulk('delete')}>ลบ</button>
       <button className="link-button" onClick={() => setSel([])}>ยกเลิกการเลือก</button>
@@ -199,10 +209,13 @@ export function AlbumDetail({ slug }) {
         <span className="aa-badges">
           {p.scan === 'pending' ? <b className="mini-tag">สแกน…</b> : p.scan === 'done' ? <b className="mini-tag ok">{p.faces === 1 ? 'เดี่ยว' : p.faces === 2 ? 'คู่' : `${p.faces} คน`}</b> : p.scan === 'failed' ? <b className="mini-tag dup">ล้มเหลว</b> : <b className="mini-tag via">{p.faces ? `หมู่ ${p.faces}` : 'ไม่มีหน้า'}</b>}
           {p.matched > 0 && <b className="mini-tag warn">👤 {p.matched}</b>}
-          {!!p.featured && <b className="mini-tag ok">พรีวิว</b>}{isGroup && <b className="mini-tag warn">รูปหมู่ Passport</b>}
+          {!!p.featured && <b className="mini-tag ok">พรีวิว</b>}{isGroup && <b className="mini-tag warn">รูปหมู่หลัก</b>}{!!p.group_ok && !isGroup && <b className="mini-tag via">รูปหมู่</b>}
         </span>
         <a className="ab-open" href={p.view} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} aria-label="เปิดรูปเต็ม">↗</a>
-        <span className="ab-tile-actions"><button type="button" className="link-button" onClick={e => { e.stopPropagation(); setGroup(isGroup ? 0 : p.id); }}>{isGroup ? 'เอารูปหมู่ออก' : 'ตั้งเป็นรูปหมู่'}</button></span>
+        <span className="ab-tile-actions">
+          <button type="button" className="link-button" onClick={e => { e.stopPropagation(); mark(p.id, !p.group_ok); }}>{p.group_ok ? 'เอาออกจากรูปหมู่' : 'ทำเครื่องหมายรูปหมู่'}</button>
+          <button type="button" className="link-button" onClick={e => { e.stopPropagation(); setGroup(isGroup ? 0 : p.id); }}>{isGroup ? 'เลิกเป็นรูปหลัก' : 'ตั้งเป็นรูปหลัก'}</button>
+        </span>
       </figure>;
     })}</div>}
     {faces && <FaceReview slug={slug} onClose={() => setFaces(false)} onChanged={load} />}

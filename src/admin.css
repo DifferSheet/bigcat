@@ -106,3 +106,25 @@
   .ab-photos { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
   .ab-head h2 { font-size: 21px; }
 }
+
+/* เลือกเทมเพลตหน้าสมุด Passport — มีพรีวิวให้เห็นว่าหน้าตาเป็นยังไง */
+.ab-layouts { display: flex; flex-direction: column; gap: 8px; }
+.ab-layout-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 10px; }
+.ab-layout-card { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 10px; border: 1.5px solid var(--line); border-radius: var(--r-md); background: #fff; cursor: pointer; text-align: left; }
+.ab-layout-card:hover { border-color: var(--muted-3); }
+.ab-layout-card.active { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.ab-layout-card strong { font-size: 13px; }
+.ab-layout-card small { font-size: 11px; color: var(--muted); line-height: 1.4; }
+.ab-layout-preview { display: flex; gap: 5px; align-items: center; justify-content: center; width: 100%; height: 62px; padding: 8px; border-radius: 8px; background: #f7efe1; }
+.ab-layout-preview i { display: block; background: #fff; border: 1px solid #e0cfae; box-shadow: 0 1px 3px #6b4c2e1a; }
+.ab-layout-preview.ly-auto i { width: 42%; height: 62%; }
+.ab-layout-preview.ly-auto i:first-child { height: 78%; }
+.ab-layout-preview.ly-warm i:first-child { width: 56%; height: 84%; }
+.ab-layout-preview.ly-warm i:last-child { width: 30%; height: 56%; }
+.ab-layout-preview.ly-playful i { width: 42%; height: 70%; }
+.ab-layout-preview.ly-playful i:first-child { transform: rotate(-6deg); }
+.ab-layout-preview.ly-playful i:last-child { transform: rotate(5deg); }
+.ab-layout-preview.ly-special i:first-child { width: 30%; height: 56%; }
+.ab-layout-preview.ly-special i:last-child { width: 56%; height: 84%; }
+.ab-layout-preview.ly-merit { background: #fdf6e6; }
+.ab-layout-preview.ly-merit i { width: 42%; height: 72%; border-color: #c9a55f; }
