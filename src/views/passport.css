@@ -480,6 +480,3 @@ button.pc-cover { font-family: inherit; cursor: pointer; }
 .pm-text-form label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; }
 .pm-text-form input { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); font-size: 14px; }
 
-.invite-stamp { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
-.invite-stamp small { font-size: 11px; color: #9a8067; }
-.invite-stamp.locked .stamp, .invite-stamp.locked .stamp-art { filter: grayscale(1); opacity: .45; }

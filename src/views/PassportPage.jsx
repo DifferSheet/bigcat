@@ -255,10 +255,7 @@ function InviteBox({ code, friend }) {
       <div className="invite-link"><code>{url.replace(/^https?:\/\//, '')}</code><button type="button" className="button dark small" onClick={copy}>{copied ? 'ก๊อปแล้ว ✓' : 'ก๊อปลิงก์'}</button>{typeof navigator !== 'undefined' && !!navigator.share && <button type="button" className="button ghost small" onClick={share}>ส่งให้เพื่อน</button>}</div>
       {friend?.meta?.count > 0 && <p className="small-note">พามาแล้ว {friend.meta.count} คน{friend.meta.friends?.length ? ` — ${friend.meta.friends.join(', ')}` : ''}</p>}
     </div>
-    <div className={`invite-stamp ${friend ? 'earned' : 'locked'}`}>
-      <SpecialStamp kind="friend" meta={friend?.meta} size={110} />
-      <small>{friend ? 'แสตมป์ของคุณ ♡' : 'ตัวอย่างแสตมป์ · ยังไม่ได้'}</small>
-    </div>
+
   </div>;
 }
 
