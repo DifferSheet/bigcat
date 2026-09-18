@@ -1,0 +1,60 @@
+/* ---------- แดชบอร์ดแอดมิน (/admin/*) — เต็มความกว้าง · sidebar ซ้าย · มือถือเป็นแถบล่าง ---------- */
+.ad-shell { min-height: 100dvh; background: var(--sand); align-items: stretch; display: grid; grid-template-columns: 232px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "brand top" "side main"; }
+.ad-boot { min-height: 100dvh; display: grid; place-items: center; background: var(--sand); padding: 24px; }
+
+.ad-topbar { grid-area: top; display: flex; align-items: center; gap: 16px; padding: 0 22px; height: 62px; background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20; }
+.ad-brand { grid-area: brand; display: flex; align-items: center; gap: 9px; height: 62px; padding: 0 18px; background: var(--ink); color: #fff; font-family: var(--font-head); font-size: 15px; letter-spacing: .04em; position: sticky; top: 0; z-index: 21; }
+.ad-brand .brand-mark { width: 30px; height: 23px; }
+.ad-brand b { font-weight: 700; color: var(--pink); }
+.ad-title { flex: 1; min-width: 0; font-size: 19px; font-family: var(--font-head); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ad-topbar-right { display: flex; align-items: center; gap: 10px; }
+.ad-topbar-right .button { margin: 0; }
+
+.ad-profile { position: relative; }
+.ad-profile-button { display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; border-radius: var(--r-pill); background: var(--sand-2); font-size: 13px; font-weight: 600; cursor: pointer; }
+.ad-profile-button:hover { background: var(--pink-tint); }
+.ad-avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: #fff; font-family: var(--font-display); font-size: 14px; }
+.ad-menu { position: absolute; right: 0; top: calc(100% + 8px); min-width: 218px; background: #fff; border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); padding: 6px; display: flex; flex-direction: column; z-index: 30; animation: appear .15s ease; }
+.ad-menu-head { padding: 10px 12px 12px; border-bottom: 1px dashed var(--line); margin-bottom: 6px; display: flex; flex-direction: column; }
+.ad-menu-head small { color: var(--muted); font-size: 12px; }
+.ad-menu button, .ad-menu a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); font-size: 14px; text-align: left; color: var(--ink); background: none; cursor: pointer; }
+.ad-menu button:hover, .ad-menu a:hover { background: var(--sand-2); }
+.ad-menu .danger { color: var(--danger); }
+
+.ad-side { grid-area: side; display: flex; flex-direction: column; gap: 4px; padding: 14px 12px; background: var(--ink); position: sticky; top: 62px; height: calc(100dvh - 62px); overflow: auto; }
+.ad-nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-md); color: #ffffffb3; font-size: 14px; font-weight: 600; transition: background .15s, color .15s; }
+.ad-nav-item:hover { background: #ffffff14; color: #fff; }
+.ad-nav-item.active { background: var(--pink); color: #fff; }
+.ad-nav-item svg { flex: none; }
+
+.ad-main { grid-area: main; padding: 22px; min-width: 0; }
+.ad-card { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 22px; max-width: 1100px; }
+.ad-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 320px; color: var(--muted); background: #fff; border: 1px dashed var(--line); border-radius: var(--r-lg); }
+
+.ad-events { display: grid; grid-template-columns: 296px minmax(0, 1fr); gap: 18px; align-items: start; }
+.ad-events .admin-list { position: sticky; top: 84px; max-height: calc(100dvh - 104px); overflow: auto; padding-right: 2px; }
+.ad-event-panel { min-width: 0; }
+.ad-event-panel .admin-event { border-radius: var(--r-lg); }
+
+.ad-scan { max-width: 640px; margin: 0 auto; }
+.ad-scan-card { display: flex; flex-direction: column; gap: 10px; }
+.ad-scan-card h2 { font-size: 24px; }
+.ad-scan-card .scan-box { margin: 6px 0 0; }
+.ad-scan-card .notice { margin: 0; }
+
+@media (max-width: 900px) {
+  .ad-shell { grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "main"; padding-bottom: 68px; }
+  .ad-brand { display: none; }
+  .ad-topbar { padding: 0 14px; gap: 10px; }
+  .ad-title { font-size: 17px; }
+  .ad-profile-name { display: none; }
+  .ad-main { padding: 14px; }
+  .ad-card { padding: 16px; border-radius: var(--r-md); }
+  /* เมนูหลักกลายเป็นแถบล่างติดขอบจอ */
+  .ad-side { position: fixed; inset: auto 0 0 0; z-index: 25; flex-direction: row; justify-content: space-around; gap: 0; padding: 6px max(6px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-bottom)); height: auto; max-height: none; overflow: visible; border-top: 1px solid #ffffff1a; }
+  .ad-nav-item { flex-direction: column; gap: 3px; padding: 7px 10px; font-size: 11px; flex: 1; justify-content: center; text-align: center; }
+  .ad-nav-item.active { background: none; color: var(--pink); }
+  .ad-events { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .ad-events .admin-list { position: static; max-height: none; flex-direction: row; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x mandatory; }
+  .ad-events .admin-item { min-width: 232px; scroll-snap-align: start; }
+}

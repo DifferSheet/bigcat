@@ -1,7 +1,8 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Link } from '../lib/nav.jsx';
-import { SiteHeader, SiteFooter, StatusPill, Notice } from '../components/EventShell.jsx';
+import { Link, useNavigate } from '../lib/nav.jsx';
+import { StatusPill, Notice } from '../components/EventShell.jsx';
+import AdminShell, { AREAS } from './admin/AdminShell.jsx';
 import { Icon, PageLoader, Modal, Tag } from '../components/ui.jsx';
 
 const PAGE = 20;
@@ -145,19 +146,6 @@ function MemberPicker({ title, onPick, onClose }) {
 }
 
 // เปลี่ยนรหัสผ่านแอดมิน + ออกจากระบบ
-function AdminAccount({ admin, onLogout }) {
-  const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ current: '', next: '' });
-  const [msg, setMsg] = useState('');
-  const save = async (e) => { e.preventDefault(); setMsg(''); try { await api('/admin/password', { method: 'PUT', body: f, admin: true }); setMsg('เปลี่ยนรหัสผ่านแล้ว ✓'); setF({ current: '', next: '' }); } catch (err) { setMsg(err.message); } };
-  return <div className="admin-account">
-    <span className="muted small">{admin?.display_name || admin?.username}</span>
-    <button className="link-button" onClick={() => setOpen(!open)}>เปลี่ยนรหัสผ่าน</button>
-    <button className="link-button" onClick={onLogout}>ออกจากระบบ</button>
-    {open && <form className="booking-form inline pw-form" onSubmit={save}><div className="two"><label>รหัสผ่านปัจจุบัน<input type="password" autoComplete="current-password" required value={f.current} onChange={e => setF({ ...f, current: e.target.value })} /></label><label>รหัสผ่านใหม่ (≥ 8 ตัว)<input type="password" autoComplete="new-password" required minLength={8} value={f.next} onChange={e => setF({ ...f, next: e.target.value })} /></label></div><div className="form-actions"><button className="button dark small">บันทึก</button>{msg && <span className="muted">{msg}</span>}</div></form>}
-  </div>;
-}
-
 // เครื่องมือเฉพาะงานทำบุญ: ยอดแยกหมวด, CSV, ขอบคุณทาง LINE, รายงานความโปร่งใส
 function MeritTools({ ev, onMsg }) {
   const [stats, setStats] = useState(null);
@@ -297,67 +285,115 @@ function CheckinCard({ t, onConfirm, onClose, onNext }) {
   </Modal>;
 }
 
-export default function AdminPage() {
-  const mounted = useMounted();
-  const [authed, setAuthed] = useState(null);   // null = กำลังเช็ค session
-  const [admin, setAdmin] = useState(null);
-  const [area, setArea] = useState('events');
-  // เช็ค session cookie หลัง hydrate (HTML ฝั่ง server ตรงกับ client)
-  useEffect(() => { setArea(location.pathname.includes('/admin/shop') ? 'shop' : location.pathname.includes('/admin/members') ? 'members' : 'events'); api('/admin/me').then(r => { setAdmin(r.admin); setAuthed(true); }).catch(() => setAuthed(!!getAdminKey())); }, []);
-  const logout = async () => { await api('/admin/logout', { method: 'POST' }).catch(() => {}); setAdminKey(''); setAuthed(false); setAdmin(null); };
-  const [events, setEvents] = useState(null);
-  const [active, setActive] = useState(null);
+// พื้นที่สแกน/เช็คอิน (เมนู «สแกน QR») — ช่องพิมพ์รหัส · กล้องในเว็บ · การ์ดยืนยันหลังสแกน
+function ScanArea({ onCheckedIn }) {
   const [scan, setScan] = useState('');
-  const [scanResult, setScanResult] = useState(null);
-  const [form, setForm] = useState(null);   // null | 'new' | {…ข้อมูลเต็มของงานที่แก้}
-  const openEdit = async (slug) => { try { setForm(await api(`/admin/events/${slug}/full`, { admin: true })); } catch { /* แสดงใน EventAdmin */ } };
-  const refresh = () => api('/admin/overview', { admin: true }).then(list => { setEvents(list); setActive(a => a ? list.find(e => e.slug === a.slug) : list[0]); }).catch(e => { if (e.status === 401) { setAdminKey(''); setAuthed(false); } });
-  useEffect(() => { if (authed) refresh(); }, [authed]);
-
-  // รหัสบัตรจากช่องพิมพ์หรือ QR (QR บนบัตรเป็น URL /admin?checkin=รหัส)
-  const codeOf = (raw) => { const m = String(raw || '').match(/(?:checkin=|\/ticket\/)([A-Za-z0-9]{6,12})/) || String(raw || '').trim().match(/^([A-Za-z0-9]{6,12})$/); return m ? m[1].toUpperCase() : ''; };
-  const checkin = async (e) => {
-    e.preventDefault(); setScanResult(null);
-    try { setScanResult({ ok: true, ...(await api(`/admin/checkin/${codeOf(scan) || scan.trim()}`, { method: 'POST', admin: true })) }); setScan(''); refresh(); }
-    catch (err) { setScanResult({ ok: false, error: err.message }); }
-  };
-  // สแกนจากมือถือ → การ์ดยืนยันก่อนเช็คอิน (กันสแกนผิดใบ/ก่อนวันงาน)
-  const [pending, setPending] = useState(null);   // ข้อมูลบัตรที่รอกดยืนยัน
+  const [result, setResult] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const [pending, setPending] = useState(null);
   const preview = async (raw) => {
     const code = codeOf(raw);
-    setScanning(false); setScanResult(null);
-    if (!code) return setScanResult({ ok: false, error: `QR นี้ไม่ใช่บัตรของเว็บเรา (${String(raw).slice(0, 40)})` });
+    setScanning(false); setResult(null);
+    if (!code) return setResult({ ok: false, error: `QR นี้ไม่ใช่บัตรของเว็บเรา (${String(raw).slice(0, 40)})` });
     try { setPending(await api(`/admin/checkin/${code}`, { admin: true })); }
-    catch (err) { setScanResult({ ok: false, error: err.message }); }
+    catch (err) { setResult({ ok: false, error: err.message }); }
   };
-  const confirmCheckin = async () => {
-    const code = pending.code;
-    try { setScanResult({ ok: true, ...(await api(`/admin/checkin/${code}`, { method: 'POST', admin: true })) }); refresh(); }
-    catch (err) { setScanResult({ ok: false, error: err.message }); }
+  const submit = async (e) => {
+    e.preventDefault(); setResult(null);
+    const code = codeOf(scan) || scan.trim();
+    if (!code) return;
+    try { setResult({ ok: true, ...(await api(`/admin/checkin/${code}`, { method: 'POST', admin: true })) }); setScan(''); onCheckedIn?.(); }
+    catch (err) { setResult({ ok: false, error: err.message }); }
+  };
+  const confirm = async () => {
+    try { setResult({ ok: true, ...(await api(`/admin/checkin/${pending.code}`, { method: 'POST', admin: true })) }); onCheckedIn?.(); }
+    catch (err) { setResult({ ok: false, error: err.message }); }
     setPending(null);
   };
-  // เปิดจากกล้องมือถือ: /admin?checkin=รหัส — ล็อกอินแล้วค่อยดึงข้อมูลบัตร แล้วลบ query ออกกันรีเฟรชซ้ำ
+  // เปิดจากกล้องมือถือ: /admin/scan?checkin=รหัส (หรือ /admin?checkin=…) → ดึงข้อมูลบัตรแล้วลบ query กันรีเฟรชซ้ำ
   useEffect(() => {
-    if (!authed) return;
     const code = new URLSearchParams(location.search).get('checkin');
     if (!code) return;
     history.replaceState(null, '', location.pathname);
     preview(code);
-  }, [authed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return <div className="ad-scan">
+    <div className="ad-card ad-scan-card">
+      <span className="eyebrow">CHECK-IN</span>
+      <h2>เช็คอินหน้างาน</h2>
+      <p className="muted">สแกน QR บนบัตรด้วยกล้อง หรือพิมพ์รหัสบัตร 8 ตัว — ระบบจะโชว์ชื่อให้ตรวจก่อนยืนยันทุกครั้ง</p>
+      <form className="scan-box" onSubmit={submit}>
+        <Icon name="check" />
+        <input id="ad-scan" value={scan} onChange={e => setScan(e.target.value)} placeholder="พิมพ์/สแกนรหัสบัตร" autoCapitalize="characters" />
+        <button className="button dark small">เช็คอิน</button>
+        <button type="button" className="button ghost small" onClick={() => { setResult(null); setScanning(true); }}><Icon name="camera" size={16} /> เปิดกล้อง</button>
+      </form>
+      {result && <Notice tone={result.ok ? 'info' : 'error'}>{result.ok ? `${result.already ? 'เช็คอินไปแล้ว' : 'เช็คอินสำเร็จ'}: ${result.name}${result.seats ? ` (${result.seats.join(', ')})` : result.number ? ` #${result.number}` : ''}` : result.error}</Notice>}
+      <p className="small-note">จอ QR สำหรับให้แฟน ๆ สแกนเอง อยู่ในหน้ากิจกรรมของงานนั้น (ปุ่ม <Tag>จอ QR เช็คอิน</Tag>)</p>
+    </div>
+    {scanning && <Modal title="สแกน QR บนบัตร" onClose={() => setScanning(false)}><QrScanner onScan={preview} onError={(msg) => { setScanning(false); setResult({ ok: false, error: msg }); }} /><p>หรือใช้แอปกล้องของมือถือสแกน — QR บนบัตรจะเปิดหน้านี้พร้อมการ์ดยืนยันให้เอง</p></Modal>}
+    {pending && <CheckinCard t={pending} onConfirm={confirm} onClose={() => setPending(null)} onNext={() => { setPending(null); setScanning(true); }} />}
+  </div>;
+}
 
-  return <><SiteHeader /><main className="ev-page">
-    {!mounted || authed === null ? <PageLoader /> : !authed ? <Login onDone={(a) => { setAdmin(a); setAuthed(true); }} /> : <>
-      <div className="admin-head"><div><span className="eyebrow">STAFF DASHBOARD</span><h1>{area === 'shop' ? 'จัดการร้านค้า' : area === 'members' ? 'สมาชิก' : 'จัดการกิจกรรม'}</h1><AdminAccount admin={admin} onLogout={logout} /></div>{area === 'events' && <button className="button dark small" onClick={() => setForm('new')}>+ เพิ่มกิจกรรม</button>}<div className="area-tabs">{[['events', 'กิจกรรม', '/admin'], ['shop', 'ร้านค้า', '/admin/shop'], ['members', 'สมาชิก', '/admin/members']].map(([k, l, path]) => <button key={k} className={area === k ? 'active' : ''} onClick={() => { setArea(k); history.replaceState(null, '', path); }}>{l}</button>)}</div></div>
-      {area === 'shop' ? <ShopAdmin /> : area === 'members' ? <Members /> : form ? <div className="admin-panel"><EventAdminForm initial={form === 'new' ? null : form} onCancel={() => setForm(null)} onSaved={async (slug) => { setForm(null); const list = await api('/admin/overview', { admin: true }); setEvents(list); setActive(list.find(e => e.slug === slug) || list[0]); }} /></div> : <>
-      <form className="scan-box" onSubmit={checkin}><Icon name="check" /><input id="ad-scan" value={scan} onChange={e => setScan(e.target.value)} placeholder="เช็คอินหน้างาน: พิมพ์/สแกนรหัสบัตร" /><button className="button dark small">เช็คอิน</button><button type="button" className="button ghost small" onClick={() => { setScanResult(null); setScanning(true); }}><Icon name="camera" size={16} /> สแกน QR</button>{scanResult && <span className={`notice ${scanResult.ok ? '' : 'error'}`}>{scanResult.ok ? `${scanResult.already ? 'เช็คอินไปแล้ว' : 'เช็คอินสำเร็จ'}: ${scanResult.name}${scanResult.seats ? ` (${scanResult.seats.join(', ')})` : scanResult.number ? ` #${scanResult.number}` : ''}` : scanResult.error}</span>}</form>
-      {scanning && <Modal title="สแกน QR บนบัตร" onClose={() => setScanning(false)}><QrScanner onScan={preview} onError={(msg) => { setScanning(false); setScanResult({ ok: false, error: msg }); }} /><p>หรือใช้แอปกล้องของมือถือสแกน — QR บนบัตรจะเปิดหน้านี้พร้อมการ์ดยืนยันให้เอง</p></Modal>}
-      {pending && <CheckinCard t={pending} onConfirm={confirmCheckin} onClose={() => setPending(null)} onNext={() => { setPending(null); setScanning(true); }} />}
-      {!events ? <PageLoader /> : <div className="admin-layout">
-        <aside className="admin-list">{events.map(ev => { const pending = Number(ev.pendingBookings) + Number(ev.pendingDonations); return <button key={ev.slug} className={`admin-item ${active?.slug === ev.slug ? 'active' : ''}`} onClick={() => setActive(ev)}><span className="eyebrow">{typeLabel[ev.type]} · {eventDate(ev).long}</span><strong>{ev.title}</strong><span className="admin-item-meta"><StatusPill status={ev.status} />{pending > 0 && <span className="badge-count">{pending} รอตรวจ</span>}</span></button>; })}</aside>
-        {active && <EventAdmin key={active.slug + active.status} ev={active} refresh={refresh} onEdit={() => openEdit(active.slug)} onDeleted={async () => { const list = await api('/admin/overview', { admin: true }); setEvents(list); setActive(list[0] || null); }} />}
-      </div>}
-      </>}
-    </>}
-  </main><SiteFooter /></>;
+// รหัสบัตรจากช่องพิมพ์หรือ QR (QR บนบัตรเป็น URL /ticket/รหัส · ของเดิมเป็น /admin?checkin=รหัส)
+const codeOf = (raw) => { const m = String(raw || '').match(/(?:checkin=|\/ticket\/)([A-Za-z0-9]{6,12})/) || String(raw || '').trim().match(/^([A-Za-z0-9]{6,12})$/); return m ? m[1].toUpperCase() : ''; };
+
+const AREA_TITLE = { events: 'กิจกรรม', shop: 'ร้านค้า', members: 'สมาชิก', scan: 'สแกน QR เช็คอิน' };
+
+// area มาจาก URL (/admin/events · /admin/events/:slug · /admin/shop · /admin/members · /admin/scan)
+export default function AdminPage({ area = 'events', slug = null }) {
+  const mounted = useMounted();
+  const navigate = useNavigate();
+  const [authed, setAuthed] = useState(null);   // null = กำลังเช็ค session
+  const [admin, setAdmin] = useState(null);
+  useEffect(() => { api('/admin/me').then(r => { setAdmin(r.admin); setAuthed(true); }).catch(() => setAuthed(!!getAdminKey())); }, []);
+  const logout = async () => { await api('/admin/logout', { method: 'POST' }).catch(() => {}); setAdminKey(''); setAuthed(false); setAdmin(null); };
+  const [events, setEvents] = useState(null);
+  const refresh = () => api('/admin/overview', { admin: true }).then(setEvents).catch(e => { if (e.status === 401) { setAdminKey(''); setAuthed(false); } });
+  useEffect(() => { if (authed && area === 'events') refresh(); }, [authed, area]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const editing = slug === 'new' || (slug && slug.endsWith('/edit'));
+  const activeSlug = slug === 'new' ? null : slug?.replace(/\/edit$/, '') || null;
+  const active = events?.find(e => e.slug === activeSlug) || null;
+  const [form, setForm] = useState(null);       // ข้อมูลเต็มของงานที่กำลังแก้ (null = ยังโหลดไม่เสร็จ)
+  useEffect(() => {
+    if (!editing) return setForm(null);
+    if (slug === 'new') return setForm('new');
+    setForm(null);
+    api(`/admin/events/${activeSlug}/full`, { admin: true }).then(setForm).catch(() => navigate(`/admin/events/${activeSlug}`));
+  }, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const title = area === 'events' && active ? active.title : AREA_TITLE[area] || 'หน้าจัดการ';
+  const actions = area === 'events' && !editing
+    ? <Link className="button dark small" to="/admin/events/new">+ เพิ่มกิจกรรม</Link>
+    : null;
+
+  if (!mounted || authed === null) return <div className="ad-boot"><PageLoader /></div>;
+  if (!authed) return <div className="ad-boot"><Login onDone={(a) => { setAdmin(a); setAuthed(true); }} /></div>;
+
+  return <AdminShell area={area} title={title} admin={admin} onLogout={logout} actions={actions}>
+    {area === 'shop' ? <ShopAdmin />
+      : area === 'members' ? <Members />
+        : area === 'scan' ? <ScanArea onCheckedIn={() => { if (events) refresh(); }} />
+          : editing ? <div className="ad-card ad-form">
+            <Link className="link-button" to={activeSlug ? `/admin/events/${activeSlug}` : '/admin/events'}>← กลับไปที่{activeSlug ? 'งานนี้' : 'รายการกิจกรรม'}</Link>
+            {form ? <EventAdminForm initial={form === 'new' ? null : form} onCancel={() => navigate(activeSlug ? `/admin/events/${activeSlug}` : '/admin/events')} onSaved={async (saved) => { await refresh(); navigate(`/admin/events/${saved}`); }} /> : <PageLoader />}
+          </div>
+            : !events ? <PageLoader />
+              : <div className="ad-events">
+                <aside className="admin-list">
+                  {events.map(ev => { const p = Number(ev.pendingBookings) + Number(ev.pendingDonations); return <Link key={ev.slug} to={`/admin/events/${ev.slug}`} className={`admin-item ${active?.slug === ev.slug ? 'active' : ''}`}>
+                    <span className="eyebrow">{typeLabel[ev.type]} · {eventDate(ev).long}</span>
+                    <strong>{ev.title}</strong>
+                    <span className="admin-item-meta"><StatusPill status={ev.status} />{p > 0 && <span className="mini-tag warn">{p} รอตรวจ</span>}{Number(ev.registrations) > 0 && <span className="mini-tag">{ev.registrations} ลงทะเบียน</span>}</span>
+                  </Link>; })}
+                </aside>
+                <section className="ad-event-panel">
+                  {active
+                    ? <EventAdmin key={active.slug + active.status} ev={active} refresh={refresh} onEdit={() => navigate(`/admin/events/${active.slug}/edit`)} onDeleted={async () => { await refresh(); navigate('/admin/events'); }} />
+                    : <div className="ad-empty"><Icon name="calendar" size={32} /><p>เลือกกิจกรรมจากรายการด้านซ้ายเพื่อจัดการ</p></div>}
+                </section>
+              </div>}
+  </AdminShell>;
 }

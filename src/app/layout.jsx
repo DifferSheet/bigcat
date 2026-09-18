@@ -7,6 +7,7 @@ import '@/event.css';     // ระบบกิจกรรม · บัตร �
 import '@/forms.css';     // ฟอร์ม · ที่อยู่ · แนบไฟล์
 import '@/shop.css';      // ร้านค้า · ตะกร้า · คำสั่งซื้อ
 import '@/account.css';   // สมาชิก / login
+import '@/admin.css';     // แดชบอร์ดแอดมิน
 import ScrollManager from '@/components/ScrollManager.jsx';
 import CookieConsent from '@/components/CookieConsent.jsx';
 
