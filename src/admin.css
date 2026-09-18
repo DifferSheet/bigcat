@@ -75,7 +75,9 @@
 .ab-detail { display: flex; flex-direction: column; gap: 14px; }
 .ab-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
 .ab-head h2 { font-size: 26px; margin-top: 2px; }
-.ab-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ab-head-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ab-layout { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); }
+.ab-layout select { padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); font-size: 13px; background: #fff; }
 .ab-head-actions .button { margin: 0; }
 .ab-drop { display: flex; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 26px 18px; border: 2px dashed var(--line); border-radius: var(--r-md); background: #fff; color: var(--muted); font-size: 14px; cursor: pointer; }
 .ab-drop.over { border-color: var(--pink); background: var(--pink-wash); color: var(--ink); }

@@ -43,7 +43,7 @@ r.get('/albums/:slug', wrap(async (req, res) => {
   const removals = await q(`SELECT rm.id, rm.photo_id, rm.reason, rm.status, rm.created_at, u.display_name FROM photo_removals rm JOIN users u ON u.id=rm.user_id JOIN event_photos p ON p.id=rm.photo_id WHERE p.event_id=? AND rm.status='open' ORDER BY rm.created_at DESC`, [ev.id]);
   const groupPhotoId = ev.config.memory?.groupImage ? (photos.find(p => p.view === ev.config.memory.groupImage)?.id || null) : null;   // หา id ก่อนเซ็น URL
   res.json({
-    event: { slug: ev.slug, title: ev.title, type: ev.type, status: ev.status, starts_at: ev.starts_at, published: albumPublished(ev.config), groupPhotoId },
+    event: { slug: ev.slug, title: ev.title, type: ev.type, status: ev.status, starts_at: ev.starts_at, published: albumPublished(ev.config), groupPhotoId, layout: ev.config.memory?.layout || 'auto' },
     photos: await withUrls(photos), removals, facesEnabled, provider: faceProvider, threshold: MATCH_THRESHOLD, storage: usingS3 ? 's3' : 'disk',
   });
 }));
@@ -80,6 +80,16 @@ r.post('/albums/:slug/bulk', wrap(async (req, res) => {
   else if (action === 'delete') { for (const id of mine) await deletePhoto(id); }
   else throw new HttpError(400, 'คำสั่งไม่ถูกต้อง');
   res.json({ ok: true, count: mine.length });
+}));
+
+// เทมเพลตการวางภาพในสมุด passport ของงานนี้
+const LAYOUTS = ['auto', 'warm', 'playful', 'special', 'merit'];
+r.post('/albums/:slug/layout', wrap(async (req, res) => {
+  const ev = await getEvent(req.params.slug);
+  const layout = LAYOUTS.includes(req.body?.layout) ? req.body.layout : 'auto';
+  const cfg = { ...ev.config, memory: { ...(ev.config.memory || {}), layout } };
+  await q('UPDATE events SET config=? WHERE id=?', [JSON.stringify(cfg), ev.id]);
+  res.json({ ok: true, layout });
 }));
 
 // ตั้ง/ยกเลิก «รูปหมู่ของงาน» ที่ไปโชว์ในสมุด passport ของทุกคนที่ได้แสตมป์งานนี้ (สมาชิกเปลี่ยนเป็นรูปอื่นในสมุดตัวเองได้)

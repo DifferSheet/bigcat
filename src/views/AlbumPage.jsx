@@ -7,6 +7,7 @@ import { Icon, PageLoader, Tag } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { useUser } from '../lib/auth.js';
 import { eventDate } from '../lib/format.js';
+import PhotoModal from '../components/PhotoModal.jsx';
 
 export default function AlbumPage({ slug }) {
   const { user, loaded } = useUser();
@@ -23,11 +24,6 @@ export default function AlbumPage({ slug }) {
   const list = a?.access === 'full' ? a.photos.filter(p => filter === 'all' || p.mine) : [];
   const act = async (path, body) => { setMsg(''); try { const r = await api(path, { method: 'POST', body }); await load(); return r; } catch (e) { setMsg(e.message); } };
   const cur = open != null ? list[open] : null;
-  useEffect(() => {
-    if (cur == null) return;
-    const key = (e) => { if (e.key === 'Escape') setOpen(null); if (e.key === 'ArrowRight') setOpen(i => Math.min(list.length - 1, i + 1)); if (e.key === 'ArrowLeft') setOpen(i => Math.max(0, i - 1)); };
-    addEventListener('keydown', key); return () => removeEventListener('keydown', key);
-  }, [cur, list.length]);
 
   const d = ev ? eventDate(ev) : null;
   return <><SiteHeader /><main className="ev-page album-page">
@@ -48,22 +44,15 @@ export default function AlbumPage({ slug }) {
           {filter === 'me' && list.length === 0 && <Notice tone="muted">ยังไม่พบรูปที่มีคุณในอัลบั้มนี้</Notice>}
           <div className="album-grid">{list.map((p, i) => <button key={p.id} type="button" className={`album-tile ${p.mine ? 'mine' : ''}`} style={{ aspectRatio: `${p.width} / ${p.height}` }} onClick={() => setOpen(i)}><img src={p.thumb} alt="" loading="lazy" />{p.mine && <span className="album-me">{p.mine.status === 'confirmed' ? 'คุณ ✓' : 'น่าจะคุณ'}</span>}</button>)}</div>
         </>}
-    {cur && <div className="lightbox" role="dialog" aria-modal="true" onClick={e => { if (e.target === e.currentTarget) setOpen(null); }}>
-      <button className="lb-close icon-button" aria-label="ปิด" onClick={() => setOpen(null)}><Icon name="close" /></button>
-      {open > 0 && <button className="lb-nav prev" aria-label="รูปก่อนหน้า" onClick={() => setOpen(open - 1)}>‹</button>}
-      {open < list.length - 1 && <button className="lb-nav next" aria-label="รูปถัดไป" onClick={() => setOpen(open + 1)}>›</button>}
-      <figure><img src={cur.view} alt="" /><figcaption>
-        <span className="muted">{open + 1} / {list.length}{cur.mine ? ` · ${cur.mine.status === 'confirmed' ? 'ยืนยันแล้วว่าเป็นคุณ' : `ระบบคิดว่าเป็นคุณ (${Math.round(cur.mine.similarity * 100)}%)`}` : ''}</span>
-        <div className="lb-actions">
-          <a className="button dark small" href={cur.orig} download target="_blank" rel="noreferrer">ดาวน์โหลด <Icon name="arrow" size={14} /></a>
-          {cur.mine && <>
-            {cur.mine.status !== 'confirmed' && <button className="button ghost small" onClick={() => act(`/events/${slug}/album/${cur.id}/me`)}>ใช่ นี่ฉัน</button>}
-            <Link className="button ghost small" to={`/passport?portrait=${slug}:${cur.id}`}>ใช้เป็นรูปคู่ใน Passport</Link>
-            <button className="link-button" onClick={async () => { await act(`/events/${slug}/album/${cur.id}/not-me`); if (filter === 'me') setOpen(null); }}>ไม่ใช่ฉัน</button>
-          </>}
-          <button className="link-button" onClick={async () => { const reason = prompt('เหตุผลที่อยากให้เอารูปนี้ออก (ไม่บังคับ)') ?? null; if (reason === null) return; await act(`/events/${slug}/album/${cur.id}/remove`, { reason }); alert('ส่งคำขอแล้ว พี่ ๆ จะดูให้เร็วที่สุด'); }}>ขอเอารูปนี้ออก</button>
-        </div>
-      </figcaption></figure>
-    </div>}
+    {cur && <PhotoModal list={list} index={open} setIndex={setOpen} onClose={() => setOpen(null)}
+      caption={(p, i) => `${i + 1} / ${list.length}${p.mine ? ` · ${p.mine.status === 'confirmed' ? 'ยืนยันแล้วว่าเป็นคุณ' : `ระบบคิดว่าเป็นคุณ (${Math.round(p.mine.similarity * 100)}%)`}` : ''}`}
+      actions={(p) => <>
+        <a className="button dark small" href={p.orig} download target="_blank" rel="noreferrer">ดาวน์โหลด <Icon name="arrow" size={14} /></a>
+        {p.mine && <>
+          {p.mine.status !== 'confirmed' && <button className="button ghost small" onClick={() => act(`/events/${slug}/album/${p.id}/me`)}>ใช่ นี่ฉัน</button>}
+          <button className="link-button" onClick={async () => { await act(`/events/${slug}/album/${p.id}/not-me`); if (filter === 'me') setOpen(null); }}>ไม่ใช่ฉัน</button>
+        </>}
+        <button className="link-button" onClick={async () => { const reason = prompt('เหตุผลที่อยากให้เอารูปนี้ออก (ไม่บังคับ)') ?? null; if (reason === null) return; await act(`/events/${slug}/album/${p.id}/remove`, { reason }); alert('ส่งคำขอแล้ว พี่ ๆ จะดูให้เร็วที่สุด'); }}>ขอเอารูปนี้ออก</button>
+      </>} />}
   </main><SiteFooter /></>;
 }

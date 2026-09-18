@@ -28,7 +28,7 @@ function CollectorBook({ name, events, onOpen }) {
       <img className="pc-cover-logo" src="/images/bigcat-mark-pink.webp" width="90" height="67" alt="BIGCAT" />
       <span className="pc-book-title">PASSPORT</span>
       <span className="pc-book-subtitle">SMALL MOMENTS<br />BIG HAPPINESS</span>
-      <div className="pc-portraits">{[['nobi', 'Nobi'], ['boota', 'Boota'], ['shiba', 'Shiba']].map(([key, label]) => <div key={key} className={`pc-medallion ${key}`}><img src={`/images/cozy/${key}-personality-v2.webp`} alt={label} width="130" height="170" /><span>{label}</span></div>)}</div>
+      <div className="pc-cover-art"><img src="/images/passport/passport-cover-crest-v3.webp" alt="ตราโนบิ บูตะ และชิบะ ขอบทองเหนือสมุดและหัวใจแห่งความทรงจำ" width="1536" height="1024" /></div>
       <span className="pc-nameplate">{name}</span>
       <span className="pc-book-footer">A KINDER WORLD<br />WITH BIGCAT</span>
       <span className="pc-ribbon" aria-hidden="true">♡</span>

@@ -16,10 +16,12 @@ export async function drawEventMemoryImage(ev, { includePortrait = false } = {})
   x.fillStyle = '#f6ecdc'; x.fillRect(0, 0, c.width, c.height);
   x.textAlign = 'center'; x.fillStyle = '#79563d'; x.font = '28px Georgia'; x.fillText('BIGCAT · OUR PHOTO MEMORIES', 540, 95);
   x.font = `600 36px ${font}`; x.fillText(ev.title, 540, 165, 950);
-  const sources = [m.group, includePortrait ? m.portrait : null].filter(Boolean);
+  // วาดด้วยรูปที่เสิร์ฟจากโดเมนเรา (ลิงก์ S3 เป็น cross-origin วาดลง canvas ไม่ได้)
+  const own = (kind) => `/api/passport/${encodeURIComponent(ev.slug)}/image/${kind}`;
+  const sources = [m.group ? own('group') : null, includePortrait && m.portrait ? own('portrait') : null].filter(Boolean);
   if (!sources.length) sources.push(eventStampArt(ev) || ev.cover);
   const photos = await Promise.all(sources.map(loadImage));
-  if (photos.some(im => !im)) throw new Error('โหลดภาพไม่สำเร็จ');
+  if (photos.some(im => !im)) throw new Error('โหลดภาพไม่สำเร็จ — ลองรีเฟรชหน้าแล้วกดอีกครั้ง');
   photos.forEach((im, i) => {
     const top = 245 + i * 460, height = photos.length === 1 ? 780 : 395;
     x.fillStyle = '#fffdfa'; x.fillRect(100, top, 880, height + 50);

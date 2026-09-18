@@ -7,6 +7,7 @@ import { Notice } from './EventShell.jsx';
 import { Icon, Modal, PageLoader, Tag } from './ui.jsx';
 import { api } from '../lib/api.js';
 import { eventDate } from '../lib/format.js';
+import PhotoModal from './PhotoModal.jsx';
 
 const fmt = (d) => { const x = d ? new Date(String(d).replace(' ', 'T') + (/Z|[+-]\d\d:\d\d$/.test(String(d)) ? '' : 'Z')) : null; return x ? x.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) : ''; };
 
@@ -92,36 +93,6 @@ function Register({ st, onDone, onPdpa }) {
 }
 
 /* ---------- รูปที่ระบบเจอว่ามีเรา ---------- */
-// ดูรูปเต็มแบบ modal — เลื่อนซ้าย/ขวาได้ พร้อมปุ่มจัดการรูปนั้น
-function Lightbox({ list, index, setIndex, onClose, onAct, busy }) {
-  const p = list[index];
-  useEffect(() => {
-    const key = (e) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowRight') setIndex(i => Math.min(list.length - 1, i + 1));
-      if (e.key === 'ArrowLeft') setIndex(i => Math.max(0, i - 1));
-    };
-    addEventListener('keydown', key); return () => removeEventListener('keydown', key);
-  }, [list.length, onClose, setIndex]);
-  if (!p) return null;
-  return <div className="lightbox" role="dialog" aria-modal="true" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-    <button className="lb-close icon-button" aria-label="ปิด" onClick={onClose}><Icon name="close" /></button>
-    {index > 0 && <button className="lb-nav prev" aria-label="รูปก่อนหน้า" onClick={() => setIndex(index - 1)}>‹</button>}
-    {index < list.length - 1 && <button className="lb-nav next" aria-label="รูปถัดไป" onClick={() => setIndex(index + 1)}>›</button>}
-    <figure>
-      <img src={p.view} alt="" />
-      <figcaption>
-        <span className="muted">{index + 1} / {list.length} · {p.event.title} · {p.status === 'confirmed' ? 'ยืนยันแล้วว่าเป็นคุณ' : `ระบบคิดว่าเป็นคุณ${p.similarity ? ` ${Math.round(p.similarity * 100)}%` : ''}`}</span>
-        <div className="lb-actions">
-          <a className="button dark small" href={p.orig} download target="_blank" rel="noreferrer">ดาวน์โหลด <Icon name="arrow" size={14} /></a>
-          {p.status !== 'confirmed' && <button type="button" className="button ghost small" disabled={busy} onClick={() => onAct(p, 'me')}>ใช่ นี่ฉัน</button>}
-          <button type="button" className="link-button" disabled={busy} onClick={() => onAct(p, 'not-me')}>ไม่ใช่ฉัน</button>
-        </div>
-      </figcaption>
-    </figure>
-  </div>;
-}
-
 function MyPhotoGrid({ data, onChange }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -199,7 +170,13 @@ function MyPhotoGrid({ data, onChange }) {
         </figure>;
       })}</div>
     </section>)}
-    {open != null && <Lightbox list={flat} index={open} setIndex={setOpen} onClose={() => setOpen(null)} onAct={act} busy={busy} />}
+    {open != null && <PhotoModal list={flat} index={open} setIndex={setOpen} onClose={() => setOpen(null)}
+      caption={(p, i) => `${i + 1} / ${flat.length} · ${p.event.title} · ${p.status === 'confirmed' ? 'ยืนยันแล้วว่าเป็นคุณ' : `ระบบคิดว่าเป็นคุณ${p.similarity ? ` ${Math.round(p.similarity * 100)}%` : ''}`}`}
+      actions={(p) => <>
+        <a className="button dark small" href={p.orig} download target="_blank" rel="noreferrer">ดาวน์โหลด <Icon name="arrow" size={14} /></a>
+        {p.status !== 'confirmed' && <button type="button" className="button ghost small" disabled={busy} onClick={() => act(p, 'me')}>ใช่ นี่ฉัน</button>}
+        <button type="button" className="link-button" disabled={busy} onClick={() => act(p, 'not-me')}>ไม่ใช่ฉัน</button>
+      </>} />}
   </div>;
 }
 

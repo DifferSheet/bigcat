@@ -118,6 +118,7 @@ export function AlbumDetail({ slug }) {
     catch (e) { setErr(e.message); }
   };
   const setGroup = async (id) => { setMsg(''); try { await api(`/admin/albums/${slug}/group-photo`, { method: 'POST', body: { id }, admin: true }); setMsg(id ? 'ตั้งเป็นรูปหมู่ของงานแล้ว — จะไปโชว์ในสมุด Passport ของทุกคนที่ได้แสตมป์งานนี้' : 'เอารูปหมู่ออกแล้ว'); load(); } catch (e) { setErr(e.message); } };
+  const setLayout = async (layout) => { setMsg(''); try { await api(`/admin/albums/${slug}/layout`, { method: 'POST', body: { layout }, admin: true }); setMsg('เปลี่ยนเทมเพลตหน้าในสมุด Passport แล้ว'); load(); } catch (e) { setErr(e.message); } };
   const publish = async (next) => { try { await api(`/admin/albums/${slug}/publish`, { method: 'POST', body: { published: next }, admin: true }); load(); } catch (e) { setErr(e.message); } };
   const removal = async (id, action) => { try { await api(`/admin/album/removals/${id}/${action}`, { method: 'POST', admin: true }); load(); } catch (e) { setErr(e.message); } };
 
@@ -134,6 +135,15 @@ export function AlbumDetail({ slug }) {
         <h2>{d.event.title}</h2>
         <p className="muted">{eventDate(d.event).long} · {d.photos.length} รูป · {mb(stat.bytes)}</p></div>
       <div className="ab-head-actions">
+        <label className="ab-layout">เทมเพลตในสมุด Passport
+          <select value={d.event.layout} onChange={e => setLayout(e.target.value)}>
+            <option value="auto">อัตโนมัติ (ตามประเภทงานและรูปที่มี)</option>
+            <option value="warm">อบอุ่น — รูปหมู่เด่น</option>
+            <option value="playful">สนุก — สองรูปเอียงเล็กน้อย</option>
+            <option value="special">พิเศษ — รูปคู่เด่น</option>
+            <option value="merit">ทำบุญ — จัดตรง เรียบ</option>
+          </select>
+        </label>
         <button type="button" className={`button ${d.event.published ? 'ghost' : 'dark'} small`} onClick={() => publish(!d.event.published)}>{d.event.published ? 'ซ่อนอัลบั้ม' : 'เผยแพร่อัลบั้ม'}</button>
         <Link className="button ghost small" to={`/events/${slug}/album`} target="_blank">ดูแบบที่แฟนเห็น ↗</Link>
         {d.facesEnabled && <button type="button" className="button ghost small" onClick={() => setFaces(true)}>ทบทวนใบหน้า</button>}

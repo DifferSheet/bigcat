@@ -2,11 +2,11 @@
 import { Router } from 'express';
 import { q, one, parseJSON } from '../db.js';
 import { passportPrivateRoot } from '../upload.js';
-import { wrap, HttpError } from '../lib.js';
+import { wrap, HttpError, getEvent } from '../lib.js';
 import { requireUser, parseCookies, setCookie } from '../auth.js';
 import { passportOf, attachInvite, INVITE_COOKIE_NAME, syncStamps } from '../passport.js';
 import { photosOfUser } from '../album.js';
-import { withUrls, url as mediaUrl } from '../storage.js';
+import { withUrls, url as mediaUrl, localCopy } from '../storage.js';
 import { uploadPassportPortrait } from '../upload.js';
 
 const r = Router();
@@ -25,6 +25,28 @@ const myStamp = async (userId, slug) => {
   if (!st) throw new HttpError(404, 'คุณยังไม่มีแสตมป์ของงานนี้');
   return st;
 };
+// รูปในสมุด (รูปคู่/รูปหมู่) แบบสตรีมผ่านโดเมนเรา — ใช้ตอนวาดภาพแชร์ด้วย canvas (ลิงก์ S3 ข้ามโดเมนวาดไม่ได้)
+r.get('/passport/:slug/image/:kind', requireUser, wrap(async (req, res) => {
+  const st = await myStamp(req.user.id, req.params.slug);
+  const ev = await getEvent(req.params.slug);
+  const meta = parseJSON(st.meta, {});
+  let stored = null;
+  if (req.params.kind === 'group') stored = meta.groupPhoto?.view || ev.config.memory?.groupImage || null;
+  else if (meta.passportPortrait) {   // ไฟล์ส่วนตัวที่อัปโหลดเอง
+    if (!/^[\w-]+\.(jpg|png|webp)$/.test(meta.passportPortrait)) throw new HttpError(404, 'ไม่พบรูป');
+    return res.set('Cache-Control', 'private, no-store').sendFile(meta.passportPortrait, { root: passportPrivateRoot });
+  } else {
+    stored = meta.portraitPhoto?.view || null;
+    if (!stored) {
+      const auto = await one(`SELECT p.view FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id WHERE f.user_id=? AND p.event_id=? AND f.status<>'rejected' ORDER BY (p.faces=2) DESC, (f.status='confirmed') DESC, f.similarity DESC LIMIT 1`, [req.user.id, ev.id]);
+      stored = auto?.view || null;
+    }
+  }
+  if (!stored) throw new HttpError(404, 'ยังไม่มีรูป');
+  const copy = await localCopy(stored);
+  res.set('Cache-Control', 'private, max-age=600').sendFile(copy.file, {}, () => copy.done());
+}));
+
 r.get('/passport/:slug/photos', requireUser, wrap(async (req, res) => {
   const st = await myStamp(req.user.id, req.params.slug);
   const mine = await photosOfUser(req.user.id, st.event_id);

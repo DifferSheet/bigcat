@@ -331,9 +331,8 @@ button.pc-cover { font-family: inherit; cursor: pointer; }
 .pc-cover .pc-cover-logo { width: 17cqw; margin-bottom: 2cqw; }
 .pc-cover .pc-book-title { font-size: 8cqw; }
 .pc-cover .pc-book-subtitle, .pc-cover .pc-book-footer { font-size: 2cqw; margin-top: 2cqw; }
-.pc-cover .pc-portraits { margin-block: 3cqw; }
-.pc-cover .pc-medallion img { height: 25cqw; }
-.pc-cover .pc-medallion span { font-size: 4cqw; margin-top: 1cqw; }
+.pc-cover-art { width: 94%; height: 46cqw; flex: 0 0 auto; margin: 1cqw 0 2cqw; display: grid; place-items: center; }
+.pc-cover-art img { display: block; width: 100% !important; height: 100% !important; max-width: 100%; max-height: 100% !important; min-width: 0; min-height: 0; object-fit: contain; filter: drop-shadow(0 2px 1px #80552c25); }
 .pc-cover .pc-nameplate { min-width: 0; flex-shrink: 0; font-size: 4cqw; padding: 2cqw 4cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pc-stage { height: auto; aspect-ratio: 1.12; }
 .pc-stage .pc-open-page { height: auto; aspect-ratio: var(--pc-page-ratio); top: 50px; overflow: hidden; padding: 18px 12px; }
@@ -346,8 +345,7 @@ button.pc-cover { font-family: inherit; cursor: pointer; }
  .passport-page { --pc-page-ratio: .72; }
  .pc-stage { aspect-ratio: .65; }
  .pc-stage .pc-open-page { top: 60px; }
- .pc-cover .pc-portraits { margin-block: 10cqw; }
- .pc-cover .pc-medallion img { height: 43cqw; }
+ .pc-cover-art { width: 100%; height: 64cqw; margin-block: 5cqw 4cqw; }
  .pc-cover .pc-book-subtitle, .pc-cover .pc-book-footer { font-size: 2.8cqw; margin-top: 5cqw; }
  .pc-cover .pc-cover-logo { width: 24cqw; margin-bottom: 4cqw; }
  .pc-reader .pc-spread { aspect-ratio: var(--pc-page-ratio); }
@@ -461,3 +459,15 @@ button.pc-cover { font-family: inherit; cursor: pointer; }
  .pc-reader-header .pc-filters { gap: 0; padding: 2px; }
 }
 @media (prefers-reduced-motion: reduce) { .passport-page *, .passport-page *::before { transition: none !important; animation: none !important; scroll-behavior: auto !important; } .pc-reader::backdrop { transition: none; } }
+
+/* เมนูเฟืองมุมขวาบนของหน้าสมุด (เปลี่ยนรูป · บันทึกภาพแชร์) */
+.pm-album { position: relative; }
+.pm-gear-wrap { position: absolute; top: 6px; right: 8px; z-index: 4; }
+.pm-gear { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #fffdf8cc; border: 1px solid #d8c7a8; color: #8a6a4a; cursor: pointer; transition: background .15s, transform .15s; }
+.pm-gear:hover { background: #fff; transform: rotate(25deg); }
+.pm-gear-menu { position: absolute; right: 0; top: 36px; min-width: 190px; display: flex; flex-direction: column; gap: 2px; padding: 6px; background: #fffdf8; border: 1px solid #ddcaa8; border-radius: 12px; box-shadow: 0 12px 26px #6b4c2e2e; animation: appear .15s ease; }
+.pm-gear-menu button { padding: 9px 11px; border-radius: 8px; font: 500 13px/1.4 var(--font-head); color: #6b4c2e; text-align: left; background: none; cursor: pointer; }
+.pm-gear-menu button:hover { background: #f4e7d2; }
+.pm-gear-menu small { display: block; padding: 6px 11px 2px; font-size: 11px; line-height: 1.5; color: #9a8067; }
+.pm-photo-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.pm-photo-open img { display: block; }
