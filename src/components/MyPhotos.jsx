@@ -34,17 +34,19 @@ function Register({ st, onDone, onPdpa }) {
   const input = useRef(null);
   useEffect(() => { if (!file) return setUrl(''); const u = URL.createObjectURL(file); setUrl(u); return () => URL.revokeObjectURL(u); }, [file]);
 
+  const sending = useRef(false);
   const submit = async (e) => {
     e?.preventDefault();
+    if (sending.current) return;   // กันกดซ้ำ/ดับเบิลแท็บ
     if (!file) return setMsg({ ok: false, text: 'ขั้นที่ 1 ยังไม่เสร็จ — เลือกรูปหน้าของคุณก่อน' });
     if (!consent) return setMsg({ ok: false, text: 'ขั้นที่ 2 ยังไม่เสร็จ — ติ๊กยอมรับข้อกำหนดก่อน' });
-    setBusy(true); setMsg(null);
+    sending.current = true; setBusy(true); setMsg(null);
     try {
       const fd = new FormData(); fd.append('selfie', file); fd.append('consent', 'true');
       const r = await api('/me/face', { method: 'POST', body: fd });
       setFile(null); setConsent(false);
       onDone(r.matches);
-    } catch (err) { setMsg({ ok: false, text: err.message }); } finally { setBusy(false); }
+    } catch (err) { setMsg({ ok: false, text: err.message }); } finally { sending.current = false; setBusy(false); }
   };
 
   return <form className="mp-steps" onSubmit={submit}>
@@ -90,35 +92,116 @@ function Register({ st, onDone, onPdpa }) {
 }
 
 /* ---------- รูปที่ระบบเจอว่ามีเรา ---------- */
+// ดูรูปเต็มแบบ modal — เลื่อนซ้าย/ขวาได้ พร้อมปุ่มจัดการรูปนั้น
+function Lightbox({ list, index, setIndex, onClose, onAct, busy }) {
+  const p = list[index];
+  useEffect(() => {
+    const key = (e) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') setIndex(i => Math.min(list.length - 1, i + 1));
+      if (e.key === 'ArrowLeft') setIndex(i => Math.max(0, i - 1));
+    };
+    addEventListener('keydown', key); return () => removeEventListener('keydown', key);
+  }, [list.length, onClose, setIndex]);
+  if (!p) return null;
+  return <div className="lightbox" role="dialog" aria-modal="true" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <button className="lb-close icon-button" aria-label="ปิด" onClick={onClose}><Icon name="close" /></button>
+    {index > 0 && <button className="lb-nav prev" aria-label="รูปก่อนหน้า" onClick={() => setIndex(index - 1)}>‹</button>}
+    {index < list.length - 1 && <button className="lb-nav next" aria-label="รูปถัดไป" onClick={() => setIndex(index + 1)}>›</button>}
+    <figure>
+      <img src={p.view} alt="" />
+      <figcaption>
+        <span className="muted">{index + 1} / {list.length} · {p.event.title} · {p.status === 'confirmed' ? 'ยืนยันแล้วว่าเป็นคุณ' : `ระบบคิดว่าเป็นคุณ${p.similarity ? ` ${Math.round(p.similarity * 100)}%` : ''}`}</span>
+        <div className="lb-actions">
+          <a className="button dark small" href={p.orig} download target="_blank" rel="noreferrer">ดาวน์โหลด <Icon name="arrow" size={14} /></a>
+          {p.status !== 'confirmed' && <button type="button" className="button ghost small" disabled={busy} onClick={() => onAct(p, 'me')}>ใช่ นี่ฉัน</button>}
+          <Link className="button ghost small" to={`/passport?portrait=${p.event.slug}:${p.id}`}>ใช้เป็นรูปคู่ใน Passport</Link>
+          <button type="button" className="link-button" disabled={busy} onClick={() => onAct(p, 'not-me')}>ไม่ใช่ฉัน</button>
+        </div>
+      </figcaption>
+    </figure>
+  </div>;
+}
+
 function MyPhotoGrid({ data, onChange }) {
-  const [busy, setBusy] = useState(null);
+  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  const act = async (slug, id, verdict) => {
-    setBusy(id); setErr('');
-    try { await api(`/events/${slug}/album/${id}/${verdict}`, { method: 'POST' }); await onChange(); }
-    catch (e) { setErr(e.message); } finally { setBusy(null); }
+  const [msg, setMsg] = useState('');
+  const [sel, setSel] = useState([]);          // id ที่เลือกไว้ (ข้ามงานได้)
+  const [picking, setPicking] = useState(false);   // โหมดเลือกหลายรูป
+  const [open, setOpen] = useState(null);      // index ใน flat
+  const flat = data.events.flatMap(ev => ev.photos.map(p => ({ ...p, event: ev })));
+  const toggle = (id) => setSel(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+
+  const act = async (p, verdict) => {
+    setBusy(true); setErr('');
+    try { await api(`/events/${p.event.slug}/album/${p.id}/${verdict}`, { method: 'POST' }); setOpen(null); await onChange(); }
+    catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
+  const bulkNotMe = async () => {
+    if (!sel.length || !confirm(`เอา ${sel.length} รูปออกจาก «รูปของฉัน»?`)) return;
+    setBusy(true); setErr(''); setMsg('');
+    try { const r = await api('/me/photos/not-me', { method: 'POST', body: { ids: sel } }); setSel([]); setMsg(`เอาออกแล้ว ${r.count} รูป`); await onChange(); }
+    catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+  // ดาวน์โหลดหลายรูป = ขอ zip จาก server แล้วบันทึกทีเดียว (เบราว์เซอร์บล็อกการดาวน์โหลดหลายไฟล์พร้อมกัน)
+  const bulkDownload = async () => {
+    if (!sel.length) return;
+    setBusy(true); setErr(''); setMsg('');
+    try {
+      const res = await fetch('/api/me/photos/zip', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ids: sel }) });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'ดาวน์โหลดไม่สำเร็จ');
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement('a'); a.href = url; a.download = `bigcat-photos-${sel.length}.zip`; document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      setMsg(`ดาวน์โหลด ${sel.length} รูปแล้ว`);
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+
   if (!data.total) return <Notice tone="muted">ยังไม่พบรูปที่มีคุณ — ระบบจะค้นให้อัตโนมัติทุกครั้งที่ทีมงานลงอัลบั้มของงานที่คุณเช็คอิน</Notice>;
   return <div className="mp-events">
     {err && <Notice tone="error">{err}</Notice>}
+    {msg && <Notice>{msg}</Notice>}
+    <div className="mp-toolbar">
+      <button type="button" className={`button ${picking ? 'dark' : 'ghost'} small`} onClick={() => { setPicking(!picking); setSel([]); }}>{picking ? 'เสร็จแล้ว' : 'เลือกหลายรูป'}</button>
+      {picking && <>
+        <button type="button" className="link-button" onClick={() => setSel(sel.length === flat.length ? [] : flat.map(p => p.id))}>{sel.length === flat.length ? 'ล้างที่เลือก' : `เลือกทั้งหมด (${flat.length})`}</button>
+        <span className="muted small">{sel.length ? `เลือกไว้ ${sel.length} รูป` : 'แตะรูปเพื่อเลือก'}</span>
+      </>}
+    </div>
+    {picking && sel.length > 0 && <div className="bulk-bar mp-bulk">
+      <span>เลือก {sel.length} รูป</span>
+      <button className="button dark small" disabled={busy} onClick={bulkDownload}>{busy ? 'กำลังเตรียมไฟล์…' : 'ดาวน์โหลด (.zip)'}</button>
+      <button className="link-button danger" disabled={busy} onClick={bulkNotMe}>ไม่ใช่ฉัน</button>
+      <button className="link-button" onClick={() => setSel([])}>ยกเลิกการเลือก</button>
+    </div>}
+
     {data.events.map(ev => <section key={ev.slug} className="mp-event">
       <div className="mp-event-head">
         <div><span className="eyebrow">{eventDate(ev).long}</span><h3>{ev.title}</h3></div>
         <span className="muted small">{ev.photos.length} รูป · <Link to={`/events/${ev.slug}/album`}>ดูอัลบั้มทั้งงาน ↗</Link></span>
       </div>
-      <div className="mp-grid">{ev.photos.map(p => <figure key={p.id} className={`mp-photo ${busy === p.id ? 'busy' : ''}`}>
-        <a href={p.view} target="_blank" rel="noreferrer"><img src={p.thumb} alt="" loading="lazy" /></a>
-        <figcaption>
-          <span className={`mini-tag ${p.status === 'confirmed' ? 'ok' : ''}`}>{p.status === 'confirmed' ? 'ยืนยันแล้ว' : `น่าจะคุณ ${p.similarity ? `${Math.round(p.similarity * 100)}%` : ''}`}</span>
-          <span className="mp-photo-actions">
-            {p.status !== 'confirmed' && <button type="button" className="link-button" disabled={busy === p.id} onClick={() => act(ev.slug, p.id, 'me')}>ใช่ฉัน</button>}
-            <Link className="link-button" to={`/passport?portrait=${ev.slug}:${p.id}`}>ใช้ใน Passport</Link>
-            <a className="link-button" href={p.orig} download target="_blank" rel="noreferrer">ดาวน์โหลด</a>
-            <button type="button" className="link-button danger" disabled={busy === p.id} onClick={() => act(ev.slug, p.id, 'not-me')}>ไม่ใช่ฉัน</button>
-          </span>
-        </figcaption>
-      </figure>)}</div>
+      <div className="mp-grid">{ev.photos.map(p => {
+        const on = sel.includes(p.id);
+        const i = flat.findIndex(x => x.id === p.id);
+        return <figure key={p.id} className={`mp-photo ${busy ? 'busy' : ''} ${picking ? 'picking' : ''} ${on ? 'on' : ''}`}>
+          <button type="button" className="mp-photo-open" onClick={() => picking ? toggle(p.id) : setOpen(i)} aria-label={picking ? 'เลือกรูปนี้' : 'ดูรูปเต็ม'}>
+            <img src={p.thumb} alt="" loading="lazy" />
+            {picking && <span className="mp-check">{on ? '✓' : ''}</span>}
+          </button>
+          <figcaption>
+            <span className={`mini-tag ${p.status === 'confirmed' ? 'ok' : ''}`}>{p.status === 'confirmed' ? 'ยืนยันแล้ว' : `น่าจะคุณ ${p.similarity ? `${Math.round(p.similarity * 100)}%` : ''}`}</span>
+            {!picking && <span className="mp-photo-actions">
+              {p.status !== 'confirmed' && <button type="button" className="link-button" disabled={busy} onClick={() => act({ ...p, event: ev }, 'me')}>ใช่ฉัน</button>}
+              <Link className="link-button" to={`/passport?portrait=${ev.slug}:${p.id}`}>ใช้ใน Passport</Link>
+              <a className="link-button" href={p.orig} download target="_blank" rel="noreferrer">ดาวน์โหลด</a>
+              <button type="button" className="link-button danger" disabled={busy} onClick={() => act({ ...p, event: ev }, 'not-me')}>ไม่ใช่ฉัน</button>
+            </span>}
+          </figcaption>
+        </figure>;
+      })}</div>
     </section>)}
+    {open != null && <Lightbox list={flat} index={open} setIndex={setOpen} onClose={() => setOpen(null)} onAct={act} busy={busy} />}
   </div>;
 }
 

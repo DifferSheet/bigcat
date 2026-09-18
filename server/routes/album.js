@@ -5,13 +5,17 @@
 //   GET  /me/face · POST /me/face (multipart selfie + consent) · DELETE /me/face
 import { Router } from 'express';
 import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
 import { q, one, parseJSON } from '../db.js';
 import { wrap, HttpError, getEvent } from '../lib.js';
 import { requireUser } from '../auth.js';
 import { upload } from '../upload.js';
 import { canViewAlbum, photosOfUser, registerUserFace, forgetUserFaces, albumPublished } from '../album.js';
 import { facesEnabled, faceProvider } from '../faces.js';
-import { withUrls } from '../storage.js';
+import { withUrls, localCopy } from '../storage.js';
+
+const { ZipArchive } = createRequire(import.meta.url)('archiver');   // archiver รุ่นนี้ส่งออกคลาส ไม่ใช่ฟังก์ชัน default
 
 const r = Router();
 const PREVIEW = 3;
@@ -77,6 +81,40 @@ r.get('/me/photos', requireUser, wrap(async (req, res) => {
   }
   for (const g of events) await withUrls(g.photos);
   res.set('Cache-Control', 'private, no-store').json({ total: shown.length, events });
+}));
+
+// รูปของฉันที่เลือกไว้หลายรูป — ตรวจก่อนเสมอว่าเป็นรูปที่จับคู่กับบัญชีนี้จริง
+const myPhotos = async (userId, ids) => {
+  const list = (ids || []).map(Number).filter(Boolean).slice(0, 60);
+  if (!list.length) throw new HttpError(400, 'ยังไม่ได้เลือกรูป');
+  return q(`SELECT DISTINCT p.id, p.orig, e.slug FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id JOIN events e ON e.id=p.event_id
+    WHERE f.user_id=? AND f.status<>'rejected' AND p.id IN (?)`, [userId, list]);
+};
+
+// «ไม่ใช่ฉัน» หลายรูปพร้อมกัน
+r.post('/me/photos/not-me', requireUser, wrap(async (req, res) => {
+  const rows = await myPhotos(req.user.id, req.body?.ids);
+  if (!rows.length) throw new HttpError(404, 'ไม่พบรูปที่เลือก');
+  await q("UPDATE photo_faces SET status='rejected' WHERE user_id=? AND photo_id IN (?)", [req.user.id, rows.map(p => p.id)]);
+  res.json({ ok: true, count: rows.length });
+}));
+
+// ดาวน์โหลดหลายรูปเป็น zip (ไฟล์ต้นฉบับ) — สตรีมออกไปเลย ไม่เก็บไฟล์กลาง
+r.post('/me/photos/zip', requireUser, wrap(async (req, res) => {
+  const rows = await myPhotos(req.user.id, req.body?.ids);
+  if (!rows.length) throw new HttpError(404, 'ไม่พบรูปที่เลือก');
+  res.set('Content-Type', 'application/zip').set('Content-Disposition', `attachment; filename="bigcat-photos-${rows.length}.zip"`).set('Cache-Control', 'private, no-store');
+  const zip = new ZipArchive({ zlib: { level: 0 } });   // ภาพบีบอีกไม่ได้ผล — level 0 เร็วกว่า
+  const cleanups = [];
+  zip.on('error', () => res.destroy());
+  zip.on('end', () => cleanups.forEach(fn => fn()));
+  zip.pipe(res);
+  for (const p of rows) {
+    const copy = await localCopy(p.orig);
+    cleanups.push(copy.done);
+    zip.file(copy.file, { name: `${p.slug}/${p.id}${path.extname(p.orig) || '.jpg'}` });
+  }
+  await zip.finalize();
 }));
 
 r.post('/me/face', requireUser, upload.single('selfie'), wrap(async (req, res) => {

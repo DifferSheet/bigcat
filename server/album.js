@@ -104,7 +104,14 @@ export async function matchUser(userId) {
   const allowed = new Set(pool.map(p => p.ref));
   let n = 0;
   for (const uf of mine) {
-    const hits = (await faces.similar({ ref: uf.face_ref, descriptor: parseJSON(uf.descriptor, null) }, pool)).filter(h => allowed.has(h.ref));
+    let found;
+    try { found = await faces.similar({ ref: uf.face_ref, descriptor: parseJSON(uf.descriptor, null) }, pool); }
+    catch (e) {
+      if (!/not found in the collection/i.test(e.message || '')) throw e;
+      await q('DELETE FROM user_faces WHERE user_id=? AND face_ref=?', [userId, uf.face_ref]);   // ใบหน้าหายจากฝั่งผู้ให้บริการ → ถือว่ายังไม่ลงทะเบียน
+      continue;
+    }
+    const hits = found.filter(h => allowed.has(h.ref));
     for (const h of hits) {
       const f = pool.find(p => p.ref === h.ref);
       if (!f || f.status === 'rejected' || (f.status === 'confirmed' && f.user_id && f.user_id !== userId)) continue;
@@ -118,12 +125,19 @@ export async function matchUser(userId) {
 }
 
 /* ---------- ใบหน้าสมาชิก (opt-in) ---------- */
-export async function registerUserFace(userId, selfiePath) {
+// ลงทะเบียนใบหน้าทีละคน (กันกดซ้ำ/กดสองครั้งรัวๆ แล้วสองคำขอสลับลำดับกันจนลบใบหน้าที่เพิ่งสร้าง)
+const registering = new Map();
+export function registerUserFace(userId, selfiePath) {
+  const run = (registering.get(userId) || Promise.resolve()).catch(() => {}).then(() => registerFaceNow(userId, selfiePath));
+  registering.set(userId, run.catch(() => {}));
+  return run;
+}
+async function registerFaceNow(userId, selfiePath) {
   const det = await faces.detect(selfiePath);
   if (det.faces.length !== 1) throw new Error(det.faces.length ? 'ในรูปมีหลายคน — ใช้รูปที่มีหน้าคุณคนเดียวชัด ๆ' : 'ไม่พบใบหน้าในรูป — ลองรูปหน้าตรง แสงพอ ไม่ใส่แมสก์');
+  await forgetUserFaces(userId);                       // ลบของเดิมก่อนเสมอ แล้วค่อยสร้างใหม่ (ลำดับกลับกันจะลบของใหม่ทิ้ง)
   const idx = await faces.index(selfiePath, `u:${userId}`, det);
   const f = idx.faces[0];
-  await forgetUserFaces(userId);
   await q('INSERT INTO user_faces SET ?', [{ user_id: userId, face_ref: f.ref, descriptor: f.descriptor ? JSON.stringify(f.descriptor) : null }]);
   await q('UPDATE users SET face_consent_at=COALESCE(face_consent_at, UTC_TIMESTAMP()) WHERE id=?', [userId]);
   fs.rm(selfiePath, { force: true }, () => {});   // ไม่เก็บเซลฟี่ — เก็บเฉพาะเวกเตอร์/FaceId
