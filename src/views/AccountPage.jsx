@@ -4,6 +4,7 @@ import { Link } from '../lib/nav.jsx';
 import { SiteHeader, SiteFooter, Notice, Section } from '../components/EventShell.jsx';
 import { Icon, PageLoader } from '../components/ui.jsx';
 import { PhoneInput, AddressForm } from '../components/forms.jsx';
+import AvatarCropper from '../components/AvatarCropper.jsx';
 import { api } from '../lib/api.js';
 import { useUser, refreshUser, logout } from '../lib/auth.js';
 import { baht, parseDate } from '../lib/format.js';
@@ -19,8 +20,13 @@ export default function AccountPage() {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
-  // เปลี่ยนรูปประจำตัว: อัปโหลดแล้วบันทึกทันที
-  const changeAvatar = async (file) => { if (!file) return; setAvatarBusy(true); setMsg(''); try { const fd = new FormData(); fd.append('avatar', file); await api('/me/avatar', { method: 'PUT', body: fd }); await refreshUser(); setMsg('เปลี่ยนรูปแล้ว ✓'); } catch (err) { setMsg(err.message); } finally { setAvatarBusy(false); } };
+  const [cropFile, setCropFile] = useState(null);   // ไฟล์ที่เลือก → เปิดหน้าต่างครอปก่อนอัปโหลด
+  // เปลี่ยนรูปประจำตัว: ครอปเป็นสี่เหลี่ยมจัตุรัสฝั่ง client แล้วอัปโหลด บันทึกทันที
+  const changeAvatar = async (blob) => {
+    setAvatarBusy(true); setMsg('');
+    try { const fd = new FormData(); fd.append('avatar', blob, 'avatar.jpg'); await api('/me/avatar', { method: 'PUT', body: fd }); await refreshUser(); setCropFile(null); setMsg('เปลี่ยนรูปแล้ว ✓'); }
+    catch (err) { setMsg(err.message); throw err; } finally { setAvatarBusy(false); }
+  };
   useEffect(() => { if (loaded && !user) location.replace('/login?next=/account'); }, [loaded, user]);
   useEffect(() => { if (user && !form) setForm({ display_name: user.display_name || '', phone: user.phone || '', email: user.email || '', address: user.address || '' }); }, [user, form]);
   useEffect(() => { if (user) api('/me/activity').then(setAct).catch(() => setAct({})); }, [user]);
@@ -42,8 +48,9 @@ export default function AccountPage() {
         <label className={`avatar-edit ${avatarBusy ? 'busy' : ''}`} title="เปลี่ยนรูปประจำตัว">
           {user.avatar ? <img className="avatar lg" src={user.avatar} alt={`รูปประจำตัวของ ${user.display_name}`} referrerPolicy="no-referrer" /> : <span className="avatar lg placeholder">{user.display_name.slice(0, 1)}</span>}
           <span className="avatar-edit-badge"><Icon name="upload" size={13} /> {avatarBusy ? 'กำลังอัปโหลด…' : 'เปลี่ยนรูป'}</span>
-          <input type="file" accept="image/*" onChange={e => { changeAvatar(e.target.files?.[0]); e.target.value = ''; }} />
+          <input type="file" accept="image/*" onChange={e => { setCropFile(e.target.files?.[0] || null); e.target.value = ''; }} />
         </label>
+        {cropFile && <AvatarCropper file={cropFile} onDone={changeAvatar} onCancel={() => setCropFile(null)} />}
         <div><span className="eyebrow">MEMBER · {user.provider === 'line' ? 'LINE' : 'Google'}</span><h1>{user.display_name}</h1><p className="muted">สมาชิกตั้งแต่ {fmt(user.created_at)}{user.line_linked ? ' · รับแจ้งเตือนทาง LINE' : ''}</p></div>
         <button className="link-button" onClick={out}>ออกจากระบบ</button>
       </div>
