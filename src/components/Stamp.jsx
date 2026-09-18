@@ -17,7 +17,7 @@ export function EventStamp({ ev, state = 'earned', size = 128 }) {
   // ขอบหยักแบบแสตมป์ไปรษณีย์ — วงกลมเล็ก ๆ เรียงรอบเส้นรอบวง
   const perf = Array.from({ length: teeth }, (_, i) => { const a = (i / teeth) * Math.PI * 2; return <circle key={i} cx={50 + Math.cos(a) * r} cy={50 + Math.sin(a) * r} r={3.2} />; });
   // ลายวาดของงาน (มีขอบหยักในตัว) → ใช้ภาพตรง ๆ ไม่ซ้อนกรอบ SVG
-  if (art && state !== 'locked') return <span className={`stamp stamp-art stamp-${state}`} style={{ width: size, height: size }} role="img" aria-label={`${KIND_LABEL[ev.earned?.kind] || 'แสตมป์'} ${ev.title}`}><img src={art} alt="" width={size} height={size} draggable={false} /></span>;
+  if (art && state === 'earned') return <span className={`stamp stamp-art stamp-${state}`} style={{ width: size, height: size }} role="img" aria-label={`${KIND_LABEL[ev.earned?.kind] || 'แสตมป์'} ${ev.title}`}><img src={art} alt="" width={size} height={size} draggable={false} /></span>;
   const img = ev.cover;
   return <svg className={`stamp stamp-${state}`} viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={`${KIND_LABEL[ev.earned?.kind] || 'แสตมป์'} ${ev.title}`}>
     <defs>
@@ -27,15 +27,15 @@ export function EventStamp({ ev, state = 'earned', size = 128 }) {
       <path id={`b${uid}`} d="M 50 50 m -42 0 a 42 42 0 1 0 84 0" />
     </defs>
     <g mask={`url(#m${uid})`}>
-      <circle cx="50" cy="50" r="48" fill={state === 'locked' ? '#f3ede4' : '#fff'} stroke={tone} strokeWidth={state === 'locked' ? 0 : 1.5} strokeDasharray={state === 'locked' ? '0' : undefined} />
+      <circle cx="50" cy="50" r="48" fill={state === 'earned' ? '#fff' : '#f3ede4'} stroke={tone} strokeWidth={state === 'earned' ? 1.5 : 0} />
     </g>
-    {state !== 'locked' && <>
+    {state === 'earned' && <>
       {img && <image href={img} x="14" y="14" width="72" height="72" preserveAspectRatio="xMidYMid slice" clipPath={`url(#c${uid})`} />}
       <circle cx="50" cy="50" r="36" fill="none" stroke={tone} strokeWidth="1.2" />
       <text fontSize="6.2" fontWeight="700" fill={tone} letterSpacing=".4"><textPath href={`#t${uid}`} startOffset="50%" textAnchor="middle">{ev.title.length > 26 ? ev.title.slice(0, 25) + '…' : ev.title}</textPath></text>
       <text fontSize="5.6" fontWeight="600" fill="#6b6259"><textPath href={`#b${uid}`} startOffset="50%" textAnchor="middle">{`${d.long}`}</textPath></text>
     </>}
-    {state === 'locked' && <text x="50" y="56" textAnchor="middle" fontSize="18" fill="#c8bfb2" fontWeight="700">?</text>}
+    {state !== 'earned' && <text x="50" y="56" textAnchor="middle" fontSize="18" fill="#c8bfb2" fontWeight="700">{state === 'missed' ? '—' : '?'}</text>}
   </svg>;
 }
 

@@ -60,7 +60,7 @@ const photos = [
   { title: 'A quiet moment', short: 'พักใจไว้กับลมหายใจ', caption: 'บูตะนั่งสมาธิในห้องพระ — วางเรื่องวุ่น ๆ ลงสักครู่ อยู่กับลมหายใจตรงนี้ ไม่ต้องรีบคิดคำตอบให้ทุกเรื่องในวันนี้ก็ได้', alt: 'บูตะใส่สูทม่วงแขนยาวนั่งขัดสมาธิบนเบาะในห้องพระโทนไม้อบอุ่น', image: '/images/cozy/moments-boota-1200-v4.webp', thumb: '/images/cozy/moments-boota-480-v4.webp', tilt: 2 },
   { title: 'One more step', short: 'ทีละสเต็ป ในจังหวะของเรา', caption: 'ชิบะซ้อมเต้นหน้ากระจก — วันนี้ยังไม่เป๊ะก็ไม่เป็นไร ลองอีกครั้ง ขยับอีกนิด ทุกสเต็ปที่ซ้อมคือการค่อย ๆ เก่งขึ้นในแบบของเรา', alt: 'ชิบะใส่แจ็กเก็ตฟ้าซ้อมสเต็ปเต้นในสตูดิโอพื้นไม้พร้อมเงาสะท้อนในกระจก', image: '/images/cozy/moments-shiba-1200-v3.webp', thumb: '/images/cozy/moments-shiba-480-v3.webp', tilt: -2 },
 ];
-const navItems = [['รู้จักแก๊ง', '#friends'], ['ตารางงาน', '/events'], ['อัลบั้ม', '#moments']];
+const navItems = [['รู้จักแก๊ง', '#friends'], ['ตารางงาน', '/events'], ['อัลบั้ม', '#moments'], ['Passport', '/passport']];
 
 // เผยทีละส่วนเมื่อเลื่อนถึง — รันซ้ำเมื่อข้อมูลจาก API มาถึง เพื่อให้การ์ดที่เพิ่งเรนเดอร์ถูกสังเกตด้วย
 function useReveal(deps) {
