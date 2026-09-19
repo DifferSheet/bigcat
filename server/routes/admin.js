@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { q, one } from '../db.js';
-import { wrap, HttpError, getEvent, seatsOf, donationSummary, registrationSummary, drawsOf, reportOf, emit, gateToken, gateExpiresIn, GATE_TTL, checkinWindow } from '../lib.js';
+import { wrap, HttpError, code, getEvent, seatsOf, donationSummary, registrationSummary, drawsOf, reportOf, emit, gateToken, gateExpiresIn, GATE_TTL, checkinWindow } from '../lib.js';
 import { push, multicast, msg, lineEnabled } from '../line.js';
 import { upload } from './public.js';
 import { uploadMedia, uploadPassportPortrait } from '../upload.js';
@@ -313,6 +313,33 @@ r.post('/checkin/:code', wrap(async (req, res) => {
 r.get('/events/:slug/donations', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
   res.json(await q(`SELECT d.*, c.name AS category, u.display_name AS member_name, u.avatar AS member_avatar FROM donations d JOIN donation_categories c ON c.id=d.category_id LEFT JOIN users u ON u.id=d.user_id WHERE d.event_id=? ORDER BY FIELD(d.status,'pending','approved','rejected'), d.created_at DESC`, [ev.id]));
+}));
+
+// บันทึกยอดที่โอนมานอกระบบ (รู้ทีหลัง/โอนตรง ไม่ได้กรอกผ่านหน้าเว็บ) — แด๊ดสั่ง 19 ก.ย. 2026
+// อนุมัติทันทีเพราะแอดมินเห็นยอดจริงแล้ว · ไม่มีสลิปในระบบ จึงติดหมายเหตุไว้ว่าใครบันทึก
+r.post('/events/:slug/donations', wrap(async (req, res) => {
+  const ev = await getEvent(req.params.slug);
+  const cat = await one('SELECT id, name, unit_price, unit_name FROM donation_categories WHERE event_id=? AND id=?', [ev.id, Number(req.body?.categoryId)]);
+  if (!cat) throw new HttpError(400, 'กรุณาเลือกหมวดที่ต้องการบันทึก');
+  const units = cat.unit_price && req.body?.units ? Math.max(1, Math.round(Number(req.body.units))) : null;
+  const amount = units ? units * cat.unit_price : Math.round(Number(req.body?.amount));
+  if (!(amount >= 1)) throw new HttpError(400, 'กรุณาใส่จำนวนเงิน');
+  const donor = clean(req.body?.name, 120) || 'ผู้ไม่ประสงค์ออกนาม';
+  const member = req.body?.userId ? await one('SELECT id, line_user_id FROM users WHERE id=?', [Number(req.body.userId)]) : null;
+  if (req.body?.userId && !member) throw new HttpError(404, 'ไม่พบสมาชิกรหัสนี้');
+  const when = clean(req.body?.createdAt, 25);   // วันที่โอนจริง (YYYY-MM-DD หรือ YYYY-MM-DDTHH:MM) — ไม่ใส่ = ตอนนี้
+  const at = when ? new Date(when.replace(' ', 'T') + (when.length <= 10 ? 'T00:00:00' : '') + '+07:00') : new Date();
+  if (Number.isNaN(at.getTime())) throw new HttpError(400, 'วันที่ไม่ถูกต้อง');
+  const key = code(8);
+  await q('INSERT INTO donations SET ?', [{
+    code: key, group_code: key, event_id: ev.id, category_id: cat.id, donor_name: donor,
+    dedication: clean(req.body?.dedication, 160) || null, message: clean(req.body?.message, 300) || null,
+    anonymous: req.body?.anonymous ? 1 : 0, amount, units, status: 'approved', created_at: at,
+    verify_note: `บันทึกโดยแอดมิน${clean(req.body?.note, 200) ? ` · ${clean(req.body.note, 200)}` : ''}`,
+    user_id: member?.id || null, line_user_id: member?.line_user_id || null,
+  }]);
+  emit(ev.slug, 'donations', await donationSummary(ev.id));
+  res.json({ ok: true, code: key, amount, category: cat.name });
 }));
 
 async function setDonationStatus(ids, status) {
