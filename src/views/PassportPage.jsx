@@ -7,6 +7,7 @@ import { Icon, Paw, PageLoader, Modal, Tag } from '../components/ui.jsx';
 import { EventStamp, SpecialStamp, STAMP_LABEL } from '../components/Stamp.jsx';
 import SaveImage from '../components/SaveImage.jsx';
 import PassportMemory from '../components/PassportMemory.jsx';
+import { stampState } from '../lib/passport-memory.js';
 import { api } from '../lib/api.js';
 import { useUser } from '../lib/auth.js';
 import { eventDate, parseDate } from '../lib/format.js';
@@ -54,15 +55,16 @@ function MemoryChapter({ book, filter, onOpen, page = 0, mobile = false }) {
 // รายละเอียดแสตมป์ 1 ดวง (กดจากสมุด) — ใหญ่ขึ้น + วันที่ได้ + แสตมป์พิเศษของงานนั้น + เนื้อหาปลดล็อก
 function StampDetail({ ev, onClose, inline = false }) {
   const d = eventDate(ev);
-  const state = ev.earned ? 'earned' : ev.phase === 'upcoming' ? 'locked' : 'missed';
+  const state = stampState(ev);
   const Wrapper = inline ? React.Fragment : Modal;
   return <Wrapper {...(inline ? {} : { title: ev.title, onClose })}>
     <div className="stamp-detail pc-detail-card">
-      <div className="pc-detail-showcase"><span className="eyebrow">BIGCAT · COLLECTIBLE MEMORY</span><EventStamp ev={ev} state={state} size={280} /><span className={`pc-detail-status ${state}`}>{state === 'earned' ? '✦ อยู่ในสมุดของคุณแล้ว' : state === 'locked' ? '♡ รอวันสร้างความทรงจำ' : 'ความทรงจำที่ผ่านไป'}</span></div>
+      <div className="pc-detail-showcase"><span className="eyebrow">BIGCAT · COLLECTIBLE MEMORY</span><EventStamp ev={ev} state={state} size={280} /><span className={`pc-detail-status ${state}`}>{state === 'earned' ? '✦ อยู่ในสมุดของคุณแล้ว' : state === 'today' ? '♡ เช็คอินงานเพื่อรับแสตมป์' : state === 'locked' ? '♡ รอวันสร้างความทรงจำ' : 'ความทรงจำที่ผ่านไป'}</span></div>
       <div className="pc-detail-info">
       {inline && <h2>{ev.title}</h2>}
       <p className="muted">{d.long} · {d.time}</p>
       {state === 'earned' && <p className="stamp-earned-at">{STAMP_LABEL[ev.earned.kind]} · ได้เมื่อ {fmt(ev.earned.earned_at)}</p>}
+      {state === 'today' && <p className="muted">เช็คอินงานเพื่อรับแสตมป์ — เปิด <Link to="/ticket/lookup">บัตรของฉัน</Link> แล้วกดเช็คอินที่หน้างานได้เลย</p>}
       {state === 'missed' && <p className="muted">งานนี้ผ่านไปแล้ว — แสตมป์ดวงนี้ไม่ออกอีก ครั้งหน้ามาเจอกันนะ</p>}
       {state === 'locked' && <p className="muted">ยังไม่ถึงวันงาน — มาเช็คอินแล้วรับแสตมป์ดวงนี้</p>}
       {ev.extras?.length > 0 && <div className="stamp-extras">{ev.extras.map(s => <SpecialStamp key={s.kind} kind={s.kind} meta={s.meta} size={84} />)}</div>}

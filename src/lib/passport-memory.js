@@ -1,4 +1,7 @@
 // Stable layouts: opening a memory again never shuffles its photographs.
+
+// สถานะของแสตมป์ 1 ดวง — earned ได้แล้ว · today งานวันนี้/กำลังจัด (ยังเช็คอินได้) · locked ยังไม่ถึงวัน · missed ผ่านไปแล้ว
+export const stampState = (ev) => (ev.earned ? 'earned' : ev.phase === 'past' ? 'missed' : ev.phase === 'live' ? 'today' : 'locked');
 export function eventMemory(ev) {
   const m = ev.memory || {};
   const earned = !!ev.earned;

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requirePhone } from '../validate.js';
 import { q, one, tx } from '../db.js';
-import { wrap, HttpError, code, getEvent, shapeEvent, eventDetail, seatsOf, donationSummary, registrationSummary, drawsOf, songsOf, pollSummary, emit, bkk, hhmm, gateValid, checkinWindow } from '../lib.js';
+import { wrap, HttpError, code, getEvent, shapeEvent, eventDetail, seatsOf, donationSummary, registrationSummary, drawsOf, songsOf, pollSummary, emit, bkk, hhmm, gateValid, checkinWindow, defaultCheckinWindow } from '../lib.js';
 import { verifySlip, slipEnabled } from '../slip.js';
 import { ownerFields, authProviders } from '../auth.js';
 import { lineEnabled, lineOaId, notifyStaff, push, msg } from '../line.js';
@@ -213,7 +213,7 @@ r.get('/registrations/:code', wrap(async (req, res) => {
 }));
 
 // เช็คอินด้วยตัวเอง — ตาม config.checkinMode ของงาน
-//   self  (ค่าเริ่มต้น) กดบนบัตร/หน้างานได้ — ในหน้าต่างเวลา (checkinWindow) หรือถ้าไม่ได้ตั้ง ต้องสถานะงาน live
+//   self  (ค่าเริ่มต้น) กดบนบัตร/หน้างานได้ — ในหน้าต่างเวลา (checkinWindow) · ไม่ได้ตั้ง = ค่าเริ่มต้นรอบเวลาเริ่มงาน หรือสถานะงาน live
 //   gate  ต้องสแกน QR หน้างาน (โทเคนหมุนทุก 45 วิ) แล้วส่ง body.gate มาด้วย · เคารพหน้าต่างเวลาเหมือนกัน
 //   staff ปฏิเสธ — พี่ ๆ หน้างานสแกนบัตรเท่านั้น
 // body.geo = { lat, lng, acc } (ถ้ามือถือให้พิกัด) เก็บไว้ดูทีหลังว่าคนเช็คอินอยู่ตรงไหนจริง ๆ — ไม่ใช้ตัดสิทธิ์
@@ -228,7 +228,12 @@ r.post('/registrations/:code/checkin', wrap(async (req, res) => {
   if (win) {
     if (now < win.opens) throw new HttpError(400, `เช็คอินเปิดเวลา ${hhmm(win.opens)} น.`);
     if (now > win.closes) throw new HttpError(400, `ปิดเช็คอินแล้วเมื่อ ${hhmm(win.closes)} น. — ดูโชว์ได้ แต่ไม่ได้สิทธิ์ที่ต้องเช็คอิน`);
-  } else if (ev.status !== 'live') throw new HttpError(400, 'เช็คอินได้เฉพาะระหว่างเวลางาน');
+  } else if (ev.status !== 'live') {
+    // ไม่ได้ตั้งหน้าต่างเวลา + ยังไม่กด live → ใช้ค่าเริ่มต้นรอบเวลาเริ่มงาน
+    const d = defaultCheckinWindow(ev);
+    if (now < d.opens) throw new HttpError(400, `เช็คอินได้เมื่อถึงเวลา — เปิด ${hhmm(d.opens)} น.`);
+    if (now > d.closes) throw new HttpError(400, `ปิดเช็คอินแล้วเมื่อ ${hhmm(d.closes)} น. — ถ้ามีเหตุจำเป็น แสดง QR ให้พี่ ๆ หน้างานพิจารณา`);
+  }
   const already = !!reg.checked_in_at;
   if (!already) {
     const g = req.body?.geo || {};

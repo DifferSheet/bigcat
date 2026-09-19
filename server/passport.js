@@ -106,6 +106,7 @@ export async function passportOf(user) {
   const byEvent = new Map();
   for (const s of stamps) { if (!byEvent.has(s.event_id)) byEvent.set(s.event_id, []); byEvent.get(s.event_id).push({ kind: s.kind, meta: parseJSON(s.meta, null), earned_at: s.earned_at }); }
   const now = Date.now();
+  const todayBkk = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });   // YYYY-MM-DD
   // รูปคู่อัตโนมัติจากอัลบั้ม: รูปที่ระบบจับคู่ว่าเป็นคนนี้ (ไม่ถูกปฏิเสธ) — รูปคู่ (2 หน้า) มาก่อน แล้วค่อยเดี่ยว · ต่องาน
   const autoPortrait = new Map();
   for (const r of await q(`SELECT p.event_id, p.view, p.id FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id WHERE f.user_id=? AND f.status<>'rejected' ORDER BY (p.faces=2) DESC, (f.status='confirmed') DESC, f.similarity DESC`, [user.id])) if (!autoPortrait.has(r.event_id)) autoPortrait.set(r.event_id, r);
@@ -131,7 +132,8 @@ export async function passportOf(user) {
       earned, extras: mine.filter(s => !['checkin', 'merit'].includes(s.kind)),
       // ปลดล็อกเนื้อหาเฉพาะคนที่มีแสตมป์งานนี้
       unlock: earned && cfg.unlock ? cfg.unlock : null, hasUnlock: !!cfg.unlock,
-      phase: e.status === 'ended' || start < now - 6 * 3600e3 ? 'past' : e.status === 'live' ? 'live' : 'upcoming',
+      // งานวันนี้นับเป็น live เสมอ แม้แอดมินยังไม่กดเปลี่ยนสถานะ — จะได้ไม่ขึ้นว่า «งานนี้ผ่านไปแล้ว» ตั้งแต่ยังเช็คอินได้ (แด๊ดสั่ง 19 ก.ย. 2026)
+      phase: e.status === 'ended' ? 'past' : e.status === 'live' || String(e.starts_at).slice(0, 10) === todayBkk ? 'live' : start < now - 6 * 3600e3 ? 'past' : 'upcoming',
     };
   }));
   const seasons = await q('SELECT id, name, starts_on, ends_on, cover FROM seasons ORDER BY starts_on');

@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { EventStamp } from './Stamp.jsx';
 import { eventDate } from '../lib/format.js';
-import { eventMemory } from '../lib/passport-memory.js';
+import { eventMemory, stampState } from '../lib/passport-memory.js';
 import { drawEventMemoryImage } from '../lib/passport-image.js';
 import PortraitPicker from './PortraitPicker.jsx';
 import PhotoModal from './PhotoModal.jsx';
@@ -62,7 +62,7 @@ export default function PassportMemory({ ev, side, onOpen }) {
   const [texts, setTexts] = useState(false);
   if (!ev) return <div className="pc-page-note"><span>♡</span><p>ยังไม่มีความทรงจำในตัวกรองนี้</p></div>;
   const m = eventMemory(ev);
-  const state = ev.earned ? 'earned' : ev.phase === 'upcoming' ? 'locked' : 'missed';
+  const state = stampState(ev);
   const makeImage = async () => {
     setShare(true); setBusy(true); setError(''); setImage(null);
     try { setImage((await drawEventMemoryImage(ev)).toDataURL('image/png')); }
@@ -71,7 +71,7 @@ export default function PassportMemory({ ev, side, onOpen }) {
   };
   if (side === 0) return <div className={`pm-story pm-${m.layout}`}>
     <div className="pm-event-heading"><span className="eyebrow">A DAY TO REMEMBER</span><h3>{ev.title}</h3><small>{eventDate(ev).long}{ev.place ? ` · ${ev.place}` : ''}</small></div>
-    <div className="pm-letter-row"><button type="button" className={`pm-stamp ${state}`} data-event-slug={ev.slug} onClick={() => onOpen(ev)} aria-label={`ดูแสตมป์ ${ev.title}`}><EventStamp ev={ev} state={state} size={164} /><small>{ev.earned ? 'เก็บวันนี้ไว้แล้ว ♡' : state === 'locked' ? 'รอวันได้เจอกัน' : 'งานนี้ผ่านไปแล้ว'}</small></button>
+    <div className="pm-letter-row"><button type="button" className={`pm-stamp ${state}`} data-event-slug={ev.slug} onClick={() => onOpen(ev)} aria-label={`ดูแสตมป์ ${ev.title}`}><EventStamp ev={ev} state={state} size={164} /><small>{ev.earned ? 'เก็บวันนี้ไว้แล้ว ♡' : state === 'today' ? 'เช็คอินงานเพื่อรับแสตมป์' : state === 'locked' ? 'รอวันได้เจอกัน' : 'งานนี้ผ่านไปแล้ว'}</small></button>
       <div className="pm-letter"><span className="pm-tape" aria-hidden="true" /><span className="eyebrow">A LITTLE NOTE</span>
         {m.noteImage ? <a href={m.noteImage} target="_blank" rel="noreferrer" aria-label="เปิดภาพลายมือเต็ม"><img src={m.noteImage} alt={`ข้อความลายมือจาก${m.author}`} /></a> : m.noteText ? <p className="pm-note-text">{m.noteText}</p> : <p className="pm-pending">{ev.earned ? 'กำลังรวบรวมความทรงจำวันของเราอยู่นะ' : 'มาเจอกัน แล้วเก็บเรื่องราวของวันนั้นไว้ด้วยกันนะ'}</p>}
         {m.noteImage && m.noteText && <details><summary>อ่านข้อความ</summary><p>{m.noteText}</p></details>}
