@@ -34,6 +34,14 @@ export function checkinWindow(ev) {
   return { opens: new Date(start.getTime() - (Number(w.before) || 0) * 60e3), closes: new Date(start.getTime() + (Number(w.after) || 0) * 60e3) };
 }
 
+// งานที่ไม่ได้ตั้งหน้าต่างเวลาไว้ ใช้ค่าเริ่มต้นรอบเวลาเริ่มงานแทน — ปุ่มเช็คอินเองจะเปิดเมื่อถึงเวลา
+// ไม่ต้องรอแอดมินกดเปลี่ยนสถานะเป็น live (แด๊ดสั่ง 19 ก.ย. 2026) · สถานะ live ยังเปิดให้เช็คอินได้ตลอดเหมือนเดิม
+export const DEFAULT_CHECKIN_WINDOW = { before: 60, after: 240 };
+export function defaultCheckinWindow(ev) {
+  const start = bkk(ev.starts_at);
+  return { opens: new Date(start.getTime() - DEFAULT_CHECKIN_WINDOW.before * 60e3), closes: new Date(start.getTime() + DEFAULT_CHECKIN_WINDOW.after * 60e3) };
+}
+
 export const code = (len = 8) => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('');

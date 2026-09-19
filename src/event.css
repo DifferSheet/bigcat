@@ -304,6 +304,9 @@
 .staff-checkin small { opacity: .8; }
 .staff-checkin .button.light { margin: 0; background: var(--pink); color: #fff; padding: 12px 20px; }
 .staff-checkin .staff-link { color: #fff; opacity: .75; font-size: 13px; text-decoration: underline; }
+.self-checkin { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.self-checkin .button { margin: 0; }
+.self-checkin-when { color: var(--muted-3); font-size: 13px; }
 .mini-tag.dup { background: #fbe6e6; color: var(--danger); }
 .admin-table .table-note { caption-side: top; text-align: left; font-size: 13px; padding: 8px 12px; }
 .admin-table .table-note .dup-note { display: block; color: var(--danger); }
