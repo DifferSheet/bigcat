@@ -79,10 +79,11 @@ export default function PassportMemory({ ev, side, onOpen }) {
         : <div className={`pm-stamp ${state}`} data-event-slug={ev.slug}><EventStamp ev={ev} state={state} size={164} />{caption}</div>;
     })()}
       <div className="pm-letter"><span className="pm-tape" aria-hidden="true" /><span className="eyebrow">A LITTLE NOTE</span>
-        {m.noteImage ? <a href={m.noteImage} target="_blank" rel="noreferrer" aria-label="เปิดภาพลายมือเต็ม"><img src={m.noteImage} alt={`ข้อความลายมือจาก${m.author}`} /></a> : m.noteText ? <p className="pm-note-text">{m.noteText}</p> : <p className="pm-pending">{ev.earned ? 'กำลังรวบรวมความทรงจำวันของเราอยู่นะ' : 'มาเจอกัน แล้วเก็บเรื่องราวของวันนั้นไว้ด้วยกันนะ'}</p>}
+        {m.noteImage ? <button type="button" className="pm-photo-open" onClick={() => setOpen(0)} aria-label="ดูภาพลายมือเต็ม"><img src={m.noteImage} alt={`ข้อความลายมือจาก${m.author}`} /></button> : m.noteText ? <p className="pm-note-text">{m.noteText}</p> : <p className="pm-pending">{ev.earned ? 'กำลังรวบรวมความทรงจำวันของเราอยู่นะ' : 'มาเจอกัน แล้วเก็บเรื่องราวของวันนั้นไว้ด้วยกันนะ'}</p>}
         {m.noteImage && m.noteText && <details><summary>อ่านข้อความ</summary><p>{m.noteText}</p></details>}
         {(m.noteImage || m.noteText) && <span className="pm-signature">จาก {m.author} ♡</span>}
       </div></div>
+    {open != null && m.noteImage && <PhotoModal list={[{ src: m.noteImage, alt: `ข้อความลายมือจาก${m.author}` }]} index={0} setIndex={() => {}} onClose={() => setOpen(null)} caption={() => `ข้อความลายมือจาก${m.author} ♡`} />}
   </div>;
   const shots = [m.group && { src: m.group, alt: m.groupCaption, label: m.groupCaption }, m.portrait && { src: m.portrait, alt: m.portraitCaption, label: m.portraitCaption }].filter(Boolean);
   return <div className={`pm-album pm-${m.layout} ${m.group && m.portrait ? 'pm-two-photos' : 'pm-one-photo'}`}>
