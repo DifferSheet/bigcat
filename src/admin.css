@@ -168,13 +168,21 @@
 /* สมุดความทรงจำในหน้าอัลบั้ม — ย้ายมาจากฟอร์มแก้ไขงาน จึงต้องให้กล่องมีพื้นและระยะเหมือนการ์ดอื่นในหน้านี้ */
 .ab-memory { display: flex; flex-direction: column; gap: 10px; }
 .ab-memory .booking-form { max-width: none; background: #fff; border: 1px solid var(--line); border-radius: var(--r-md); padding: 18px 20px; gap: 16px; }
-.ab-memory .mode-pick { border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; background: var(--paper); }
-.ab-memory .mode-pick legend { font-size: 14px; font-weight: 700; padding: 0 8px; margin: 0; }
-.ab-memory .mode-pick > .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.ab-memory .unlock-box { align-items: stretch; background: var(--pink-wash); }
-.ab-memory .unlock-box .small { color: var(--muted-3); }
-.ab-memory .unlock-box input[type=file] { background: #fff; }
 .ab-memory .form-actions { margin: 0; }
+
+/* ตัวแก้ไขข้อความลายมือในหน้าอัลบั้ม — ภาพตัวอย่างซ้าย ช่องกรอกขวา */
+.pme { display: flex; flex-direction: column; gap: 14px; }
+.pme-note { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 18px; align-items: start; }
+.pme-shot { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.pme-shot img { width: 100%; border-radius: var(--r-sm); border: 1px solid var(--line); background: #fff; }
+.pme-shot figcaption { font-size: 11px; color: var(--muted-3); text-align: center; }
+.pme-empty { display: grid; place-items: center; aspect-ratio: 4 / 3; border: 1px dashed var(--line); border-radius: var(--r-sm); background: var(--paper); color: var(--muted-3); font-size: 12px; }
+.pme-fields { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pme-fields > .link-button { align-self: flex-start; }
+.pme-portrait { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 12px 14px; background: var(--paper); }
+.pme-portrait summary { font-size: 13px; font-weight: 600; cursor: pointer; }
+.pme-portrait summary small { font-weight: 400; color: var(--muted-3); }
+.pme-portrait > *:not(summary) { margin-top: 10px; }
 @media (max-width: 720px) {
-  .ab-memory .mode-pick > .two { grid-template-columns: 1fr; }
+  .pme-note { grid-template-columns: 1fr; }
 }

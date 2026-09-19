@@ -140,7 +140,7 @@ export function AlbumDetail({ slug }) {
       fd.append('memory', JSON.stringify({ ...(d.event.memory || {}), ...(memory || {}) }));
       Object.entries(memoryFiles).forEach(([k, file]) => { if (file) fd.append(k, file); });
       const r = await api(`/admin/albums/${slug}/memory`, { method: 'POST', body: fd, admin: true });
-      setMemory(r.memory || {}); setMemoryFiles({}); setMsg('บันทึกสมุดความทรงจำแล้ว'); load();
+      setMemory(r.memory || {}); setMemoryFiles({}); setMsg('บันทึกข้อความลายมือแล้ว'); load();
     } catch (e) { setErr(e.message); } finally { setMemBusy(false); }
   };
   const setLayout = async (layout) => { setMsg(''); try { await api(`/admin/albums/${slug}/layout`, { method: 'POST', body: { layout }, admin: true }); setMsg('เปลี่ยนเทมเพลตหน้าในสมุด Passport แล้ว'); load(); } catch (e) { setErr(e.message); } };
@@ -174,11 +174,11 @@ export function AlbumDetail({ slug }) {
       </button>)}</div>
     </section>
     <section className="ab-memory">
-      <span className="eyebrow">สมุดความทรงจำของงานนี้ <small>— ภาพลายมือ · รูปหมู่ประจำงาน · ข้อความ · รูปคู่รายคน (ย้ายมาจากฟอร์มแก้ไขงาน)</small></span>
+      <span className="eyebrow">ข้อความลายมือของงานนี้ <small>— ภาพที่ไปอยู่ในกรอบ A LITTLE NOTE ของสมุด passport</small></span>
       {/* ใช้คลาส booking-form เพื่อให้ช่องกรอกในตัวแก้ไขได้สไตล์เดียวกับฟอร์มอื่น (สไตล์ผูกกับคลาสนี้) */}
       <div className="booking-form">
         {memory && <PassportMemoryEditor memory={memory} onChange={setMemory} files={memoryFiles} onFiles={setMemoryFiles} slug={slug} />}
-        <div className="form-actions"><button type="button" className="button dark small" disabled={memBusy} onClick={saveMemory}>{memBusy ? 'กำลังบันทึก…' : 'บันทึกสมุดความทรงจำ'} <Icon name="check" size={14} /></button></div>
+        <div className="form-actions"><button type="button" className="button dark small" disabled={memBusy} onClick={saveMemory}>{memBusy ? 'กำลังบันทึก…' : 'บันทึกข้อความลายมือ'} <Icon name="check" size={14} /></button></div>
       </div>
     </section>
 
