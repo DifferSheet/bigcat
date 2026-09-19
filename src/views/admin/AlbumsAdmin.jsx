@@ -173,10 +173,13 @@ export function AlbumDetail({ slug }) {
         <strong>{l.name}</strong><small>{l.note}</small>
       </button>)}</div>
     </section>
-    <section className="ab-layouts">
+    <section className="ab-memory">
       <span className="eyebrow">สมุดความทรงจำของงานนี้ <small>— ภาพลายมือ · รูปหมู่ประจำงาน · ข้อความ · รูปคู่รายคน (ย้ายมาจากฟอร์มแก้ไขงาน)</small></span>
-      {memory && <PassportMemoryEditor memory={memory} onChange={setMemory} files={memoryFiles} onFiles={setMemoryFiles} slug={slug} />}
-      <div className="form-actions"><button type="button" className="button dark small" disabled={memBusy} onClick={saveMemory}>{memBusy ? 'กำลังบันทึก…' : 'บันทึกสมุดความทรงจำ'} <Icon name="check" size={14} /></button></div>
+      {/* ใช้คลาส booking-form เพื่อให้ช่องกรอกในตัวแก้ไขได้สไตล์เดียวกับฟอร์มอื่น (สไตล์ผูกกับคลาสนี้) */}
+      <div className="booking-form">
+        {memory && <PassportMemoryEditor memory={memory} onChange={setMemory} files={memoryFiles} onFiles={setMemoryFiles} slug={slug} />}
+        <div className="form-actions"><button type="button" className="button dark small" disabled={memBusy} onClick={saveMemory}>{memBusy ? 'กำลังบันทึก…' : 'บันทึกสมุดความทรงจำ'} <Icon name="check" size={14} /></button></div>
+      </div>
     </section>
 
     <Notice tone={d.event.published ? 'info' : 'muted'}>{d.event.published

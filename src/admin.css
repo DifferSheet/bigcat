@@ -164,3 +164,17 @@
   .event-form { grid-template-columns: 1fr; }
   .ef-side { position: static; order: -1; }
 }
+
+/* สมุดความทรงจำในหน้าอัลบั้ม — ย้ายมาจากฟอร์มแก้ไขงาน จึงต้องให้กล่องมีพื้นและระยะเหมือนการ์ดอื่นในหน้านี้ */
+.ab-memory { display: flex; flex-direction: column; gap: 10px; }
+.ab-memory .booking-form { max-width: none; background: #fff; border: 1px solid var(--line); border-radius: var(--r-md); padding: 18px 20px; gap: 16px; }
+.ab-memory .mode-pick { border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; background: var(--paper); }
+.ab-memory .mode-pick legend { font-size: 14px; font-weight: 700; padding: 0 8px; margin: 0; }
+.ab-memory .mode-pick > .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ab-memory .unlock-box { align-items: stretch; background: var(--pink-wash); }
+.ab-memory .unlock-box .small { color: var(--muted-3); }
+.ab-memory .unlock-box input[type=file] { background: #fff; }
+.ab-memory .form-actions { margin: 0; }
+@media (max-width: 720px) {
+  .ab-memory .mode-pick > .two { grid-template-columns: 1fr; }
+}
