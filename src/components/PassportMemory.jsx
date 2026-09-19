@@ -71,7 +71,13 @@ export default function PassportMemory({ ev, side, onOpen }) {
   };
   if (side === 0) return <div className={`pm-story pm-${m.layout}`}>
     <div className="pm-event-heading"><span className="eyebrow">A DAY TO REMEMBER</span><h3>{ev.title}</h3><small>{eventDate(ev).long}{ev.place ? ` · ${ev.place}` : ''}</small></div>
-    <div className="pm-letter-row"><button type="button" className={`pm-stamp ${state}`} data-event-slug={ev.slug} onClick={() => onOpen(ev)} aria-label={`ดูแสตมป์ ${ev.title}`}><EventStamp ev={ev} state={state} size={164} /><small>{ev.earned ? 'เก็บวันนี้ไว้แล้ว ♡' : state === 'today' ? 'เช็คอินงานเพื่อรับแสตมป์' : state === 'locked' ? 'รอวันได้เจอกัน' : 'งานนี้ผ่านไปแล้ว'}</small></button>
+    <div className="pm-letter-row">{(() => {
+      // ไม่ส่ง onOpen มา = แสตมป์กดไม่ได้ (ปิดหน้ารายละเอียดไว้ก่อน แด๊ดสั่ง 19 ก.ย. 2026)
+      const caption = <small>{ev.earned ? 'เก็บวันนี้ไว้แล้ว ♡' : state === 'today' ? 'เช็คอินงานเพื่อรับแสตมป์' : state === 'locked' ? 'รอวันได้เจอกัน' : 'งานนี้ผ่านไปแล้ว'}</small>;
+      return onOpen
+        ? <button type="button" className={`pm-stamp ${state}`} data-event-slug={ev.slug} onClick={() => onOpen(ev)} aria-label={`ดูแสตมป์ ${ev.title}`}><EventStamp ev={ev} state={state} size={164} />{caption}</button>
+        : <div className={`pm-stamp ${state}`} data-event-slug={ev.slug}><EventStamp ev={ev} state={state} size={164} />{caption}</div>;
+    })()}
       <div className="pm-letter"><span className="pm-tape" aria-hidden="true" /><span className="eyebrow">A LITTLE NOTE</span>
         {m.noteImage ? <a href={m.noteImage} target="_blank" rel="noreferrer" aria-label="เปิดภาพลายมือเต็ม"><img src={m.noteImage} alt={`ข้อความลายมือจาก${m.author}`} /></a> : m.noteText ? <p className="pm-note-text">{m.noteText}</p> : <p className="pm-pending">{ev.earned ? 'กำลังรวบรวมความทรงจำวันของเราอยู่นะ' : 'มาเจอกัน แล้วเก็บเรื่องราวของวันนั้นไว้ด้วยกันนะ'}</p>}
         {m.noteImage && m.noteText && <details><summary>อ่านข้อความ</summary><p>{m.noteText}</p></details>}
