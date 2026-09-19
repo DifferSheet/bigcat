@@ -172,6 +172,7 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
   const donTarget = (g) => ({ kind: 'donations', id: g.ids[0], key: g.key, label: g.donor_name });
   const regTarget = (r) => ({ kind: 'registrations', id: r.id, key: r.code, label: r.nickname || r.name });
   useEffect(() => { setPage(1); }, [tab, view, ev.slug]);
+  useEffect(() => { if (tab === 'done' && rows && !(rows.registrations || (rows.attend && view === 'registrations'))) setTab('pending'); }, [tab, view, rows]);
   const load = async () => {
     setRows(null);
     if (ev.type === 'fanmeet') setRows({ bookings: await api(`/admin/events/${ev.slug}/bookings`, { admin: true }) });
@@ -185,8 +186,12 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
   const bulk = async (action) => { setMsg(''); try { const r = await api('/admin/donations/bulk', { method: 'POST', body: { ids: sel, action }, admin: true }); setMsg(`${action === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'}แล้ว ${r.count} รายการ`, 'ok'); setSel([]); await load(); refresh(); } catch (e) { setMsg(e.message); } };
   const toggleSel = (id) => setSel(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
   const setStatus = async (status) => { setMsg(''); try { await api(`/admin/events/${ev.slug}`, { method: 'PATCH', body: { status }, admin: true }); refresh(); } catch (e) { setMsg(e.message); } };
-  const show = (list, key) => tab === 'all' ? list : list.filter(x => key(x));
+  // pending = ที่ยังต้องทำ · done = ตรงข้าม (สำหรับรายชื่อลงทะเบียน = เช็คอินแล้ว) · all = ทั้งหมด
+  const show = (list, key) => (tab === 'all' ? list : tab === 'done' ? list.filter(x => !key(x)) : list.filter(x => key(x)));
   const paged = (list) => list.slice((page - 1) * PAGE, page * PAGE);
+  // ตารางที่เห็นอยู่เป็นรายชื่อลงทะเบียนไหม — ใช้ตัดสินป้ายแท็บและแท็บ «เช็คอินแล้ว»
+  const regList = rows?.registrations || (rows?.attend && view === 'registrations' ? rows.attend : null);
+  const checkedIn = regList ? regList.filter(r => r.checked_in_at).length : 0;
 
   return <div className="admin-event">
     <div className="admin-event-head">
@@ -203,7 +208,7 @@ function EventAdmin({ ev, refresh, onEdit, onDeleted }) {
     {ev.type === 'merit' && <MeritTools ev={ev} onMsg={setMsg} />}
     {rows?.attend && <div className="view-switch"><button className={view === 'donations' ? 'active' : ''} onClick={() => setView('donations')}>ยอดร่วมบุญ ({rows.donations.length})</button><button className={view === 'registrations' ? 'active' : ''} onClick={() => setView('registrations')}>ไปวัดด้วย ({rows.attend.length})</button></div>}
     {rows?.donations && view === 'donations' && <input className="admin-search" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="ค้นหารหัส / ชื่อผู้ร่วมบุญ / สมาชิก" style={{ marginBottom: 10 }} />}
-    <div className="tabs-row"><div className="filter-tabs"><button className={tab === 'pending' ? 'active' : ''} onClick={() => setTab('pending')}>{view === 'registrations' && rows?.attend ? 'ยังไม่เช็คอิน' : 'รอตรวจ'}</button><button className={tab === 'all' ? 'active' : ''} onClick={() => setTab('all')}>ทั้งหมด</button></div>
+    <div className="tabs-row"><div className="filter-tabs"><button className={tab === 'pending' ? 'active' : ''} onClick={() => setTab('pending')}>{regList ? `ยังไม่เช็คอิน (${regList.length - checkedIn})` : 'รอตรวจ'}</button>{regList && <button className={tab === 'done' ? 'active' : ''} onClick={() => setTab('done')}>เช็คอินแล้ว ({checkedIn})</button>}<button className={tab === 'all' ? 'active' : ''} onClick={() => setTab('all')}>ทั้งหมด</button></div>
       {rows?.donations && sel.length > 0 && <div className="bulk-bar"><span>เลือก {sel.length} รายการ</span><button className="button dark small" onClick={() => bulk('approve')}>อนุมัติทั้งหมด</button><button className="link-button" onClick={() => bulk('reject')}>ปฏิเสธ</button></div>}</div>
     {!rows ? <PageLoader /> : <div className="table-wrap"><table className="admin-table">
       {rows.bookings && <><thead><tr><th>รหัส</th><th>ชื่อ</th><th>ที่นั่ง</th><th>ยอด</th><th>สลิป</th><th>สถานะ</th><th></th></tr></thead><tbody>{paged(show(rows.bookings, b => b.status === 'pending')).map(b => <tr key={b.id}><td className="code">{b.code}</td><td>{b.name}<br /><small>{b.phone}</small></td><td>{b.seats.join(', ')}</td><td>{baht(b.amount)}</td><td>{b.slip_path ? <a href={b.slip_path} target="_blank" rel="noreferrer">ดูสลิป</a> : '—'}{b.verify_note && <><br /><small className={b.verified_at ? 'ok-text' : ''}>{b.verify_note}</small></>}</td><td>{b.status}{b.verified_at && <span className="mini-tag ok">auto</span>}</td><td className="actions">{b.status === 'pending' && <><button className="button dark small" onClick={() => act(`/admin/bookings/${b.id}/approve`)}>อนุมัติ</button><button className="link-button" onClick={() => act(`/admin/bookings/${b.id}/reject`)}>ปฏิเสธ</button></>}{b.status === 'paid' && <button className="button ghost small" onClick={() => act(`/admin/bookings/${b.id}/checkin`)}>เช็คอิน</button>}</td></tr>)}</tbody><tfoot><tr><td colSpan={7}><Pager total={show(rows.bookings, b => b.status === 'pending').length} page={page} setPage={setPage} /></td></tr></tfoot></>}
