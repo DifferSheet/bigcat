@@ -73,6 +73,8 @@ r.get('/me/photos', requireUser, wrap(async (req, res) => {
     FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id JOIN events e ON e.id=p.event_id
     WHERE f.user_id=? AND f.status<>'rejected' ORDER BY e.starts_at DESC, (p.faces=2) DESC, f.similarity DESC`, [req.user.id]);
   const shown = rows.filter(r2 => r2.published !== 'false');   // อัลบั้มที่ทีมยังไม่เผยแพร่ ไม่ต้องโผล่
+  // แมตช์ได้แล้วแต่ยังไม่เผยแพร่ — บอกจำนวนไว้ ไม่งั้นสมาชิกเห็นแค่หน้าว่างทั้งที่ระบบเจอรูปแล้ว
+  const waiting = rows.filter(r2 => r2.published === 'false');
   const events = [];
   for (const p of shown) {
     let g = events.find(x => x.slug === p.slug);
@@ -80,7 +82,7 @@ r.get('/me/photos', requireUser, wrap(async (req, res) => {
     g.photos.push({ id: p.id, thumb: p.thumb, view: p.view, orig: p.orig, faces: p.faces, similarity: p.similarity, status: p.status });
   }
   for (const g of events) await withUrls(g.photos);
-  res.set('Cache-Control', 'private, no-store').json({ total: shown.length, events });
+  res.set('Cache-Control', 'private, no-store').json({ total: shown.length, events, waiting: waiting.length, waitingEvents: [...new Set(waiting.map(w => w.title))] });
 }));
 
 // รูปของฉันที่เลือกไว้หลายรูป — ตรวจก่อนเสมอว่าเป็นรูปที่จับคู่กับบัญชีนี้จริง
