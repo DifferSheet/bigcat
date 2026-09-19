@@ -9,14 +9,14 @@ import { eventDate, typeLabel, parseDate } from '../../lib/format.js';
 
 const mb = (b) => (!b ? '—' : b > 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.round(b / 1e6)} MB`);
 const fmt = (d) => { const x = parseDate(d); return x ? x.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) : ''; };
-const CHUNK = 8;
+const CHUNK = 4;
 const LAYOUTS = [
   { key: 'auto', name: 'อัตโนมัติ', note: 'เลือกให้ตามประเภทงานและรูปที่มี' },
   { key: 'warm', name: 'อบอุ่น', note: 'รูปหมู่ใหญ่ รูปคู่รอง' },
   { key: 'playful', name: 'สนุก', note: 'สองรูปเอียงเล็กน้อย' },
   { key: 'special', name: 'พิเศษ', note: 'รูปคู่เด่นกว่ารูปหมู่' },
   { key: 'merit', name: 'ทำบุญ', note: 'จัดตรง เรียบ ขอบทอง' },
-];   // อัปทีละ 8 ไฟล์ — ล้มก็ลองใหม่เฉพาะชุดที่ล้ม
+];   // อัปทีละ 4 ไฟล์ — ล้มก็ลองใหม่เฉพาะชุดที่ล้ม
 
 /* ---------- ภาพรวม ---------- */
 export function AlbumsOverview() {
@@ -114,7 +114,7 @@ export function AlbumDetail({ slug }) {
       setProg({ done: Math.min(list.length, i + CHUNK), total: list.length, failed });
     }
     setProg(null);
-    setMsg(`อัปโหลดแล้ว ${added} รูป${dup ? ` · ข้ามไฟล์ซ้ำ ${dup}` : ''}${failed ? ` · ล้มเหลว ${failed} (กดลองใหม่ได้)` : ''}`);
+    setMsg(`อัปโหลดแล้ว ${added} รูป${dup ? ` · ข้ามไฟล์ซ้ำ ${dup}` : ''}${failed ? ` · ล้มเหลว ${failed} รูป — กดปุ่มข้างนี้ หรือลากโฟลเดอร์เดิมมาวางใหม่ก็ได้ (รูปที่ขึ้นแล้วจะถูกข้าม)` : ''}`);
     load();
   };
   const bulk = async (action) => {
@@ -169,8 +169,7 @@ export function AlbumDetail({ slug }) {
       {prog ? <span><strong>{prog.done}/{prog.total}</strong> กำลังอัปโหลด…{prog.failed ? ` · ล้มเหลว ${prog.failed}` : ''}</span>
         : <span>ลากรูปทั้งโฟลเดอร์มาวาง หรือกดเพื่อเลือก — ระบบย่อรูป คัดรูปเดี่ยว/คู่ และจับคู่ใบหน้าให้เอง (ไฟล์ซ้ำจะถูกข้าม)</span>}
     </label>
-    {failedFiles.current.length > 0 && !prog && <button type="button" className="button ghost small" onClick={() => upload(failedFiles.current)}>ลองอัปโหลดไฟล์ที่ล้มเหลวอีกครั้ง ({failedFiles.current.length})</button>}
-    {msg && <Notice>{msg}</Notice>}
+    {msg && <Notice>{msg}{failedFiles.current.length > 0 && !prog && <> <button type="button" className="button dark small" onClick={() => upload(failedFiles.current)}>ลองอัปโหลดอีกครั้ง ({failedFiles.current.length})</button></>}</Notice>}
     {err && <Notice tone="error">{err}</Notice>}
 
     <p className="checkin-stats">

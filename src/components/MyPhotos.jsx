@@ -128,10 +128,13 @@ function MyPhotoGrid({ data, onChange }) {
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
 
-  if (!data.total) return <Notice tone="muted">ยังไม่พบรูปที่มีคุณ — ระบบจะค้นให้อัตโนมัติทุกครั้งที่ทีมงานลงอัลบั้มของงานที่คุณเช็คอิน</Notice>;
+  if (!data.total) return <Notice tone="muted">{data.waiting > 0
+    ? <>ระบบเจอรูปที่น่าจะเป็นคุณแล้ว <strong>{data.waiting} รูป</strong>{data.waitingEvents?.length ? ` จาก${data.waitingEvents.join(' · ')}` : ''} — แต่อัลบั้มยังไม่เผยแพร่ พอทีมงานเปิดอัลบั้ม รูปจะขึ้นที่นี่ทันที</>
+    : <>ยังไม่พบรูปที่มีคุณ — ระบบจะค้นให้อัตโนมัติทุกครั้งที่ทีมงานลงอัลบั้มของงานที่คุณเช็คอิน</>}</Notice>;
   return <div className="mp-events">
     {err && <Notice tone="error">{err}</Notice>}
     {msg && <Notice>{msg}</Notice>}
+    {data.waiting > 0 && <Notice tone="muted">อีก {data.waiting} รูปรออัลบั้มเผยแพร่ก่อนถึงจะขึ้นที่นี่</Notice>}
     <div className="mp-toolbar">
       <button type="button" className={`button ${picking ? 'dark' : 'ghost'} small`} onClick={() => { setPicking(!picking); setSel([]); }}>{picking ? 'เสร็จแล้ว' : 'เลือกหลายรูป'}</button>
       {picking && <>
@@ -187,7 +190,13 @@ export default function MyPhotos() {
   const [msg, setMsg] = useState(null);
   const [busy, setBusy] = useState(false);
   const [again, setAgain] = useState(false);   // กดเปลี่ยนรูปหน้าใหม่
-  const load = async () => { const s = await api('/me/face').catch(() => ({ enabled: false })); setSt(s); if (s.registered_at) setPhotos(await api('/me/photos').catch(() => ({ total: 0, events: [] }))); else setPhotos({ total: 0, events: [] }); };
+  const load = async () => {
+    const s = await api('/me/face').catch(() => ({ enabled: false }));
+    setSt(s);
+    const p = s.registered_at ? await api('/me/photos').catch(() => ({ total: 0, events: [] })) : { total: 0, events: [] };
+    setPhotos(p);
+    return p;
+  };
   useEffect(() => { load(); }, []);
   const forget = async () => {
     if (!confirm('ลบข้อมูลใบหน้าและยกเลิกการจับคู่รูปทั้งหมด?')) return;
@@ -212,6 +221,7 @@ export default function MyPhotos() {
         {registered && <>
           <span className="muted small">ลงทะเบียนเมื่อ {fmt(st.registered_at)}</span>
           <strong>{photos?.total || 0} รูปที่มีคุณ</strong>
+          {photos?.waiting > 0 && <span className="muted small">อีก {photos.waiting} รูปรออัลบั้มเผยแพร่</span>}
           <div className="mp-manage">
             <button type="button" className="link-button" onClick={() => setAgain(x => !x)}>{again ? 'ยกเลิก' : 'เปลี่ยนรูปหน้า'}</button>
             <button type="button" className="link-button danger" disabled={busy} onClick={forget}>ลบข้อมูลใบหน้า</button>
@@ -221,7 +231,13 @@ export default function MyPhotos() {
     </div>
     {msg && <Notice tone={msg.ok ? 'info' : 'error'}>{msg.text}</Notice>}
 
-    {(!registered || again) && <Register st={st} onPdpa={() => setPdpa(true)} onDone={async (n) => { setAgain(false); setMsg({ ok: true, text: n > 0 ? `เจอรูปที่น่าจะเป็นคุณ ${n} รูป — เลื่อนลงไปดูได้เลย` : 'ลงทะเบียนแล้ว — เมื่อมีอัลบั้มของงานที่คุณเช็คอิน ระบบจะหารูปให้อัตโนมัติ' }); await load(); }} />}
+    {(!registered || again) && <Register st={st} onPdpa={() => setPdpa(true)} onDone={async () => {
+      setAgain(false);
+      const p = await load();   // บอกตามที่เห็นจริง — รูปที่อัลบั้มยังไม่เผยแพร่ เลื่อนลงไปก็ไม่เจอ
+      setMsg({ ok: true, text: p.total > 0 ? `เจอรูปที่น่าจะเป็นคุณ ${p.total} รูป — เลื่อนลงไปดูได้เลย`
+        : p.waiting > 0 ? `เจอรูปที่น่าจะเป็นคุณ ${p.waiting} รูป${p.waitingEvents?.length ? ` จาก${p.waitingEvents.join(' · ')}` : ''} — อัลบั้มยังไม่เผยแพร่ พอทีมงานเปิดอัลบั้ม รูปจะขึ้นที่นี่ทันที`
+          : 'ลงทะเบียนแล้ว — เมื่อมีอัลบั้มของงานที่คุณเช็คอิน ระบบจะหารูปให้อัตโนมัติ' });
+    }} />}
 
     {registered && (photos ? <MyPhotoGrid data={photos} onChange={load} /> : <PageLoader />)}
     {pdpa && <PdpaTerms provider={st.provider} onClose={() => setPdpa(false)} />}

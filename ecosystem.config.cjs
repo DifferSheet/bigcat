@@ -14,7 +14,9 @@ module.exports = {
       cwd: '/var/www/bigcat',
       script: 'server/index.js',
       env: { NODE_ENV: 'production', PORT: 3001 },
-      max_memory_restart: '400M',
+      // โมเดลตรวจใบหน้า (face-api + tfjs-wasm) กับ sharp กินแรมประจำ ~600 MB — เพดานเดิม 400M
+      // ทำให้ pm2 ฆ่าโปรเซสทุก ~30 วิ อัปโหลดอัลบั้มเลยพัง 502 กลางคัน (19 ก.ย. 2026)
+      max_memory_restart: '1500M',
     },
   ],
 };

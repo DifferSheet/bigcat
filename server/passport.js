@@ -11,6 +11,7 @@
 import { q, one, parseJSON } from './db.js';
 import { code } from './lib.js';
 
+const GROUP_MIN_FACES = Number(process.env.GROUP_MIN_FACES || 20);   // ต้องตรงกับใน album.js
 export const STICKER_AT = 3;   // ครบ 3 ดวง (ทุกชนิด) รับสติกเกอร์ที่งานถัดไป
 const INVITE_COOKIE = 'bigcat_invite';
 
@@ -107,6 +108,9 @@ export async function passportOf(user) {
   for (const s of stamps) { if (!byEvent.has(s.event_id)) byEvent.set(s.event_id, []); byEvent.get(s.event_id).push({ kind: s.kind, meta: parseJSON(s.meta, null), earned_at: s.earned_at }); }
   const now = Date.now();
   const todayBkk = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });   // YYYY-MM-DD
+  // รูปหมู่อัตโนมัติ: แอดมินไม่ได้ตั้งไว้ ใช้รูปที่ติดธง «รูปหมู่» ของงานนั้น (ไม่มีธง = รูปที่คนเยอะพอ) — ใบที่คนเยอะสุดมาก่อน
+  const autoGroup = new Map();
+  for (const r of await q('SELECT event_id, view FROM event_photos WHERE group_ok=1 OR faces>=? ORDER BY group_ok DESC, featured DESC, faces DESC, sort_order', [GROUP_MIN_FACES])) if (!autoGroup.has(r.event_id)) autoGroup.set(r.event_id, r);
   // รูปคู่อัตโนมัติจากอัลบั้ม: รูปที่ระบบจับคู่ว่าเป็นคนนี้ (ไม่ถูกปฏิเสธ) — รูปคู่ (2 หน้า) มาก่อน แล้วค่อยเดี่ยว · ต่องาน
   const autoPortrait = new Map();
   for (const r of await q(`SELECT p.event_id, p.view, p.id FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id WHERE f.user_id=? AND f.status<>'rejected' ORDER BY (p.faces=2) DESC, (f.status='confirmed') DESC, f.similarity DESC`, [user.id])) if (!autoPortrait.has(r.event_id)) autoPortrait.set(r.event_id, r);
@@ -122,8 +126,8 @@ export async function passportOf(user) {
         portraitImage: earned.meta?.passportPortrait ? `/api/passport/${encodeURIComponent(e.slug)}/portrait?v=${encodeURIComponent(earned.meta.passportPortrait)}` : earned.meta?.portraitPhoto?.view || autoPortrait.get(e.id)?.view || null,
         portraitSource: earned.meta?.passportPortrait ? 'upload' : earned.meta?.portraitPhoto ? 'chosen' : autoPortrait.has(e.id) ? 'auto' : null,
         // รูปหมู่: ที่สมาชิกเลือกเอง > ที่แอดมินตั้งให้ทั้งงาน
-        groupImage: earned.meta?.groupPhoto?.view || cfg.memory?.groupImage || null,
-        groupSource: earned.meta?.groupPhoto ? 'chosen' : cfg.memory?.groupImage ? 'event' : null,
+        groupImage: earned.meta?.groupPhoto?.view || cfg.memory?.groupImage || autoGroup.get(e.id)?.view || null,
+        groupSource: earned.meta?.groupPhoto ? 'chosen' : cfg.memory?.groupImage ? 'event' : autoGroup.has(e.id) ? 'auto' : null,
         texts: earned.meta?.texts || null,   // ข้อความที่สมาชิกตั้งเองในหน้านี้
         myPhotos: (await q('SELECT COUNT(*) AS n FROM photo_faces f JOIN event_photos p ON p.id=f.photo_id WHERE f.user_id=? AND f.status<>\'rejected\' AND p.event_id=?', [user.id, e.id]))[0].n,
       } : null,
