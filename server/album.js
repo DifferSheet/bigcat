@@ -9,6 +9,10 @@ import { q, one, parseJSON } from './db.js';
 import { code } from './lib.js';
 import * as faces from './faces.js';
 import * as store from './storage.js';
+// sharp แคชและทำงานขนานตามจำนวน core โดยปริยาย — ปิดไว้ แรมตอนย่อรูปชุดใหญ่จะนิ่งกว่ามาก
+sharp.cache(false);
+sharp.concurrency(1);
+
 const MAX_FACES = 3;     // รูปเดี่ยว/คู่/สามคน = ส่งจับคู่ · มากกว่านั้น = รูปหมู่ ไม่ส่ง
 export const GROUP_MIN_FACES = Number(process.env.GROUP_MIN_FACES || 20);   // นับเป็น «รูปหมู่» เมื่อมีคนตั้งแต่เท่านี้ขึ้นไป
 
