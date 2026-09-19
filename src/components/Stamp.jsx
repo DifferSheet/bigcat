@@ -6,7 +6,7 @@ import { eventDate } from '../lib/format.js';
 import { eventStampArt, SPECIAL_STAMP_ART } from '../lib/stamp-art.js';
 
 const TONE = { pink: '#df8190', yellow: '#e2b53c', sage: '#7fa66f' };
-const KIND_LABEL = { checkin: 'มางาน', merit: 'ร่วมบุญ', lucky: 'LUCKY FAN', tier: 'ร่วมบุญ ✦', dayone: 'DAY ONE', first: 'มาครั้งแรก', friend: 'พามาเจอ' };
+const KIND_LABEL = { checkin: 'มางาน', merit: 'ร่วมบุญ', lucky: 'LUCKY FAN', dayone: 'DAY ONE', first: 'มาครั้งแรก', friend: 'พามาเจอ' };
 
 export function EventStamp({ ev, state = 'earned', size = 128 }) {
   const art = eventStampArt(ev);
@@ -55,14 +55,14 @@ export function SpecialStamp({ kind, meta, size = 128, label }) {
     im.src = src;
     return () => { active = false; };
   }, [src]);
-  if (hasArt) return <span className={`stamp-art ${['lucky', 'tier'].includes(kind) ? 'foil' : ''}`} style={{ width: size, height: size }} role="img" aria-label={label || KIND_LABEL[kind]}>
+  if (hasArt) return <span className={`stamp-art ${kind === 'lucky' ? 'foil' : ''}`} style={{ width: size, height: size }} role="img" aria-label={label || KIND_LABEL[kind]}>
     <img src={ART[kind]} alt="" width={size} height={size} draggable={false} />
     {kind === 'friend' && meta?.count > 0 && <b className="stamp-badge">×{meta.count}</b>}
     {kind === 'lucky' && meta?.round && <b className="stamp-badge">รอบ {meta.round}</b>}
   </span>;
-  const foil = kind === 'lucky' || kind === 'tier';
-  const color = { lucky: '#c99a2e', tier: '#c99a2e', dayone: '#df8190', first: '#7fa66f', friend: '#5b8fd6' }[kind] || '#df8190';
-  const icon = { lucky: '★', tier: '✦', dayone: '1', first: '♡', friend: '♡♡' }[kind] || '●';
+  const foil = kind === 'lucky';
+  const color = { lucky: '#c99a2e', dayone: '#df8190', first: '#7fa66f', friend: '#5b8fd6' }[kind] || '#df8190';
+  const icon = { lucky: '★', dayone: '1', first: '♡', friend: '♡♡' }[kind] || '●';
   const text = label || KIND_LABEL[kind];
   return <svg className={`stamp stamp-earned stamp-special ${foil ? 'foil' : ''}`} viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={text}>
     <defs>

@@ -197,6 +197,11 @@
 .ticket-lookup h1 { font-size: 34px; }
 .ticket-lookup form { display: flex; gap: 8px; margin-top: 12px; width: min(440px, 100%); }
 .ticket-lookup form .button { margin: 0; white-space: nowrap; }
+.lookup-mine { width: min(620px, 100%); text-align: left; margin-top: 10px; }
+.lookup-mine .act-group:first-child { margin-top: 0; }
+.lookup-cta { font-size: 12px; color: var(--pink); }
+.lookup-hint { max-width: 440px; font-size: 14px; }
+.lookup-or { margin-top: 24px; font-size: 14px; color: var(--muted-3); }
 .ticket { display: grid; grid-template-columns: 1fr 240px; background: #fff; border: 1px solid var(--line); border-radius: 26px; overflow: hidden; margin-top: 20px; }
 .ticket-main { padding: 34px 36px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .ticket-main h1 { font-size: 30px; }

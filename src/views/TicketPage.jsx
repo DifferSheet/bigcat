@@ -5,7 +5,8 @@ import { drawQr } from '../lib/qr.js';
 import { SiteHeader, SiteFooter, LineNotify } from '../components/EventShell.jsx';
 import { Icon, Paw, PageLoader, Tag } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
-import { eventDate, baht } from '../lib/format.js';
+import { eventDate, baht, parseDate } from '../lib/format.js';
+import { useUser } from '../lib/auth.js';
 import { drawMeritCertificate } from '../lib/merit-certificate.js';
 
 const bookingStatus = { pending: ['รอตรวจสอบสลิป', 'muted'], paid: ['ชำระแล้ว · ใช้เข้างานได้', 'open'], rejected: ['ไม่ผ่านการตรวจสอบ', 'full'], checked_in: ['เช็คอินแล้ว', 'live'] };
@@ -65,7 +66,7 @@ function SelfCheckin({ item, onDone }) {
     setBusy(true); setError('');
     try { await api(`/registrations/${item.code}/checkin`, { method: 'POST' }); onDone(); } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
-  return <div className="self-checkin"><p>มาถึงหน้างานแล้วใช่ไหม กดเช็คอินได้เลย หรือแสดง QR ให้พี่ ๆ สแกน</p><button className="button dark" onClick={go} disabled={busy}>ฉันมาถึงแล้ว <Icon name="check" /></button>{error && <p className="notice error">{error}</p>}</div>;
+  return <div className="self-checkin"><p>มาถึงหน้างานแล้วใช่ไหม กดเช็คอินด้วยตัวเองได้เลย</p><button className="button dark" onClick={go} disabled={busy}>ฉันมาถึงแล้ว <Icon name="check" /></button>{error && <p className="notice error">{error}</p>}</div>;
 }
 
 // ชื่อบนใบ: ทำบุญโดยไม่ใส่ชื่อ แต่เจ้าของรายการล็อกอินมาเปิดเอง → เซิร์ฟเวอร์ส่ง certificate_name (ชื่อบัญชี) มาให้
@@ -150,6 +151,49 @@ async function lookup(code) {
   throw new Error('ไม่พบรหัสนี้ ตรวจสอบตัวสะกดอีกครั้ง');
 }
 
+// รายการบัตรของคนที่ล็อกอินอยู่ — ดึงมาเตรียมไว้ให้เลย ไม่ต้องพิมพ์รหัส (แด๊ดสั่ง 19 ก.ย. 2026)
+// งานที่กำลังจัด/จัดวันนี้ ดันขึ้นบนสุดพร้อมป้ายบอกว่ากดเช็คอินได้
+const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+const isNow = (row) => row.event_status === 'live' || (row.starts_at && sameDay(parseDate(row.starts_at), new Date()));
+
+function MyTickets() {
+  const { user, loaded } = useUser();
+  const [act, setAct] = useState(null);
+  useEffect(() => { if (user) api('/me/activity').then(setAct).catch(() => setAct({})); }, [user]);
+
+  if (!loaded) return null;
+  if (!user) return <p className="lookup-hint muted">เป็นสมาชิกอยู่แล้ว? <Link to="/login?next=/ticket/lookup">ล็อกอิน</Link> แล้วเราจะเตรียมบัตรทั้งหมดของคุณไว้ให้ ไม่ต้องจำรหัส</p>;
+  if (!act) return <PageLoader label="กำลังเตรียมบัตรของคุณ…" />;
+
+  const rows = [
+    ...(act.registrations || []).map(r => ({ ...r, key: `r${r.code}`, sub: `หมายเลข #${String(r.number).padStart(3, '0')}`, pill: r.checked_in_at ? ['เช็คอินแล้ว', 'live'] : ['ลงทะเบียนแล้ว', 'open'], ready: !r.checked_in_at })),
+    ...(act.bookings || []).map(b => ({ ...b, key: `b${b.code}`, sub: `ที่นั่ง ${b.seats.join(', ')} · ${baht(b.amount)}`, pill: bookingStatus[b.status] || ['—', 'muted'], ready: b.status === 'paid' })),
+    ...(act.donations || []).map(d => ({ ...d, key: `d${d.code}`, sub: `${d.category} · ${baht(d.amount)}`, pill: donationStatus[d.status] || ['—', 'muted'] })),
+  ];
+  if (!rows.length) return <p className="lookup-hint muted">ยังไม่มีบัตรในชื่อของคุณ — ดู <Link to="/events">ตารางงาน</Link> แล้วลงทะเบียนได้เลย</p>;
+
+  const now = rows.filter(isNow).sort((a, b) => (a.ready === b.ready ? 0 : a.ready ? -1 : 1));
+  const rest = rows.filter(r => !isNow(r)).sort((a, b) => parseDate(b.starts_at || b.created_at) - parseDate(a.starts_at || a.created_at));
+
+  const card = (r, today) => <li key={r.key}>
+    <Link to={`/ticket/${r.code}`}>
+      <img className="act-thumb" src={r.cover || '/images/bigcat-hero.jpg'} alt="" loading="lazy" />
+      <div>
+        <strong>{r.title}</strong>
+        <span className="muted small">{r.starts_at ? `${eventDate(r).long} · ` : ''}{r.sub}</span>
+        {today && r.ready && <span className="lookup-cta">มาถึงหน้างานแล้ว? เปิดบัตรแล้วกดเช็คอินได้เลย</span>}
+      </div>
+      <span className={`status-pill ${r.pill[1]}`}>{r.pill[0]}</span>
+      <Icon name="arrow" size={14} />
+    </Link>
+  </li>;
+
+  return <div className="lookup-mine">
+    {now.length > 0 && <div className="act-group"><h3>งานวันนี้</h3><ul className="act-list">{now.map(r => card(r, true))}</ul></div>}
+    {rest.length > 0 && <div className="act-group"><h3>{now.length ? 'บัตรอื่นของฉัน' : 'บัตรของฉัน'}</h3><ul className="act-list">{rest.map(r => card(r, false))}</ul></div>}
+  </div>;
+}
+
 export default function TicketPage({ code }) {
   const navigate = useNavigate();
   const [state, setState] = useState({ loading: code !== 'lookup' });
@@ -162,9 +206,10 @@ export default function TicketPage({ code }) {
 
   const body = () => {
     if (code === 'lookup' || state.error) return <div className="ticket-lookup">
-      <span className="eyebrow">MY TICKET</span><h1>ค้นหาบัตรของฉัน</h1>
-      <p>ใส่รหัส 8 หลักที่ได้รับตอนจอง ลงทะเบียน หรือแจ้งยอดทำบุญ</p>
-      <form onSubmit={e => { e.preventDefault(); if (input.trim()) navigate(`/ticket/${input.trim().toUpperCase()}`); }}><input id="tk-code" value={input} onChange={e => setInput(e.target.value)} placeholder="เช่น A7K2P9XD" maxLength={16} autoFocus /><button className="button dark">ค้นหา <Icon name="arrow" /></button></form>
+      <span className="eyebrow">MY TICKET</span><h1>บัตรของฉัน</h1>
+      <MyTickets />
+      <p className="lookup-or">มีรหัส 8 หลักจากตอนจอง ลงทะเบียน หรือแจ้งยอดทำบุญ ใส่ได้ที่นี่</p>
+      <form onSubmit={e => { e.preventDefault(); if (input.trim()) navigate(`/ticket/${input.trim().toUpperCase()}`); }}><input id="tk-code" value={input} onChange={e => setInput(e.target.value)} placeholder="เช่น A7K2P9XD" maxLength={16} /><button className="button dark">ค้นหา <Icon name="arrow" /></button></form>
       {state.error && <p className="notice error">{state.error}</p>}
     </div>;
     if (state.loading) return <PageLoader label="กำลังค้นหาบัตร…" />;
