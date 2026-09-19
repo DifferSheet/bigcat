@@ -77,7 +77,7 @@ function Members() {
         <td>{m.orders} <small className="muted">· {baht(m.spent)}</small></td>
         <td>{m.donations} <small className="muted">· {baht(m.donated)}</small></td>
         <td>{Number(m.bookings) + Number(m.registrations)}</td>
-        <td><small>{m.stamps} ดวง{m.friends > 0 ? ` · พามา ${m.friends}` : ''}{m.invited_by_name ? <><br /><span className="muted">ชวนโดย {m.invited_by_name}</span></> : null}</small>{Number(m.stamps) >= 3 && <><br /><button type="button" className={`mini-tag as-btn ${m.sticker_given_at ? 'ok' : 'warn'}`} title={m.sticker_given_at ? `มอบสติกเกอร์แล้ว ${fmt(m.sticker_given_at)} — กดเพื่อยกเลิก` : 'ครบ 3 ดวง — กดเมื่อมอบสติกเกอร์แล้ว'} onClick={() => api(`/admin/members/${m.id}/sticker`, { method: 'POST', admin: true }).then(() => setData(d => ({ ...d, members: d.members.map(x => x.id === m.id ? { ...x, sticker_given_at: x.sticker_given_at ? null : new Date().toISOString() } : x) })))}>{m.sticker_given_at ? 'สติกเกอร์ ✓' : 'รอรับสติกเกอร์'}</button></>}</td>
+        <td><small>{m.stamps} ดวง{m.friends > 0 ? ` · พามา ${m.friends}` : ''}{m.invited_by_name ? <><br /><span className="muted">ชวนโดย {m.invited_by_name}</span></> : null}</small></td>
       </tr>)}</tbody>
     </table></div>}
   </div>;

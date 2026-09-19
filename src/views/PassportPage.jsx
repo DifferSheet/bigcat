@@ -302,9 +302,6 @@ export default function PassportPage() {
       <div className="pc-content">
       {img && <SaveImage url={img} fileName={`bigcat-passport-${user.display_name}.png`} title="BIGCAT Passport" alt="Passport ของฉัน" />}
 
-      {data.sticker.eligible && !data.sticker.given_at && <Notice>ครบ {data.sticker.at} ดวงแล้ว 🎉 รับ<strong>สติกเกอร์ Passport</strong>ได้ที่โต๊ะพี่ ๆ ในงานถัดไป — โชว์หน้านี้ให้ดูได้เลย</Notice>}
-      {data.sticker.given_at && <p className="small-note">รับสติกเกอร์ Passport แล้วเมื่อ {fmt(data.sticker.given_at)} ♡</p>}
-
       {data.total === 0 && <div className="pc-empty"><span>♡</span><h3>ความทรงจำดวงแรก กำลังรอคุณอยู่</h3><p>มาเจอกันที่งาน แล้วเช็คอินเพื่อเริ่มต้นสมุดเล่มนี้</p><Link className="button ghost small" to="/events">ดูตารางงาน ↗</Link></div>}
 
 
