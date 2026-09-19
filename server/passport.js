@@ -1,18 +1,16 @@
-// Passport — แสตมป์สะสมของสมาชิก คำนวณจากข้อมูลจริง (registrations / donations / lucky_draws) แล้ว materialize ลงตาราง stamps
+// Passport — แสตมป์สะสมของสมาชิก คำนวณจากข้อมูลจริง (registrations / lucky_draws) แล้ว materialize ลงตาราง stamps
 // syncStamps(userId) เรียกซ้ำได้เสมอ: เพิ่มดวงที่ควรมี ลบดวงที่ต้นทางหายไป (เช่น ยกเลิกเช็คอิน) — ยกเว้น first/friend ที่ให้แล้วไม่ถอน
 //
 // ชนิดแสตมป์
 //   checkin  มางาน (busking/workshop/popup/fanmeet) — 1 ดวงต่องาน
-//   merit    ร่วมบุญ — ต้องเช็คอินที่งานเท่านั้น (โอนอย่างเดียวไม่ได้แสตมป์) · 1 ดวงต่องาน โทนอ่อน
+//   merit    ร่วมบุญ — เช็คอินที่งานทำบุญ · 1 ดวงต่องาน โทนอ่อน (ยอดร่วมบุญไม่เกี่ยว — แด๊ดสั่ง 19 ก.ย. 2026: มีแค่เช็คอินเท่านั้น)
 //   lucky    ฟอยล์ — ถูกสุ่ม Lucky Fan
-//   tier     ฟอยล์ — ยอดร่วมบุญรวมในงานนั้น ≥ TIER_FOIL บาท (ต้องเช็คอินงานนั้นด้วย)
 //   dayone   งานที่แอดมินติ๊ก «งานเปิดตัว passport» (config.dayOne)
 //   first    มาครั้งแรกกับเพื่อน (คนถูกชวน · event_id = งานที่มาครั้งแรก · meta.inviter)
 //   friend   พามาเจอ (คนชวน · event_id 0 · meta.count = จำนวนเพื่อนที่มาจริงแล้ว)
 import { q, one, parseJSON } from './db.js';
 import { code } from './lib.js';
 
-export const TIER_FOIL = 500;
 export const STICKER_AT = 3;   // ครบ 3 ดวง (ทุกชนิด) รับสติกเกอร์ที่งานถัดไป
 const INVITE_COOKIE = 'bigcat_invite';
 
@@ -26,13 +24,6 @@ export async function syncStamps(userId) {
 
   const regs = await q('SELECT r.event_id, r.checked_in_at, e.type, e.config FROM registrations r JOIN events e ON e.id=r.event_id WHERE r.user_id=? AND r.checked_in_at IS NOT NULL', [userId]);
   for (const r of regs) add(r.event_id, r.type === 'merit' ? 'merit' : 'checkin', r.checked_in_at);
-
-  // ยอดร่วมบุญไม่ให้แสตมป์เอง — ให้เฉพาะดวงฟอยล์เพิ่ม เมื่อเช็คอินงานนั้นแล้วเท่านั้น (แด๊ดสั่ง 19 ก.ย. 2026: ต้องเช็คอินก่อนถึงได้แสตมป์)
-  const dons = await q(`SELECT d.event_id, SUM(d.amount) AS amount, MIN(d.created_at) AS first_at FROM donations d WHERE d.user_id=? AND d.status='approved' GROUP BY d.event_id`, [userId]);
-  for (const d of dons) {
-    if (!want.has(`${d.event_id}:merit`) && !want.has(`${d.event_id}:checkin`)) continue;
-    if (Number(d.amount) >= TIER_FOIL) add(d.event_id, 'tier', d.first_at, { amount: Number(d.amount) });
-  }
 
   const wins = await q('SELECT l.event_id, l.round, l.drawn_at FROM lucky_draws l JOIN registrations r ON r.id=l.registration_id WHERE r.user_id=?', [userId]);
   for (const w of wins) add(w.event_id, 'lucky', w.drawn_at, { round: w.round });
