@@ -13,12 +13,18 @@ import { requireUser } from '../auth.js';
 import { upload } from '../upload.js';
 import { canViewAlbum, photosOfUser, registerUserFace, forgetUserFaces, albumPublished } from '../album.js';
 import { facesEnabled, faceProvider } from '../faces.js';
-import { withUrls, localCopy } from '../storage.js';
+import { withUrls, localCopy, url as mediaUrl } from '../storage.js';
 
 const { ZipArchive } = createRequire(import.meta.url)('archiver');   // archiver รุ่นนี้ส่งออกคลาส ไม่ใช่ฟังก์ชัน default
 
 const r = Router();
 const PREVIEW = 3;
+
+// แบ่งหน้าแบบ keyset (sort_order, id) — อัลบั้มใหญ่ ๆ ไม่ต้องส่งทั้งก้อน แด๊ดสั่ง 19 ก.ย. 2026
+//   ?tab=all|me|group|mascot  ?cursor=<sort_order>.<id>  ?limit=
+// ลิงก์ไฟล์ต้นฉบับไม่ส่งมาในลิสต์แล้ว (presigned URL ก้อนใหญ่) — ขอทีละใบที่ /album/:id/orig ตอนเปิดรูปเต็ม
+const PAGE = 60;
+const TABS = { all: '', me: '', group: 'AND p.group_ok=1', mascot: 'AND p.mascot_ok=1' };
 
 r.get('/events/:slug/album', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
@@ -29,15 +35,42 @@ r.get('/events/:slug/album', wrap(async (req, res) => {
   const base = { total, access: full ? 'full' : 'preview', facesEnabled, provider: faceProvider };
   if (!full) {
     const preview = await q('SELECT id, thumb, width, height FROM event_photos WHERE event_id=? ORDER BY featured DESC, sort_order LIMIT ?', [ev.id, PREVIEW]);
-    return res.set('Cache-Control', 'private, no-store').json({ ...base, photos: await withUrls(preview), me: null });
+    return res.set('Cache-Control', 'private, no-store').json({ ...base, photos: await withUrls(preview, ['thumb']), me: null });
   }
-  const photos = await q('SELECT id, thumb, view, orig, width, height, faces, featured, taken_at, group_ok, mascot_ok FROM event_photos WHERE event_id=? ORDER BY sort_order, id', [ev.id]);
+  const tab = Object.hasOwn(TABS, req.query.tab) ? req.query.tab : 'all';
+  const limit = Math.min(120, Math.max(1, Number(req.query.limit) || PAGE));
   const mineRows = req.user ? await photosOfUser(req.user.id, ev.id) : [];
   const mine = new Map(mineRows.map(m => [m.id, { similarity: m.similarity, status: m.status, box: parseJSON(m.box, null) }]));
+  const args = [ev.id];
+  let where = `p.event_id=? ${TABS[tab]}`;
+  if (tab === 'me') {
+    if (!mine.size) where += ' AND 1=0';
+    else { where += ` AND p.id IN (?)`; args.push([...mine.keys()]); }
+  }
+  const [co, ci] = String(req.query.cursor || '').split('.').map(Number);   // ต่อจากรูปสุดท้ายของหน้าก่อน
+  if (Number.isFinite(co) && Number.isFinite(ci)) { where += ' AND (p.sort_order, p.id) > (?, ?)'; args.push(co, ci); }
+  const rows = await q(`SELECT p.id, p.thumb, p.view, p.width, p.height, p.faces, p.featured, p.taken_at, p.sort_order, p.group_ok, p.mascot_ok
+    FROM event_photos p WHERE ${where} ORDER BY p.sort_order, p.id LIMIT ?`, [...args, limit + 1]);
+  const page = rows.slice(0, limit);
+  const last = page[page.length - 1];
+  const out = page.map(({ group_ok, mascot_ok, sort_order, ...p }) => ({ ...p, mine: mine.get(p.id) || null, group: !!group_ok, mascot: !!mascot_ok }));
+  const n = await one('SELECT COUNT(*) AS all_n, COALESCE(SUM(group_ok),0) AS group_n, COALESCE(SUM(mascot_ok),0) AS mascot_n FROM event_photos WHERE event_id=?', [ev.id]);
   const me = req.user ? { consented: !!req.user.face_consent_at, registered: !!(await one('SELECT 1 AS ok FROM user_faces WHERE user_id=? LIMIT 1', [req.user.id])), matches: mineRows.length } : null;
-  const out = photos.map(({ group_ok, mascot_ok, ...p }) => ({ ...p, mine: mine.get(p.id) || null, group: !!group_ok, mascot: !!mascot_ok }));
-  const counts = { all: out.length, me: mineRows.length, group: out.filter(p => p.group).length, mascot: out.filter(p => p.mascot).length };
-  res.set('Cache-Control', 'private, no-store').json({ ...base, photos: await withUrls(out), me, counts, mascot: mascotOf(ev), mascotName: MASCOTS[mascotOf(ev)] });
+  res.set('Cache-Control', 'private, no-store').json({
+    ...base, tab, photos: await withUrls(out, ['thumb', 'view']), me,
+    counts: { all: Number(n.all_n), me: mineRows.length, group: Number(n.group_n), mascot: Number(n.mascot_n) },
+    nextCursor: rows.length > limit && last ? `${last.sort_order}.${last.id}` : null,
+    mascot: mascotOf(ev), mascotName: MASCOTS[mascotOf(ev)],
+  });
+}));
+
+// ลิงก์ไฟล์ต้นฉบับของรูปเดียว — เซ็นตอนกดจริง แล้วพาไปที่ไฟล์เลย
+r.get('/events/:slug/album/:id/orig', wrap(async (req, res) => {
+  const ev = await getEvent(req.params.slug);
+  if (!albumPublished(ev.config) || !(await canViewAlbum(req.user, ev.id))) throw new HttpError(403, 'เฉพาะผู้ที่เช็คอินงานนี้');
+  const p = await one('SELECT orig FROM event_photos WHERE id=? AND event_id=?', [Number(req.params.id), ev.id]);
+  if (!p) throw new HttpError(404, 'ไม่พบรูป');
+  res.set('Cache-Control', 'private, no-store').redirect(await mediaUrl(p.orig));
 }));
 
 // ยืนยัน/ปฏิเสธการจับคู่ของตัวเอง
