@@ -5,13 +5,11 @@ import { Link } from '../lib/nav.jsx';
 import { SiteHeader, SiteFooter, Notice, Section } from '../components/EventShell.jsx';
 import { Icon, Paw, PageLoader, Modal, Tag } from '../components/ui.jsx';
 import { EventStamp, SpecialStamp, STAMP_LABEL } from '../components/Stamp.jsx';
-import SaveImage from '../components/SaveImage.jsx';
 import PassportMemory from '../components/PassportMemory.jsx';
 import { stampState } from '../lib/passport-memory.js';
 import { api } from '../lib/api.js';
 import { useUser } from '../lib/auth.js';
 import { eventDate, parseDate } from '../lib/format.js';
-import { drawPassportImage } from '../lib/passport-image.js';
 import './passport.css';
 
 const fmt = (d) => { const x = parseDate(d); return x ? x.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) : ''; };
@@ -265,8 +263,6 @@ export default function PassportPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [readerOpen, setReaderOpen] = useState(false);
-  const [img, setImg] = useState(null);        // data URL รูปแชร์
-  const [busy, setBusy] = useState(false);
   useEffect(() => { if (loaded && !user) location.replace('/login?next=/passport'); }, [loaded, user]);
   const reload = () => api('/passport').then(setData).catch(e => setError(e.message));
   useEffect(() => { if (user) reload(); }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -279,7 +275,6 @@ export default function PassportPage() {
     history.replaceState(null, '', location.pathname);
     api(`/passport/${m[1]}/portrait`, { method: 'PUT', body: { photoId: Number(m[2]) } }).then(reload).catch(e => setError(e.message));
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
-  const makeImage = async () => { setBusy(true); try { setImg((await drawPassportImage(data)).toDataURL('image/png')); } catch (e) { setError(e.message); } finally { setBusy(false); } };
 
   if (!user || (!data && !error)) return <><SiteHeader /><PageLoader label="กำลังเปิดสมุด…" /></>;
   const upcoming = data ? data.books.flatMap(b => b.events).filter(ev => ev.phase === 'upcoming') : [];
@@ -293,14 +288,13 @@ export default function PassportPage() {
           <h1 id="passport-title">Every moment,<br />a little <em>treasure.</em></h1>
           <p className="pc-lead">สมุดเล่มเล็ก ที่เก็บความทรงจำของเรา</p>
           <div className="pc-owner">{user.avatar ? <img className="avatar" src={user.avatar} alt="" referrerPolicy="no-referrer" /> : <span className="avatar placeholder">{user.display_name.slice(0, 1)}</span>}<span>สมุดของ <strong>{user.display_name}</strong></span></div>
-          <div className="pc-actions"><button type="button" className="button dark" onClick={makeImage} disabled={busy || data.total === 0} title={data.total === 0 ? 'ยังไม่มีแสตมป์ให้อวด — มางานก่อนนะ' : ''}><Icon name="heart" size={16} />{busy ? 'กำลังวาด…' : 'แชร์ความทรงจำ'}</button><button type="button" className="button ghost" aria-haspopup="dialog" onClick={() => setReaderOpen(true)}>เปิดสมุดของฉัน ↗</button></div>
+          <div className="pc-actions"><button type="button" className="button dark" aria-haspopup="dialog" onClick={() => setReaderOpen(true)}><Icon name="heart" size={16} />เปิดสมุดของฉัน</button></div>
           <div className="pc-stats"><div><strong>{String(data.total).padStart(2, '0')}</strong><span>STAMPS COLLECTED</span></div><div><span>OUR FIRST MEMORY</span><strong className="pc-first-date">{data.user.first_checkin_at ? fmt(data.user.first_checkin_at) : 'รอวันแรกที่ได้เจอกัน ♡'}</strong></div></div>
           {data.user.inviter && <p className="small-note">มาเจอเพราะ {data.user.inviter.display_name} ชวน ♡</p>}
         </div>
         <CollectorBook name={user.display_name} events={data.books.flatMap(b => b.events)} onOpen={() => setReaderOpen(true)} />
       </section>
       <div className="pc-content">
-      {img && <SaveImage url={img} fileName={`bigcat-passport-${user.display_name}.png`} title="BIGCAT Passport" alt="Passport ของฉัน" />}
 
       {data.total === 0 && <div className="pc-empty"><span>♡</span><h3>ความทรงจำดวงแรก กำลังรอคุณอยู่</h3><p>มาเจอกันที่งาน แล้วเช็คอินเพื่อเริ่มต้นสมุดเล่มนี้</p><Link className="button ghost small" to="/events">ดูตารางงาน ↗</Link></div>}
 
