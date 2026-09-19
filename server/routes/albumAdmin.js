@@ -6,7 +6,7 @@ import { uploadMedia } from '../upload.js';
 import { importPhoto, deletePhoto, kick as kickAlbumScan, faceCrop, matchPhoto, albumPublished, GROUP_MIN_FACES } from '../album.js';
 import { facesEnabled, faceProvider, MATCH_THRESHOLD } from '../faces.js';
 import { withUrls, usingS3 } from '../storage.js';
-import { requireAdmin } from './admin.js';
+import { requireAdmin, applyPassportFiles } from './admin.js';
 
 const r = Router();
 r.use(requireAdmin);   // ทุกเส้นทางในไฟล์นี้ต้องล็อกอินแอดมิน
@@ -43,7 +43,7 @@ r.get('/albums/:slug', wrap(async (req, res) => {
   const removals = await q(`SELECT rm.id, rm.photo_id, rm.reason, rm.status, rm.created_at, u.display_name FROM photo_removals rm JOIN users u ON u.id=rm.user_id JOIN event_photos p ON p.id=rm.photo_id WHERE p.event_id=? AND rm.status='open' ORDER BY rm.created_at DESC`, [ev.id]);
   const groupPhotoId = ev.config.memory?.groupImage ? (photos.find(p => p.view === ev.config.memory.groupImage)?.id || null) : null;   // หา id ก่อนเซ็น URL
   res.json({
-    event: { slug: ev.slug, title: ev.title, type: ev.type, status: ev.status, starts_at: ev.starts_at, published: albumPublished(ev.config), groupPhotoId, layout: ev.config.memory?.layout || 'auto', mascot: mascotOf(ev), mascotName: MASCOTS[mascotOf(ev)] },
+    event: { slug: ev.slug, title: ev.title, type: ev.type, status: ev.status, starts_at: ev.starts_at, published: albumPublished(ev.config), groupPhotoId, layout: ev.config.memory?.layout || 'auto', mascot: mascotOf(ev), mascotName: MASCOTS[mascotOf(ev)], memory: ev.config.memory || {} },
     photos: await withUrls(photos), removals, facesEnabled, provider: faceProvider, threshold: MATCH_THRESHOLD, groupMinFaces: GROUP_MIN_FACES, storage: usingS3 ? 's3' : 'disk',
   });
 }));
@@ -88,6 +88,18 @@ r.post('/albums/:slug/bulk', wrap(async (req, res) => {
 
 // เทมเพลตการวางภาพในสมุด passport ของงานนี้
 const LAYOUTS = ['auto', 'warm', 'playful', 'special', 'merit'];
+// สมุดความทรงจำของงาน (รูป/ข้อความในหน้า passport) — ย้ายมาจากฟอร์มแก้ไขงาน แด๊ดสั่ง 19 ก.ย. 2026
+const memoryUpload = uploadMedia.fields([{ name: 'memoryNote', maxCount: 1 }, { name: 'memoryGroup', maxCount: 1 }]);
+r.post('/albums/:slug/memory', memoryUpload, wrap(async (req, res) => {
+  const ev = await getEvent(req.params.slug);
+  let memory;
+  try { memory = JSON.parse(req.body?.memory || '{}'); } catch { throw new HttpError(400, 'ข้อมูลสมุดไม่ถูกต้อง'); }
+  const cfg = { ...ev.config, memory };
+  applyPassportFiles(cfg, req.files);   // ใช้กติกาเดียวกับฟอร์มงาน (ตัดความยาว · รับเฉพาะไฟล์ภาพ)
+  await q('UPDATE events SET config=? WHERE id=?', [JSON.stringify(cfg), ev.id]);
+  res.json({ ok: true, memory: cfg.memory });
+}));
+
 // เลือกว่าตัวเอกของงานนี้คือใคร
 r.post('/albums/:slug/mascot', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);

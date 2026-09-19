@@ -164,7 +164,7 @@ r.delete('/events/:slug/passport-portrait/:userId', portraitOwner, wrap(async (r
 
 const eventUploads = uploadMedia.fields([{ name: 'cover', maxCount: 1 }, { name: 'gallery', maxCount: 10 }, { name: 'stamp', maxCount: 1 }, { name: 'unlock', maxCount: 1 }, { name: 'memoryNote', maxCount: 1 }, { name: 'memoryGroup', maxCount: 1 }]);
 // passport: ลายแสตมป์ของงาน (ภาพ) + เนื้อหาปลดล็อก (ภาพ/เสียง/ข้อความ) — ไฟล์ใหม่ทับของเดิม · ฟอร์มส่ง stamp:null เพื่อลบ
-const applyPassportFiles = (cfg, files) => {
+export const applyPassportFiles = (cfg, files) => {
   if (cfg.memory) {
     const m = cfg.memory;
     cfg.memory = { layout: ['auto', 'warm', 'playful', 'special', 'merit'].includes(m.layout) ? m.layout : 'auto', author: m.author === 'nobi' ? 'nobi' : 'boota', noteText: Object.hasOwn(m, 'noteText') ? clean(m.noteText, 5000) : undefined, caption: clean(m.caption, 500), noteImage: clean(m.noteImage, 300), groupImage: Object.hasOwn(m, 'groupImage') ? clean(m.groupImage, 300) : undefined };
@@ -192,6 +192,9 @@ r.post('/events', eventUploads, wrap(async (req, res) => {
   const p = typeof req.body.payload === 'string' ? JSON.parse(req.body.payload) : req.body;
   const cfg = parseConfig(p.config); const imgs = resolveImages(p, req.files);
   if (imgs) { p.cover = imgs[0] || null; cfg.gallery = imgs.slice(1); } else cfg.gallery = mergeGallery(p, req.files);
+  // สมุดความทรงจำแก้ที่หน้าอัลบั้มแล้ว — ฟอร์มงานไม่ได้ส่งมาก็เก็บของเดิมไว้ (แด๊ดสั่ง 19 ก.ย. 2026)
+  const curCfg = parseConfig(cur.config);
+  if (!Object.hasOwn(cfg, 'memory') && curCfg.memory) cfg.memory = curCfg.memory;
   applyPassportFiles(cfg, req.files);
   p.config = cfg;
   const row = eventRow(p, imgs ? null : req.files?.cover?.[0]);
@@ -209,6 +212,9 @@ r.put('/events/:slug', eventUploads, wrap(async (req, res) => {
   const p = typeof req.body.payload === 'string' ? JSON.parse(req.body.payload) : req.body;
   const cfg = parseConfig(p.config); const imgs = resolveImages(p, req.files);
   if (imgs) { p.cover = imgs[0] || null; cfg.gallery = imgs.slice(1); } else cfg.gallery = mergeGallery(p, req.files);
+  // สมุดความทรงจำแก้ที่หน้าอัลบั้มแล้ว — ฟอร์มงานไม่ได้ส่งมาก็เก็บของเดิมไว้ (แด๊ดสั่ง 19 ก.ย. 2026)
+  const curCfg = parseConfig(cur.config);
+  if (!Object.hasOwn(cfg, 'memory') && curCfg.memory) cfg.memory = curCfg.memory;
   applyPassportFiles(cfg, req.files);
   p.config = cfg;
   const row = eventRow(p, imgs ? null : req.files?.cover?.[0], cur);

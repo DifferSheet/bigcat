@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from '../../lib/nav.jsx';
 import { Notice } from '../../components/EventShell.jsx';
 import { Icon, PageLoader, Modal, Tag } from '../../components/ui.jsx';
+import PassportMemoryEditor from '../../components/PassportMemoryEditor.jsx';
 import { api } from '../../lib/api.js';
 import { eventDate, typeLabel, parseDate } from '../../lib/format.js';
 
@@ -126,6 +127,22 @@ export function AlbumDetail({ slug }) {
   };
   const mark = async (id, on) => { setMsg(''); try { await api(`/admin/albums/${slug}/bulk`, { method: 'POST', body: { ids: [id], action: on ? 'group' : 'ungroup' }, admin: true }); load(); } catch (e) { setErr(e.message); } };
   const setGroup = async (id) => { setMsg(''); try { await api(`/admin/albums/${slug}/group-photo`, { method: 'POST', body: { id }, admin: true }); setMsg(id ? 'ตั้งเป็นรูปหมู่ของงานแล้ว — จะไปโชว์ในสมุด Passport ของทุกคนที่ได้แสตมป์งานนี้' : 'เอารูปหมู่ออกแล้ว'); load(); } catch (e) { setErr(e.message); } };
+  // สมุดความทรงจำของงาน (ย้ายมาจากฟอร์มแก้ไขงาน) — บันทึกแยก ไม่ต้องกลับไปหน้าแก้ไขงาน
+  const [memory, setMemory] = useState(null);
+  const [memoryFiles, setMemoryFiles] = useState({});
+  const [memBusy, setMemBusy] = useState(false);
+  useEffect(() => { if (d?.event && memory === null) setMemory(d.event.memory || {}); }, [d, memory]);
+  const saveMemory = async () => {
+    setMsg(''); setErr(''); setMemBusy(true);
+    try {
+      const fd = new FormData();
+      // รวมกับค่าล่าสุดจากเซิร์ฟเวอร์ก่อน — รูปหมู่ที่เพิ่งตั้งจากปุ่มบนรูปจะได้ไม่หายตอนบันทึกฟอร์มนี้
+      fd.append('memory', JSON.stringify({ ...(d.event.memory || {}), ...(memory || {}) }));
+      Object.entries(memoryFiles).forEach(([k, file]) => { if (file) fd.append(k, file); });
+      const r = await api(`/admin/albums/${slug}/memory`, { method: 'POST', body: fd, admin: true });
+      setMemory(r.memory || {}); setMemoryFiles({}); setMsg('บันทึกสมุดความทรงจำแล้ว'); load();
+    } catch (e) { setErr(e.message); } finally { setMemBusy(false); }
+  };
   const setLayout = async (layout) => { setMsg(''); try { await api(`/admin/albums/${slug}/layout`, { method: 'POST', body: { layout }, admin: true }); setMsg('เปลี่ยนเทมเพลตหน้าในสมุด Passport แล้ว'); load(); } catch (e) { setErr(e.message); } };
   const publish = async (next) => { try { await api(`/admin/albums/${slug}/publish`, { method: 'POST', body: { published: next }, admin: true }); load(); } catch (e) { setErr(e.message); } };
   const removal = async (id, action) => { try { await api(`/admin/album/removals/${id}/${action}`, { method: 'POST', admin: true }); load(); } catch (e) { setErr(e.message); } };
@@ -155,6 +172,11 @@ export function AlbumDetail({ slug }) {
         <span className={`ab-layout-preview ly-${l.key}`} aria-hidden="true"><i /><i /></span>
         <strong>{l.name}</strong><small>{l.note}</small>
       </button>)}</div>
+    </section>
+    <section className="ab-layouts">
+      <span className="eyebrow">สมุดความทรงจำของงานนี้ <small>— ภาพลายมือ · รูปหมู่ประจำงาน · ข้อความ · รูปคู่รายคน (ย้ายมาจากฟอร์มแก้ไขงาน)</small></span>
+      {memory && <PassportMemoryEditor memory={memory} onChange={setMemory} files={memoryFiles} onFiles={setMemoryFiles} slug={slug} />}
+      <div className="form-actions"><button type="button" className="button dark small" disabled={memBusy} onClick={saveMemory}>{memBusy ? 'กำลังบันทึก…' : 'บันทึกสมุดความทรงจำ'} <Icon name="check" size={14} /></button></div>
     </section>
 
     <Notice tone={d.event.published ? 'info' : 'muted'}>{d.event.published
