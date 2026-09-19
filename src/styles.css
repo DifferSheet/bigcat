@@ -5,6 +5,15 @@ body { margin: 0; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button, input { font: inherit; }
 ::placeholder { color: #b9ae9f; opacity: 1; }
+/* ช่องแนบไฟล์ทั้งเว็บหน้าตาเดียวกัน — ปุ่มเลือกไฟล์ชัดว่ากดได้ ไม่ใช้ของเบราว์เซอร์ (แด๊ดสั่ง 19 ก.ย. 2026)
+   ช่องที่ตั้งใจซ่อน (drop zone · รูปประจำตัว · แถบภาพ) มี rule ของตัวเองที่เฉพาะเจาะจงกว่า จึงไม่โดนทับ */
+input[type=file] { width: 100%; padding: 7px; border: 1.5px dashed var(--line-strong); border-radius: var(--r-sm); background: var(--paper); font-size: 13px; color: var(--muted-2); cursor: pointer; }
+input[type=file]:hover { border-color: var(--pink); background: var(--pink-wash); }
+input[type=file]:focus-visible { outline: 2px solid var(--pink); outline-offset: 1px; }
+input[type=file]:disabled { opacity: .5; cursor: not-allowed; }
+input[type=file]::file-selector-button { margin-right: 10px; padding: 8px 14px; border: 0; border-radius: var(--r-sm); background: var(--ink); color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
+input[type=file]:hover::file-selector-button { background: var(--pink); }
+input[type=file]:disabled::file-selector-button { background: var(--muted-3); cursor: not-allowed; }
 button { color: inherit; cursor: pointer; }
 button, a { touch-action: manipulation; }
 button { border: 0; }
