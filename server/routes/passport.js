@@ -32,7 +32,10 @@ r.get('/passport/:slug/image/:kind', requireUser, wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
   const meta = parseJSON(st.meta, {});
   let stored = null;
-  if (req.params.kind === 'group') stored = meta.groupPhoto?.view || ev.config.memory?.groupImage || null;
+  if (req.params.kind === 'group') {
+    stored = meta.groupPhoto?.view || ev.config.memory?.groupImage || null;
+    if (!stored) stored = (await one('SELECT view FROM event_photos WHERE event_id=? AND (group_ok=1 OR faces>=?) ORDER BY group_ok DESC, featured DESC, faces DESC, sort_order LIMIT 1', [ev.id, GROUP_MIN_FACES]))?.view || null;
+  }
   else if (req.params.kind === 'note') stored = ev.config.memory?.noteImage || null;
   else if (meta.passportPortrait) {   // ไฟล์ส่วนตัวที่อัปโหลดเอง
     if (!/^[\w-]+\.(jpg|png|webp)$/.test(meta.passportPortrait)) throw new HttpError(404, 'ไม่พบรูป');
