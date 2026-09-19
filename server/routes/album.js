@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { q, one, parseJSON } from '../db.js';
-import { wrap, HttpError, getEvent } from '../lib.js';
+import { wrap, HttpError, getEvent, MASCOTS, mascotOf } from '../lib.js';
 import { requireUser } from '../auth.js';
 import { upload } from '../upload.js';
 import { canViewAlbum, photosOfUser, registerUserFace, forgetUserFaces, albumPublished } from '../album.js';
@@ -31,11 +31,13 @@ r.get('/events/:slug/album', wrap(async (req, res) => {
     const preview = await q('SELECT id, thumb, width, height FROM event_photos WHERE event_id=? ORDER BY featured DESC, sort_order LIMIT ?', [ev.id, PREVIEW]);
     return res.set('Cache-Control', 'private, no-store').json({ ...base, photos: await withUrls(preview), me: null });
   }
-  const photos = await q('SELECT id, thumb, view, orig, width, height, faces, featured, taken_at FROM event_photos WHERE event_id=? ORDER BY sort_order, id', [ev.id]);
+  const photos = await q('SELECT id, thumb, view, orig, width, height, faces, featured, taken_at, group_ok, mascot_ok FROM event_photos WHERE event_id=? ORDER BY sort_order, id', [ev.id]);
   const mineRows = req.user ? await photosOfUser(req.user.id, ev.id) : [];
   const mine = new Map(mineRows.map(m => [m.id, { similarity: m.similarity, status: m.status, box: parseJSON(m.box, null) }]));
   const me = req.user ? { consented: !!req.user.face_consent_at, registered: !!(await one('SELECT 1 AS ok FROM user_faces WHERE user_id=? LIMIT 1', [req.user.id])), matches: mineRows.length } : null;
-  res.set('Cache-Control', 'private, no-store').json({ ...base, photos: await withUrls(photos.map(p => ({ ...p, mine: mine.get(p.id) || null }))), me });
+  const out = photos.map(({ group_ok, mascot_ok, ...p }) => ({ ...p, mine: mine.get(p.id) || null, group: !!group_ok, mascot: !!mascot_ok }));
+  const counts = { all: out.length, me: mineRows.length, group: out.filter(p => p.group).length, mascot: out.filter(p => p.mascot).length };
+  res.set('Cache-Control', 'private, no-store').json({ ...base, photos: await withUrls(out), me, counts, mascot: mascotOf(ev), mascotName: MASCOTS[mascotOf(ev)] });
 }));
 
 // ยืนยัน/ปฏิเสธการจับคู่ของตัวเอง

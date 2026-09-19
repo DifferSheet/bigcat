@@ -13,7 +13,7 @@ export default function AlbumPage({ slug }) {
   const { user, loaded } = useUser();
   const [ev, setEv] = useState(null);
   const [a, setA] = useState(null);
-  const [filter, setFilter] = useState('all');   // all | me
+  const [filter, setFilter] = useState('all');   // all | me | group | mascot
   const [open, setOpen] = useState(null);        // index ใน list
   const [msg, setMsg] = useState('');
   const load = () => api(`/events/${slug}/album`).then(setA).catch(e => setMsg(e.message));
@@ -21,7 +21,15 @@ export default function AlbumPage({ slug }) {
   useEffect(() => { if (loaded) load(); }, [slug, loaded, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!a || a.access !== 'full') return; const m = location.hash.match(/^#p(\d+)/); if (m) { const i = a.photos.findIndex(p => p.id === Number(m[1])); if (i >= 0) setOpen(i); } }, [a]);
 
-  const list = a?.access === 'full' ? a.photos.filter(p => filter === 'all' || p.mine) : [];
+  const keep = (p) => (filter === 'all' ? true : filter === 'me' ? !!p.mine : filter === 'group' ? p.group : p.mascot);
+  const list = a?.access === 'full' ? a.photos.filter(keep) : [];
+  // แท็บที่ไม่มีรูปเลยจะไม่ขึ้น ยกเว้น «รูปที่มีฉัน» ที่ต้องเห็นไว้ให้รู้ว่ามีฟีเจอร์นี้
+  const tabs = a?.access === 'full' ? [
+    ['all', 'ทั้งหมด', a.counts?.all],
+    ['me', 'รูปที่มีฉัน', a.counts?.me],
+    ['group', 'รูปหมู่', a.counts?.group],
+    ['mascot', `รูป${a.mascotName || 'น้อง'}`, a.counts?.mascot],
+  ].filter(([k, , n]) => k === 'all' || k === 'me' || n > 0) : [];
   const act = async (path, body) => { setMsg(''); try { const r = await api(path, { method: 'POST', body }); await load(); return r; } catch (e) { setMsg(e.message); } };
   const cur = open != null ? list[open] : null;
 
@@ -30,7 +38,7 @@ export default function AlbumPage({ slug }) {
     <nav className="crumbs"><Link to="/events">ตารางงาน</Link><span>/</span><Link to={`/events/${slug}`}>{ev?.title || '…'}</Link><span>/</span><span>อัลบั้ม</span></nav>
     <div className="album-head">
       <div><span className="eyebrow">PHOTO ALBUM{d ? ` · ${d.long}` : ''}</span><h1>{ev?.title || 'อัลบั้มงาน'}</h1>{a?.access === 'full' && <p className="muted">{a.total} รูป{a.me?.matches > 0 ? ` · มีคุณ ${a.me.matches} รูป` : ''}</p>}</div>
-      {a?.access === 'full' && <div className="filter-tabs"><button className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>ทั้งหมด</button><button className={filter === 'me' ? 'active' : ''} onClick={() => setFilter('me')} disabled={!a.me?.matches}>รูปที่มีฉัน {a.me?.matches ? `(${a.me.matches})` : ''}</button></div>}
+      {a?.access === 'full' && <div className="filter-tabs">{tabs.map(([k, label, n]) => <button key={k} className={filter === k ? 'active' : ''} onClick={() => setFilter(k)} disabled={k === 'me' && !n}>{label}{n ? ` (${n})` : ''}</button>)}</div>}
     </div>
     {msg && <Notice tone="error">{msg}</Notice>}
     {!a ? <PageLoader label="กำลังเปิดอัลบั้ม…" />
@@ -42,6 +50,7 @@ export default function AlbumPage({ slug }) {
         : <>
           {a.facesEnabled && a.me && !a.me.registered && <Notice tone="muted">อยากให้ระบบหารูปที่มีคุณให้อัตโนมัติ? <Link to="/account#face">ลงทะเบียนใบหน้าในหน้าบัญชี</Link> (เลือกทำหรือไม่ก็ได้ ลบได้ทุกเมื่อ)</Notice>}
           {filter === 'me' && list.length === 0 && <Notice tone="muted">ยังไม่พบรูปที่มีคุณในอัลบั้มนี้</Notice>}
+          {filter === 'mascot' && <p className="muted small">รูปเดี่ยวของ{a.mascotName}ที่พี่ ๆ คัดไว้จากงานนี้</p>}
           <div className="album-grid">{list.map((p, i) => <button key={p.id} type="button" className={`album-tile ${p.mine ? 'mine' : ''}`} style={{ aspectRatio: `${p.width} / ${p.height}` }} onClick={() => setOpen(i)}><img src={p.thumb} alt="" loading="lazy" />{p.mine && <span className="album-me">{p.mine.status === 'confirmed' ? 'คุณ ✓' : 'น่าจะคุณ'}</span>}</button>)}</div>
         </>}
     {cur && <PhotoModal list={list} index={open} setIndex={setOpen} onClose={() => setOpen(null)}

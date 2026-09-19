@@ -481,6 +481,8 @@
 .confirm-del { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--danger); }
 .button.danger { background: var(--danger); }
 .check-all { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.ab-mascot { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted-3); }
+.ab-mascot select { padding: 4px 8px; border-radius: var(--r-sm); border: 1px solid var(--line); background: #fff; font-size: 13px; color: var(--ink); }
 .check-all input { accent-color: var(--ink); width: 16px; height: 16px; }
 @media (max-width: 760px) { .cat-row { grid-template-columns: 1fr 1fr; } }
 .gallery-edit { display: flex; flex-direction: column; gap: 6px; }

@@ -1,7 +1,7 @@
 // เมนู «อัลบั้ม» ในหน้าจัดการ — รวมทุกงาน: อัปโหลด · คัดรูป · เผยแพร่ · คิวสแกน · ทบทวนใบหน้า · คำขอเอารูปออก
 import { Router } from 'express';
 import { q, one, parseJSON } from '../db.js';
-import { wrap, HttpError, getEvent } from '../lib.js';
+import { wrap, HttpError, getEvent, MASCOTS, mascotOf } from '../lib.js';
 import { uploadMedia } from '../upload.js';
 import { importPhoto, deletePhoto, kick as kickAlbumScan, faceCrop, matchPhoto, albumPublished, GROUP_MIN_FACES } from '../album.js';
 import { facesEnabled, faceProvider, MATCH_THRESHOLD } from '../faces.js';
@@ -43,7 +43,7 @@ r.get('/albums/:slug', wrap(async (req, res) => {
   const removals = await q(`SELECT rm.id, rm.photo_id, rm.reason, rm.status, rm.created_at, u.display_name FROM photo_removals rm JOIN users u ON u.id=rm.user_id JOIN event_photos p ON p.id=rm.photo_id WHERE p.event_id=? AND rm.status='open' ORDER BY rm.created_at DESC`, [ev.id]);
   const groupPhotoId = ev.config.memory?.groupImage ? (photos.find(p => p.view === ev.config.memory.groupImage)?.id || null) : null;   // หา id ก่อนเซ็น URL
   res.json({
-    event: { slug: ev.slug, title: ev.title, type: ev.type, status: ev.status, starts_at: ev.starts_at, published: albumPublished(ev.config), groupPhotoId, layout: ev.config.memory?.layout || 'auto' },
+    event: { slug: ev.slug, title: ev.title, type: ev.type, status: ev.status, starts_at: ev.starts_at, published: albumPublished(ev.config), groupPhotoId, layout: ev.config.memory?.layout || 'auto', mascot: mascotOf(ev), mascotName: MASCOTS[mascotOf(ev)] },
     photos: await withUrls(photos), removals, facesEnabled, provider: faceProvider, threshold: MATCH_THRESHOLD, groupMinFaces: GROUP_MIN_FACES, storage: usingS3 ? 's3' : 'disk',
   });
 }));
@@ -79,6 +79,7 @@ r.post('/albums/:slug/bulk', wrap(async (req, res) => {
   if (action === 'feature' || action === 'unfeature') await q('UPDATE event_photos SET featured=? WHERE id IN (?)', [action === 'feature' ? 1 : 0, mine]);
   else if (action === 'group') await q('UPDATE event_photos SET group_ok=1 WHERE id IN (?)', [mine]);
   else if (action === 'ungroup') await q('UPDATE event_photos SET group_ok=0 WHERE id IN (?)', [mine]);
+  else if (action === 'mascot' || action === 'unmascot') await q('UPDATE event_photos SET mascot_ok=? WHERE id IN (?)', [action === 'mascot' ? 1 : 0, mine]);
   else if (action === 'rescan') { await q("UPDATE event_photos SET scan='pending' WHERE id IN (?)", [mine]); kickAlbumScan(); }
   else if (action === 'delete') { for (const id of mine) await deletePhoto(id); }
   else throw new HttpError(400, 'คำสั่งไม่ถูกต้อง');
@@ -87,6 +88,16 @@ r.post('/albums/:slug/bulk', wrap(async (req, res) => {
 
 // เทมเพลตการวางภาพในสมุด passport ของงานนี้
 const LAYOUTS = ['auto', 'warm', 'playful', 'special', 'merit'];
+// เลือกว่าตัวเอกของงานนี้คือใคร
+r.post('/albums/:slug/mascot', wrap(async (req, res) => {
+  const ev = await getEvent(req.params.slug);
+  const key = String(req.body?.mascot || '');
+  if (!MASCOTS[key]) throw new HttpError(400, 'ไม่รู้จักตัวละครนี้');
+  const cfg = { ...ev.config, album: { ...(ev.config.album || {}), mascot: key } };
+  await q('UPDATE events SET config=? WHERE id=?', [JSON.stringify(cfg), ev.id]);
+  res.json({ ok: true, mascot: key, mascotName: MASCOTS[key] });
+}));
+
 r.post('/albums/:slug/layout', wrap(async (req, res) => {
   const ev = await getEvent(req.params.slug);
   const layout = LAYOUTS.includes(req.body?.layout) ? req.body.layout : 'auto';
