@@ -66,7 +66,7 @@ function SelfCheckin({ item, onDone }) {
     setBusy(true); setError('');
     try { await api(`/registrations/${item.code}/checkin`, { method: 'POST' }); onDone(); } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
-  return <div className="self-checkin"><p>มาถึงหน้างานแล้วใช่ไหม กดเช็คอินได้เลย หรือแสดง QR ให้พี่ ๆ สแกน</p><button className="button dark" onClick={go} disabled={busy}>ฉันมาถึงแล้ว <Icon name="check" /></button>{error && <p className="notice error">{error}</p>}</div>;
+  return <div className="self-checkin"><p>มาถึงหน้างานแล้วใช่ไหม กดเช็คอินด้วยตัวเองได้เลย</p><button className="button dark" onClick={go} disabled={busy}>ฉันมาถึงแล้ว <Icon name="check" /></button>{error && <p className="notice error">{error}</p>}</div>;
 }
 
 // ชื่อบนใบ: ทำบุญโดยไม่ใส่ชื่อ แต่เจ้าของรายการล็อกอินมาเปิดเอง → เซิร์ฟเวอร์ส่ง certificate_name (ชื่อบัญชี) มาให้
