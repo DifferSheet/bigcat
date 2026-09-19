@@ -381,7 +381,8 @@ button.pc-cover { font-family: inherit; cursor: pointer; }
 .pm-event-heading small { font-size: 10px; color: #98785a; }
 .pm-story .eyebrow, .pm-album .eyebrow { font-size: 8px; }
 .pm-letter-row { display: grid; grid-template-columns: .8fr 1.2fr; gap: 16px; align-items: center; flex: 1; min-height: 0; }
-.pm-stamp { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 0; border: 0; background: none; color: #977353; cursor: pointer; min-width: 0; }
+.pm-stamp { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 0; border: 0; background: none; color: #977353; min-width: 0; }
+button.pm-stamp { cursor: pointer; }
 .pm-stamp .stamp { width: min(100%, 164px) !important; height: auto !important; aspect-ratio: 1; transform: rotate(-7deg); }
 .pm-stamp small { font: 11px var(--font-body); }
 .pm-letter { position: relative; padding: 22px 14px 14px; background: #fffdf6; box-shadow: 0 4px 10px #66482f12; border: 1px solid #e9ddca; transform: rotate(1deg); min-width: 0; max-height: 100%; overflow: visible; margin-top: 10px; }
