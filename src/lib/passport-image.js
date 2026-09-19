@@ -3,16 +3,20 @@
 import { eventStampArt, SPECIAL_STAMP_ART } from './stamp-art.js';
 import { eventMemory } from './passport-memory.js';
 import { eventDate } from './format.js';
+import { PASSPORT_SHARE_THEMES, defaultPassportQuote } from './passport-share-themes.js';
 const W = 1080, H = 1920;
 const loadImage = (src) => new Promise((resolve) => { if (!src) return resolve(null); const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => resolve(im); im.onerror = () => resolve(null); im.src = src; });
 const TONE = { pink: '#df8190', yellow: '#e2b53c', sage: '#7fa66f' };
 const STORY_HEADING_COLOR = '#79563d';
 
 // Preview exactly the photographs selected in this memory before saving/sharing.
-export async function drawEventMemoryImage(ev) {
+export async function drawEventMemoryImage(ev, { format = 'story', background = 'linen', heading } = {}) {
+  const theme = PASSPORT_SHARE_THEMES.find(t => t.id === background) || PASSPORT_SHARE_THEMES[0];
+  const headingColor = theme.ink;
+  const quoteText = heading ?? defaultPassportQuote(ev);
   const m = eventMemory(ev), c = document.createElement('canvas');
   // Render at 2× Story resolution; layout coordinates remain 1080 × 1920.
-  c.width = 2160; c.height = 3840;
+  c.width = format === 'landscape' ? 2400 : 2160; c.height = format === 'landscape' ? 1800 : 3840;
   const x = c.getContext('2d');
   x.scale(2, 2); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
   const font = getComputedStyle(document.documentElement).getPropertyValue('--font-body').trim() || 'sans-serif';
@@ -43,30 +47,56 @@ export async function drawEventMemoryImage(ev) {
     }
     x.fillText(line, left, top + row * size * 1.5);
   };
-  const bg = x.createLinearGradient(0, 0, 1080, 1920); bg.addColorStop(0, '#ead8cc'); bg.addColorStop(1, '#f7eee1');
-  x.fillStyle = bg; x.fillRect(0, 0, 1080, 1920);
-  if (backdrop) {
-    const s = Math.max(1080 / backdrop.width, 1920 / backdrop.height);
-    x.drawImage(backdrop, (1080 - backdrop.width * s) / 2, (1920 - backdrop.height * s) / 2, backdrop.width * s, backdrop.height * s);
+  const paintBackground = (width, height) => {
+    x.fillStyle = theme.color; x.fillRect(0, 0, width, height);
+    if (backdrop) {
+      x.save(); x.globalCompositeOperation = 'soft-light'; x.globalAlpha = .4;
+      const s = Math.max(width / backdrop.width, height / backdrop.height);
+      x.drawImage(backdrop, (width - backdrop.width * s) / 2, (height - backdrop.height * s) / 2, backdrop.width * s, backdrop.height * s); x.restore();
+    }
+  };
+  const tintLogo = (left, top, width, height) => {
+    if (!logo) return;
+    const tinted = document.createElement('canvas'); tinted.width = logo.width; tinted.height = logo.height;
+    const ink = tinted.getContext('2d'); ink.drawImage(logo, 0, 0); ink.globalCompositeOperation = 'source-in'; ink.fillStyle = headingColor; ink.fillRect(0, 0, tinted.width, tinted.height); fit(tinted, left, top, width, height);
+  };
+  if (format === 'landscape') {
+    paintBackground(1200, 900); tintLogo(70, 32, 63, 47);
+    x.textAlign = 'center'; x.fillStyle = headingColor; x.font = `600 25px ${font}`;
+    x.fillText(quoteText.replace(/\n/g, ' '), 650, 66, 940);
+    x.save(); x.shadowColor = '#61442340'; x.shadowBlur = 25; x.shadowOffsetY = 12;
+    box(46, 111, 1120, 720, '#c6ab7d', 22); box(40, 102, 1120, 720, '#fff9ed', 22); x.restore();
+    x.strokeStyle = '#d7c3a5'; x.lineWidth = 1; x.strokeRect(65, 127, 513, 665); x.strokeRect(622, 127, 513, 665);
+    const seam = x.createLinearGradient(565, 0, 635, 0); seam.addColorStop(0, '#96744900'); seam.addColorStop(.48, '#77573455'); seam.addColorStop(.52, '#fffdf6'); seam.addColorStop(1, '#96744900'); x.fillStyle = seam; x.fillRect(565, 103, 70, 718);
+    if (logo) fit(logo, 87, 148, 50, 38);
+    x.fillStyle = '#94724d'; x.textAlign = 'left'; x.font = '16px Georgia'; x.fillText('MY BIGCAT PASSPORT', 155, 174);
+    x.fillStyle = '#674735'; lines(ev.title, 88, 224, 460, 25, 2);
+    x.font = `400 18px ${font}`; x.fillText(eventDate(ev).long, 88, 296);
+    if (stamp) fit(stamp, 200, 314, 235, 224);
+    x.save(); x.shadowColor = '#684b3420'; x.shadowBlur = 12; box(87, 558, 467, 200, '#fffcf4', 3); x.restore(); box(258, 547, 124, 25, '#e8c6bca0', 1);
+    if (note) fit(note, 104, 578, 433, 147); else { x.fillStyle = '#765643'; lines(m.noteText || 'กำลังรวบรวมความทรงจำวันของเราอยู่นะ', 109, 603, 421, 21, 4); }
+    if (note || m.noteText) { x.textAlign = 'right'; x.font = `400 17px ${font}`; x.fillStyle = '#a07762'; x.fillText(`จาก ${m.author} ♡`, 533, 743); }
+    x.fillStyle = '#674735'; lines(m.heading, 648, 174, 462, 25, 2);
+    const captions = [m.group && m.groupCaption, m.portrait && m.portraitCaption].filter(Boolean);
+    photos.forEach((im, i) => {
+      const two = photos.length === 2, maxH = two ? 195 : 424;
+      const s = Math.min(403 / im.width, maxH / im.height), w = im.width * s, h = im.height * s;
+      x.save(); x.translate(two ? (i ? 912 : 865) : 880, (two ? 255 + i * 254 : 269) + (h + 51) / 2); x.rotate(i ? .035 : -.025);
+      x.shadowColor = '#684b3430'; x.shadowBlur = 13; x.shadowOffsetY = 6; box(-w / 2 - 13, -h / 2 - 25, w + 26, h + 51, '#fffefd', 2); x.shadowColor = 'transparent';
+      x.drawImage(im, -w / 2, -h / 2 - 12, w, h); x.textAlign = 'center'; x.fillStyle = '#79563d'; x.font = `400 18px ${font}`; x.fillText(captions[i] || m.caption, 0, h / 2 + 13, w);
+      box(-48, -h / 2 - 36, 96, 24, i ? '#c8dbe5b0' : '#e9c7c2b0', 1); x.restore();
+    });
+    x.fillStyle = '#855c4b'; lines(m.caption, 648, 775, 460, 18, 1);
+    x.textAlign = 'center'; x.font = '17px Georgia'; x.fillStyle = headingColor; x.fillText('MY BIGCAT PASSPORT · LITTLE MOMENTS, BIG LOVE', 600, 871);
+    return c;
   }
-  if (logo) {
-    const tinted = document.createElement('canvas');
-    tinted.width = logo.width; tinted.height = logo.height;
-    const ink = tinted.getContext('2d');
-    ink.drawImage(logo, 0, 0);
-    ink.globalCompositeOperation = 'source-in';
-    ink.fillStyle = STORY_HEADING_COLOR; ink.fillRect(0, 0, tinted.width, tinted.height);
-    fit(tinted, 464, 90, 152, 114);
-  }
-  x.textAlign = 'center'; x.fillStyle = STORY_HEADING_COLOR; x.font = `600 44px ${font}`;
-  const quote = ev.type === 'merit' || /ร่วมบุญ|พรรษา/.test(ev.title)
-    ? ['ความสุขของการให้', 'เก็บไว้ในความทรงจำ'] : ['อีกหนึ่งวันดี ๆ', 'ที่เราได้เจอกัน'];
-  quote.forEach((text, i) => x.fillText(text, 540, 278 + i * 62));
+  paintBackground(1080, 1920); tintLogo(464, 90, 152, 114);
+  x.textAlign = 'center'; x.fillStyle = headingColor; x.font = `600 44px ${font}`;
+  const quote = quoteText.split('\n').slice(0, 2);
+  quote.forEach((text, i) => x.fillText(text, 540, 278 + i * 62, 900));
   x.strokeStyle = '#c6a36a'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(373, 373); x.lineTo(493, 373); x.moveTo(587, 373); x.lineTo(707, 373); x.stroke();
   x.font = `34px ${font}`; x.fillStyle = '#ba945a'; x.fillText('♡', 540, 385);
   x.save(); x.translate(43, 429); x.scale(.92, .92);
-  // Bookmark emerges underneath the lower page block.
-  x.fillStyle = '#d8a1a6'; x.beginPath(); x.moveTo(496, 1275); x.lineTo(538, 1275); x.lineTo(552, 1393); x.lineTo(529, 1380); x.lineTo(514, 1390); x.closePath(); x.fill();
   x.save(); x.shadowColor = '#65453226'; x.shadowBlur = 32; x.shadowOffsetY = 14;
   box(35, 35, 1010, 1280, '#bca078', 26);
   box(32, 29, 1010, 1278, '#e6d5b8', 24);
@@ -114,7 +144,7 @@ export async function drawEventMemoryImage(ev) {
   x.fillStyle = '#855c4b'; lines(m.caption, 100, 1210, 875, 22, 1);
   x.textAlign = 'left'; x.font = '16px Georgia'; x.fillStyle = '#a28663'; x.fillText('02  /  LITTLE MOMENTS, BIG LOVE', 93, 1246);
   x.restore();
-  x.textAlign = 'center'; x.font = '20px Georgia'; x.fillStyle = '#846443'; x.fillText('MY BIGCAT PASSPORT', 540, 1770);
+  x.textAlign = 'center'; x.font = '20px Georgia'; x.fillStyle = headingColor; x.fillText('MY BIGCAT PASSPORT', 540, 1770);
   x.font = `400 23px ${font}`; x.fillText(eventDate(ev).long, 540, 1810);
   x.font = `30px ${font}`; x.fillStyle = '#b68e52'; x.fillText('♡', 540, 1860);
   return c;

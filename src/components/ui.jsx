@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useId } from 'react';
 
 export function Icon({ name, size = 20, ...props }) {
   const paths = {
@@ -26,6 +26,7 @@ export function Icon({ name, size = 20, ...props }) {
     gear: <><circle cx="12" cy="12" r="3.2" /><path d="M19.4 13.5a7.7 7.7 0 0 0 0-3l1.7-1.3-2-3.4-2 .8a7.6 7.6 0 0 0-2.6-1.5L14.2 3H9.8l-.3 2.1a7.6 7.6 0 0 0-2.6 1.5l-2-.8-2 3.4 1.7 1.3a7.7 7.7 0 0 0 0 3L2.9 15l2 3.4 2-.8a7.6 7.6 0 0 0 2.6 1.5l.3 2.1h4.4l.3-2.1a7.6 7.6 0 0 0 2.6-1.5l2 .8 2-3.4-1.7-1.3Z" /></>,
     camera: <><path d="M4 8h3l2-3h6l2 3h3v11H4V8Z" /><circle cx="12" cy="13" r="3.5" /></>,
     check: <path d="m5 12 4 4L19 6" />,
+    stamp: <><rect x="4" y="4" width="16" height="16" rx="2" strokeDasharray="2.6 2.2" /><circle cx="12" cy="12" r="3.6" /></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name] || paths.arrow}</svg>;
 }
@@ -36,8 +37,9 @@ export function Paw({ className = '' }) {
 export function Flower({ className = '' }) {
   return <svg className={className} viewBox="0 0 100 100" aria-hidden="true"><g fill="currentColor">{[0, 60, 120, 180, 240, 300].map(a => <ellipse key={a} cx="50" cy="24" rx="17" ry="23" transform={`rotate(${a} 50 50)`} />)}</g><circle cx="50" cy="50" r="15" fill="#f3cf7b" /></svg>;
 }
-export function Modal({ title, children, onClose, wide = false }) {
+export function Modal({ title, children, onClose, wide = false, footer, toolbar }) {
   const ref = useRef(null);
+  const titleId = useId();
   useEffect(() => {
     const previous = document.activeElement;
     const oldOverflow = document.body.style.overflow;
@@ -45,9 +47,10 @@ export function Modal({ title, children, onClose, wide = false }) {
     ref.current.showModal();
     return () => { document.body.style.overflow = oldOverflow; previous?.focus(); };
   }, []);
-  return <dialog ref={ref} className={`modal ${wide ? 'modal-wide' : ''}`} onCancel={onClose} onClick={e => { if (e.target === ref.current) { const r = ref.current.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) onClose(); } }} aria-labelledby="modal-title">
+  return <dialog ref={ref} className={`modal ${wide ? 'modal-wide' : ''} ${footer ? 'modal-framed' : ''}`} onCancel={onClose} onClick={e => { if (e.target === ref.current) { const r = ref.current.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) onClose(); } }} aria-labelledby={titleId}>
+    {footer ? <><header className="modal-fixed-header"><div className="modal-top"><h2 id={titleId}>{title}</h2><button className="icon-button" aria-label="ปิดหน้าต่าง" onClick={onClose}><Icon name="close" /></button></div>{toolbar}</header><div className="modal-scroll-content">{children}</div><footer className="modal-fixed-footer">{footer}</footer></> : <>
     <div className="modal-top"><span className="eyebrow">THE BIGCAT WORLD</span><button className="icon-button" aria-label="ปิดหน้าต่าง" onClick={onClose}><Icon name="close" /></button></div>
-    <h2 id="modal-title">{title}</h2>{children}
+    <h2 id={titleId}>{title}</h2>{children}</>}
   </dialog>;
 }
 
