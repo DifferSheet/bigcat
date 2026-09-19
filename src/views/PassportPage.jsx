@@ -300,7 +300,8 @@ export default function PassportPage() {
         <CollectorBook name={user.display_name} events={data.books.flatMap(b => b.events)} onOpen={() => setReaderOpen(true)} />
       </section>
       <div className="pc-content">
-      {img && <SaveImage url={img} fileName={`bigcat-passport-${user.display_name}.png`} title="BIGCAT Passport" alt="Passport ของฉัน" />}
+      {/* ภาพสมุดทั้งเล่มขึ้นเป็นหน้าต่าง — เดิมวาดไว้ใต้ฮีโร่ กดแล้วไม่เห็นอะไรเพราะอยู่ต่ำกว่าขอบจอ (แด๊ดแจ้ง 19 ก.ย. 2026) */}
+      {img && <Modal title="แชร์สมุดของฉัน" onClose={() => setImg(null)}><SaveImage url={img} fileName={`bigcat-passport-${user.display_name}.png`} title="BIGCAT Passport" alt="Passport ของฉัน" /></Modal>}
 
       {data.total === 0 && <div className="pc-empty"><span>♡</span><h3>ความทรงจำดวงแรก กำลังรอคุณอยู่</h3><p>มาเจอกันที่งาน แล้วเช็คอินเพื่อเริ่มต้นสมุดเล่มนี้</p><Link className="button ghost small" to="/events">ดูตารางงาน ↗</Link></div>}
 
