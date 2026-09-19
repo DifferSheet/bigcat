@@ -132,8 +132,8 @@ export function AlbumDetail({ slug }) {
 
   if (err && !d) return <Notice tone="error">{err}</Notice>;
   if (!d) return <PageLoader />;
-  const FILTERS = [['all', 'ทั้งหมด'], ['matched', 'มีสมาชิก'], ['single', 'เดี่ยว/คู่'], ['nomatch', 'ไม่ได้จับคู่'], ['group', 'รูปหมู่ที่เลือกไว้'], ['featured', 'พรีวิว'], ['unknown', 'หน้าที่ยังไม่รู้จัก']];
-  const keep = (p) => filter === 'all' || (filter === 'matched' ? p.matched > 0 : filter === 'single' ? p.scan === 'done' : filter === 'nomatch' ? p.scan === 'skipped' : filter === 'group' ? !!p.group_ok : filter === 'featured' ? !!p.featured : p.unknown > 0);
+  const FILTERS = [['all', 'ทั้งหมด'], ['matched', 'มีสมาชิก'], ['single', 'เดี่ยว/คู่'], ['nomatch', 'ไม่ได้จับคู่'], ['group', 'รูปหมู่ที่เลือกไว้'], ['mascot', `รูป${d.event.mascotName || 'น้อง'}`], ['featured', 'พรีวิว'], ['unknown', 'หน้าที่ยังไม่รู้จัก']];
+  const keep = (p) => filter === 'all' || (filter === 'matched' ? p.matched > 0 : filter === 'single' ? p.scan === 'done' : filter === 'nomatch' ? p.scan === 'skipped' : filter === 'group' ? !!p.group_ok : filter === 'mascot' ? !!p.mascot_ok : filter === 'featured' ? !!p.featured : p.unknown > 0);
   const list = d.photos.filter(keep);
   const stat = { done: d.photos.filter(p => p.scan === 'done').length, skipped: d.photos.filter(p => p.scan === 'skipped').length, pending: d.photos.filter(p => p.scan === 'pending').length, failed: d.photos.filter(p => p.scan === 'failed').length, matched: d.photos.filter(p => p.matched > 0).length, bytes: d.photos.reduce((n, p) => n + Number(p.bytes || 0), 0) };
 
@@ -188,6 +188,7 @@ export function AlbumDetail({ slug }) {
     <div className="tabs-row">
       <div className="filter-tabs">{FILTERS.map(([k, label]) => <button key={k} className={filter === k ? 'active' : ''} onClick={() => setFilter(k)}>{label}</button>)}</div>
       <span className="ab-tools">
+        <label className="ab-mascot">ตัวเอกของงาน <select value={d.event.mascot} onChange={async e => { setMsg(''); try { const r = await api(`/admin/albums/${slug}/mascot`, { method: 'POST', body: { mascot: e.target.value }, admin: true }); setMsg(`แท็บในอัลบั้มจะขึ้นว่า «รูป${r.mascotName}»`); load(); } catch (err) { setErr(err.message); } }}>{[['boota', 'บูตะ'], ['nobi', 'โนบิ'], ['shiba', 'ชิบะ']].map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
         <button type="button" className="link-button" onClick={async () => { setMsg(''); try { const r = await api(`/admin/albums/${slug}/bulk`, { method: 'POST', body: { action: 'group-auto' }, admin: true }); setMsg(`ทำเครื่องหมายรูปหมู่อัตโนมัติ ${r.count} รูป (คนตั้งแต่ ${r.threshold} คนขึ้นไป)`); load(); } catch (e) { setErr(e.message); } }}>ทำเครื่องหมายรูปหมู่อัตโนมัติ (คน ≥ {d.groupMinFaces || 20})</button>
       <label className="check-all"><input type="checkbox" checked={list.length > 0 && list.every(p => sel.includes(p.id))} onChange={e => setSel(e.target.checked ? list.map(p => p.id) : [])} /> เลือกทั้งหมดในมุมมองนี้</label>
       </span>
@@ -197,6 +198,8 @@ export function AlbumDetail({ slug }) {
       <button className="button ghost small" onClick={() => bulk('unfeature')}>เอาออกจากพรีวิว</button>
       <button className="button ghost small" onClick={() => bulk('group')}>ทำเครื่องหมายรูปหมู่</button>
       <button className="button ghost small" onClick={() => bulk('ungroup')}>เอาออกจากรูปหมู่</button>
+      <button className="button ghost small" onClick={() => bulk('mascot')}>เป็นรูป{d.event.mascotName}</button>
+      <button className="button ghost small" onClick={() => bulk('unmascot')}>เอาออกจากรูป{d.event.mascotName}</button>
       <button className="button ghost small" onClick={() => bulk('rescan')}>สแกนใหม่</button>
       <button className="link-button danger" onClick={() => bulk('delete')}>ลบ</button>
       <button className="link-button" onClick={() => setSel([])}>ยกเลิกการเลือก</button>
@@ -211,7 +214,7 @@ export function AlbumDetail({ slug }) {
         <span className="aa-badges">
           {p.scan === 'pending' ? <b className="mini-tag">สแกน…</b> : p.scan === 'done' ? <b className="mini-tag ok">{p.faces === 1 ? 'เดี่ยว' : p.faces === 2 ? 'คู่' : `${p.faces} คน`}</b> : p.scan === 'failed' ? <b className="mini-tag dup">ล้มเหลว</b> : <b className="mini-tag via">{p.faces ? `หมู่ ${p.faces}` : 'ไม่มีหน้า'}</b>}
           {p.matched > 0 && <b className="mini-tag warn">👤 {p.matched}</b>}
-          {!!p.featured && <b className="mini-tag ok">พรีวิว</b>}{isGroup && <b className="mini-tag warn">รูปหมู่หลัก</b>}{!!p.group_ok && !isGroup && <b className="mini-tag via">รูปหมู่</b>}
+          {!!p.featured && <b className="mini-tag ok">พรีวิว</b>}{isGroup && <b className="mini-tag warn">รูปหมู่หลัก</b>}{!!p.group_ok && !isGroup && <b className="mini-tag via">รูปหมู่</b>}{!!p.mascot_ok && <b className="mini-tag ok">{d.event.mascotName}</b>}
         </span>
         <a className="ab-open" href={p.view} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} aria-label="เปิดรูปเต็ม">↗</a>
         <span className="ab-tile-actions">

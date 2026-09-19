@@ -76,8 +76,8 @@ export default function EventPage({ slug, initialData = null }) {
       <div className="ev-columns">
         <div className="ev-main">
           <Section title="เกี่ยวกับงานนี้"><p className="ev-desc">{ev.description}</p></Section>
-          <div id="module">{Module && <Module data={data} setData={setData} />}</div>
           <EventAlbum ev={ev} />
+          <div id="module">{Module && <Module data={data} setData={setData} />}</div>
           {ended && <Section eyebrow="RECAP" title="ขอบคุณที่มาเจอกัน"><p>งานนี้จบลงแล้ว ภาพบรรยากาศและสรุปยอดจะอัปเดตที่นี่ ติดตามงานถัดไปได้ที่หน้าตารางงาน</p></Section>}
         </div>
         <aside className="ev-side">

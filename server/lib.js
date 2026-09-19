@@ -34,6 +34,10 @@ export function checkinWindow(ev) {
   return { opens: new Date(start.getTime() - (Number(w.before) || 0) * 60e3), closes: new Date(start.getTime() + (Number(w.after) || 0) * 60e3) };
 }
 
+// มาสคอตตัวเอกของงาน — ใช้ตั้งชื่อแท็บ «รูปบูตะ / รูปโนบิ» ในอัลบั้ม (แด๊ดสั่ง 19 ก.ย. 2026)
+export const MASCOTS = { boota: 'บูตะ', nobi: 'โนบิ', shiba: 'ชิบะ' };
+export const mascotOf = (ev) => (MASCOTS[ev.config?.album?.mascot] ? ev.config.album.mascot : ev.type === 'busking' ? 'nobi' : 'boota');
+
 // งานที่ไม่ได้ตั้งหน้าต่างเวลาไว้ ใช้ค่าเริ่มต้นรอบเวลาเริ่มงานแทน — ปุ่มเช็คอินเองจะเปิดเมื่อถึงเวลา
 // ไม่ต้องรอแอดมินกดเปลี่ยนสถานะเป็น live (แด๊ดสั่ง 19 ก.ย. 2026) · สถานะ live ยังเปิดให้เช็คอินได้ตลอดเหมือนเดิม
 export const DEFAULT_CHECKIN_WINDOW = { before: 60, after: 240 };

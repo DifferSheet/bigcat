@@ -52,6 +52,7 @@ export async function migrate() {
     "UPDATE users SET avatar_custom=1 WHERE avatar LIKE '/uploads/%'",
     "ALTER TABLE event_photos ADD COLUMN sha CHAR(40) NULL, ADD COLUMN bytes INT NULL, ADD INDEX ix_photo_sha (event_id, sha)",
     "ALTER TABLE event_photos ADD COLUMN group_ok TINYINT(1) NOT NULL DEFAULT 0",
+    "ALTER TABLE event_photos ADD COLUMN mascot_ok TINYINT(1) NOT NULL DEFAULT 0",
     "ALTER TABLE users ADD COLUMN invite_code VARCHAR(8) NULL, ADD COLUMN invited_by INT NULL, ADD COLUMN first_checkin_at DATETIME NULL, ADD COLUMN sticker_given_at DATETIME NULL, ADD UNIQUE KEY uq_user_invite (invite_code)",
   ];
   for (const sql of alters) {
