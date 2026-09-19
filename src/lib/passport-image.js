@@ -71,15 +71,19 @@ export async function drawEventMemoryImage(ev) {
   x.fillStyle = '#674735'; lines(m.heading, 94, 763, 880, 30, 2);
   const captions = [m.group && m.groupCaption, m.portrait && m.portraitCaption].filter(Boolean);
   photos.forEach((im, i) => {
-    const two = photos.length === 2, width = two ? 400 : 760, height = 327;
+    const two = photos.length === 2;
+    const scale = Math.min(((two ? 400 : 760) - 36) / im.width, (327 - 76) / im.height);
+    const photoWidth = im.width * scale, photoHeight = im.height * scale;
+    // Size the paper to the actual photograph, keeping only the white border and caption strip.
+    const width = photoWidth + 36, height = photoHeight + 76;
     const top = two ? (i ? 848 : 826) : 830;
     x.save(); x.translate(two ? (i ? 756 : 309) : 540, top + height / 2); x.rotate(two ? (i ? .04 : -.04) : -.015);
     x.shadowColor = '#684b3430'; x.shadowBlur = 18; x.shadowOffsetY = 8;
     box(-width / 2, -height / 2, width, height, '#fffefd', 3); x.shadowColor = 'transparent';
-    box(-width / 2 + 18, -height / 2 + 18, width - 36, height - 76, '#f3eee7', 0);
-    fit(im, -width / 2 + 18, -height / 2 + 18, width - 36, height - 76);
+    x.drawImage(im, -width / 2 + 18, -height / 2 + 18, photoWidth, photoHeight);
     x.fillStyle = '#79563d'; x.textAlign = 'center'; x.font = `400 22px ${font}`; x.fillText(captions[i] || m.caption, 0, height / 2 - 22, width - 60);
-    x.globalAlpha = .76; box(-83, -height / 2 - 14, 166, 34, i ? '#c8dbe5' : '#e9c7c2', 1); x.restore();
+    const tapeWidth = Math.min(166, width * .55);
+    x.globalAlpha = .76; box(-tapeWidth / 2, -height / 2 - 14, tapeWidth, 34, i ? '#c8dbe5' : '#e9c7c2', 1); x.restore();
   });
   x.fillStyle = '#855c4b'; lines(m.caption, 100, 1210, 875, 22, 1);
   x.textAlign = 'left'; x.font = '16px Georgia'; x.fillStyle = '#a28663'; x.fillText('02  /  LITTLE MOMENTS, BIG LOVE', 93, 1246);
